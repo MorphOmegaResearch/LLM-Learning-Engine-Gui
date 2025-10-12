@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # OpenCode Trainer 🚀
 
 **A comprehensive GUI-based training and evaluation system for fine-tuning small language models with OpenCode tool integration.**
