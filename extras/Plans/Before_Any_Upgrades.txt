@@ -1,0 +1,15 @@
+Considerations before any upgrades or implementations.
+
+0 - Backup project and Read Steps Below and then Read Relating File for current State per Step
+   -Confirm Commander has completed this prior , offer to copy the target files.
+
+1 - Map out and ID Target files to modify.   
+   -Reference Target files and code lines, Reasons and intentions.
+
+2 - Disabled first / commented out until pilot tests begin.
+   -Plan to implement new changes Pre-Disabled to prevent crash until pilot tests.
+
+3 - Implement a Enable/Disable Switch in User Settings implemented in the appropriate Settings Sub-TAB.
+   -
+
+4 - 

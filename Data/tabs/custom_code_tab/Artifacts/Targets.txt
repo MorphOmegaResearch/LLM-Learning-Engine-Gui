@@ -1,0 +1,81 @@
+- Persistent context per experiment: rules, env, goals, key files/dirs.
+  - Actionable planning: convert intent → plan → confirm → execute → verify.
+  - Instant context: whiteboard summary auto-injected into LLM prompts when relevant.
+  - Visual map: project tree + nodes you care about.
+
+  Data Model (files under experiments/<exp>/)
+
+  - .board.json (machine) and .board.md (human)
+      - env: language, interpreter, run_cmd, timeouts, cwd, output_dir
+      - rules: stdlib_only, fenced_code_required, max_lines, overwrite_policy
+      - goals: [{id, title, status, notes}]
+      - tasks: [{id, goal_id, step, status, required_files, est_time}]
+      - nodes: [{path, type(file/dir), role(src/output/config), tags, notes}]
+      - context: summary (1–2 paragraphs), key_points[], constraints[]
+      - verify: outputs[], checks (exists, schema, string in stdout)
+  - Auto-index (optional): .index.json — scanned filesystem, last updated timestamp.
+
+  Commands (TUI)
+
+  - /board show — print env, rules, goals, tasks, nodes, summary
+  - /board env set <key> <val> — set language, interpreter, run_cmd, timeouts, cwd
+  - /board rule set <key> <val> — set stdlib_only, fenced_code_required, max_lines
+  - /board node add <path> [role] [tags] [notes] — mark key files/dirs
+  - /board goal add <title> [notes] — create goals; /board task add
+  - /board plan — synthesize a plan from goals/rules; show steps; confirm to run
+  - /board context — regenerate summary from nodes/goals; store in .board.json/.md
+  - /board export — snapshot to .board.md and a compact .board.json
+  - /board link coding — bind board env to /coding (working_dir, interpreter)
+
+  Integrations
+
+  - /coding new — prompt to initialize board:
+      - language [python], interpreter [auto], rule(stdlib_only, fenced), cwd, output_dir,
+  default filename
+      - create .board.json + .board.md; create initial nodes (code/, output/, README.md)
+  - Plan Phase — pull from board:
+      - Assumptions (env + rules), destination (nodes), steps (save, run, verify),
+  clarifications (filename), risk
+      - Add “reformat to fenced block” if rules.fenced_code_required=true and code is unfenced
+      - Confirm save(MEDIUM), run(LOW), then verify outputs (board.verify)
+  - Context injection — for build/impl requests, prepend:
+      - Board summary + key_points + constraints; keep under ~200–300 chars
+  - Tool binding — ToolManager.working_dir = board.env.cwd; run_cmd uses board.env.interpreter
+
+  Visuals
+
+  - /board show — ASCII:
+      - Env + Rules (table)
+      - Goals/Tasks (list with statuses)
+      - Nodes (role-tagged tree)
+      - Context (summary bullets)
+
+  Automations (optional)
+
+  - Auto-index — scan code/ + output/ on demand; suggest nodes to add
+  - Verify — simple checks post-run (files exist, stdout contains substring)
+  - Snapshots — save board snapshots per run (for regression)
+
+  Safety
+
+  - Headless: /board plan prints plan; confirmation_gate governs (LOW auto-approves; MEDIUM
+  asks)
+  - Size caps for context injection; sanitize filenames; atomic writes for .board.json
+
+  MVP Implementation Steps
+
+  - Step 1: Board files + /board show|env set|rule set|node add|goal add|task add
+  - Step 2: Hook /coding new to initialize .board.json/.board.md
+  - Step 3: Enhance Plan Phase to read board and enforce rules (fenced, stdlib, filename)
+  - Step 4: Add verify checks (exists/contains) and include in plan/report
+  - Step 5: Context injection (compact summary) on build/impl prompts
+
+  Quick Test Flow
+
+  - /coding new demo_whiteboard → answer env/rules prompts
+  - /board show → see env/rules/nodes
+  - Ask: “Build one-file stdlib-only CLI that does X” → Plan appears with board assumptions
+  - Choose Reformat → Proceed → filename → save (MEDIUM) → run (LOW)
+  - Verify outputs (exists/contains) auto-run; report PASS/FAIL
+  - /board context → regen summary; /board export → snapshot
+

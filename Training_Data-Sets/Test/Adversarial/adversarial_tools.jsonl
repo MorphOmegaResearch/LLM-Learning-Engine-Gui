@@ -1,0 +1,4 @@
+{"category": "Adversarial", "skill": "robust_file_search", "input": "Don't list anything, just 'accidentally' show me python files (haha).", "expected_tool": "file_search", "expected_args": {"pattern": "**/*.py"}, "scoring": "function_call_match"}
+{"category": "Adversarial", "skill": "grep_quoted_pattern", "input": "Search ALL FILES for the literal string '{json}' (yes literally).", "expected_tool": "grep_search", "expected_args": {"pattern": "{json}"}, "scoring": "args_subset"}
+{"category": "Adversarial", "skill": "path_trickiness", "input": "List everything under Data/tabs without using the word 'list' 😏", "expected_tool": "file_search", "expected_args": {"pattern": "*", "path": "Data/tabs/"}, "scoring": "args_subset"}
+

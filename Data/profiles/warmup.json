@@ -1,0 +1,8 @@
+{
+  "training_runs": 1,
+  "batch_size": 1,
+  "learning_strength": "2e-4",
+  "base_model": "Qwen-Custom-opencode-tools:latest",
+  "categories": [],
+  "subcategories": {}
+}

@@ -1,0 +1,33 @@
+system blueprint:
+
+  ---
+
+  🏗️ OpenCode Trainer System - Complete Blueprint
+
+  Version: 1.7e (Baselines + Schema-aware Eval + Runner UX)
+  Date: 2025-10-07
+  Status: Feature Complete
+
+  ---
+
+  Updates in 1.7e
+   - Baselines: Added Models → Baselines sub‑tab to view entries and set Active. Baseline conformer prompts before creating/overwriting. Base‑level catalog at `Models/benchmarks/index.json`.
+   - Schema-aware evaluation: When a Tool Schema is selected, evaluation validates tool name/args against the schema before scoring. Reports include metadata (suite, schema, prompt, sample %, policies used).
+   - Compare: Can compare Model A’s latest vs any stored baseline.
+   - Runner UX: Separated Evaluation Automation (scheduling) from Evaluation Context (prompt/schema). Added Baseline Controls (source selector + quick link). Start/Stop/Clear/Status fixed at bottom.
+   - Levels plumbing: Added helpers for level baselines (save/load/index). UI listing/promote/copy will follow.
+
+  Components touched
+   - Models Tab: Evaluation, Baselines (new), Compare.
+   - Settings Tab → Help: updated docs for Baselines and schema‑aware scoring.
+   - Runner Panel: re‑layout and GPU‑gated Early Stopping.
+
+  Data flow (new/updated)
+   - Baselines (base): `Models/benchmarks/<model>_baseline.json` + `Models/benchmarks/index.json` (active + entries).
+   - Baselines (level): `Models/levels/<base>/<level>/benchmarks/baseline.json` + index.json (plumbing added).
+   - Evaluations: `Models/evaluations/<model>_eval_<ts>.json`.
+   - Skills: `Models/skills/<model>.json` with `{"skills": {...}, "meta": {...}}`.
+
+  Changelog
+   - v1.7e: Baselines sub‑tab, baseline confirm, schema‑aware eval/scoring metadata, compare vs baseline, runner UI split.
+   - v1.7d: Models list nesting + Export conformer + tokens/sec estimates.

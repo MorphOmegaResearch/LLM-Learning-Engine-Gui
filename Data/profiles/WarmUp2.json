@@ -1,0 +1,46 @@
+{
+  "training_runs": 1,
+  "batch_size": 1,
+  "learning_strength": "2e-4",
+  "base_model": "Qwen2.5-0.5b-Instruct",
+  "categories": [
+    "Tools"
+  ],
+  "subcategories": {
+    "Tools": [
+      "train1.py",
+      "adversarial.jsonl",
+      "error_recovery.jsonl",
+      "file_operations.jsonl",
+      "git_operations.jsonl",
+      "multi_step_workflows.jsonl",
+      "paraphrasing.jsonl",
+      "search_operations.jsonl",
+      "system_operations.jsonl",
+      "web_operations.jsonl"
+    ]
+  },
+  "runner_settings": {
+    "max_time": 20,
+    "run_delay": 0,
+    "save_checkpoints": false,
+    "checkpoint_interval": 5,
+    "early_stop": false,
+    "early_stop_patience": 3,
+    "use_mixed_precision": true,
+    "gradient_accumulation": 16,
+    "warmup_steps": 5,
+    "max_cpu_threads": 2,
+    "max_ram_percent": 70,
+    "auto_restart": false,
+    "auto_eval_baseline": false,
+    "auto_eval_post": false
+  },
+  "evaluation_preferences": {
+    "use_system_prompt": true,
+    "system_prompt": "",
+    "use_tool_schema": true,
+    "tool_schema": "",
+    "suite_strategy": "trained_categories"
+  }
+}

@@ -1,0 +1,3 @@
+Fast little 0.5B Qwen Model.
+-Tool_Calls in JSON.
+-Chat-Limited but fast.

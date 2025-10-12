@@ -1,0 +1,452 @@
+{
+  "format_translation": {
+    "enabled": false,
+    "formats": {
+      "python_function": true,
+      "markdown_emphasis": true,
+      "gemma_tools": true,
+      "simple_function": true,
+      "json_format": true
+    },
+    "normalize_parameters": true,
+    "auto_fix_param_names": true
+  },
+  "json_repair": {
+    "enabled": false,
+    "aggressiveness": "medium",
+    "validation": "strict",
+    "repair_strategies": [
+      "bracket_balance",
+      "quote_fix",
+      "trailing_comma",
+      "parse_partial"
+    ],
+    "max_repair_attempts": 3
+  },
+  "schema_validation": {
+    "enabled": false,
+    "mode": "permissive",
+    "strict_types": false,
+    "require_all_fields": false,
+    "validate_ranges": true
+  },
+  "tool_orchestrator": {
+    "enabled": false,
+    "risk_assessment": true,
+    "confirmation_gates": {
+      "safe": "none",
+      "low": "implicit",
+      "medium": "explicit",
+      "high": "explicit",
+      "critical": "mandatory"
+    },
+    "parallel_execution": true,
+    "rollback_enabled": true,
+    "operation_history_size": 100,
+    "auto_chain": true,
+    "auto_retry": true,
+    "max_retries": 2,
+    "cache_results": true,
+    "cache_ttl": 300,
+    "suggest_next_tools": true,
+    "validate_post_execution": true,
+    "failure_hints": {
+      "file_not_found": "Use bash_execute with 'ls -la' to list files",
+      "permission_denied": "Check file permissions with system_info",
+      "invalid_path": "Use directory_list to verify path structure"
+    }
+  },
+  "intelligent_routing": {
+    "enabled": false,
+    "confidence_threshold": 0.7,
+    "multi_tool_detection": true,
+    "structured_threshold": 0.7,
+    "reasoning_threshold": 0.6,
+    "continuation_threshold": 0.8,
+    "recall_threshold": 0.8,
+    "tool_threshold": 0.7,
+    "memory_gate_min_score": 0.6,
+    "summary_gate_min_score": 0.5,
+    "use_mvco_router": true,
+    "lane_timeouts": {
+      "standard": 12,
+      "deliberate": 25,
+      "recall": 5,
+      "tool_use": 15
+    },
+    "performance_targets": {
+      "structured": 90.0,
+      "recall": 95.0,
+      "general": 80.0
+    }
+  },
+  "resource_management": {
+    "enabled": false,
+    "profile": "balanced",
+    "custom_overrides": {
+      "num_threads": null,
+      "max_tokens": null,
+      "memory_limit_mb": null
+    },
+    "auto_detect": true,
+    "cpu_threads": null,
+    "gpu_enabled": true,
+    "max_memory_mb": null,
+    "fallback_model": "gemma2:2b-16k",
+    "resources_percentage": 50
+  },
+  "time_slicing": {
+    "enabled": false,
+    "tokens_per_slice": 32,
+    "sleep_ms": 30,
+    "total_budget_seconds": 300,
+    "slice_generation": true,
+    "adaptive_slicing": true
+  },
+  "context_scoring": {
+    "enabled": false,
+    "memory_threshold_percent": 85,
+    "history_buffer_size": 1000,
+    "cache_enabled": true,
+    "dynamic_pruning": true,
+    "adaptive_timeouts": true,
+    "max_context_tokens": 2000,
+    "pruning_ratio": 0.8,
+    "performance_monitoring": true,
+    "weights": {
+      "semantic_coherence": 0.35,
+      "information_density": 0.25,
+      "context_relevance": 0.2,
+      "token_efficiency": 0.2
+    }
+  },
+  "pre_rag_optimizer": {
+    "enabled": false,
+    "optimizations": {
+      "context_compression": true,
+      "semantic_chunking": true,
+      "query_enhancement": true,
+      "relevance_filtering": true,
+      "prompt_optimization": true
+    },
+    "compression_ratio_target": 0.7,
+    "cache_ttl_seconds": 1800,
+    "max_context_tokens": 2000,
+    "enable_caching": true
+  },
+  "verification": {
+    "enabled": false,
+    "strictness": "medium",
+    "auto_fix": true,
+    "run_tests": false,
+    "verify_file_operations": true,
+    "verify_bash_output": true,
+    "verify_git_operations": true
+  },
+  "quality_assurance": {
+    "enabled": false,
+    "threshold": 0.8,
+    "auto_recovery": true,
+    "quality_checks": [
+      "completeness",
+      "accuracy",
+      "format",
+      "safety"
+    ],
+    "fail_fast": false
+  },
+  "adaptive_workflow": {
+    "enabled": false,
+    "adaptation_threshold": 0.7,
+    "learning_rate": 0.1,
+    "workflow_memory_size": 50,
+    "auto_adapt": true,
+    "save_adaptations": true
+  },
+  "agentic_project": {
+    "enabled": false,
+    "max_agents": 5,
+    "agent_timeout_seconds": 300,
+    "enable_multi_agent": false,
+    "confirmation_level": "MODERATE",
+    "resource_constraints": "STANDARD",
+    "auto_handoff_enabled": false,
+    "agent_types": [
+      "planner",
+      "executor",
+      "reviewer",
+      "tester"
+    ]
+  },
+  "workflow_optimizer": {
+    "enabled": false,
+    "optimization_level": "balanced",
+    "auto_optimize": false,
+    "optimize_parallel": true,
+    "optimize_sequence": true,
+    "cache_workflows": true
+  },
+  "project_store": {
+    "enabled": false,
+    "auto_save": true,
+    "save_interval_seconds": 60,
+    "max_snapshots": 10,
+    "compress_snapshots": true,
+    "store_path": ".opencode_project"
+  },
+  "session_manager": {
+    "enabled": false,
+    "persist_sessions": true,
+    "session_timeout_minutes": 30,
+    "auto_restore": true,
+    "max_sessions": 10,
+    "save_history": true,
+    "history_file": ".opencode_history",
+    "max_history_entries": 100,
+    "resume_last_session": true
+  },
+  "master_quality": {
+    "enabled": false,
+    "quality_threshold": 0.85,
+    "enable_all_checks": true,
+    "strict_mode": false,
+    "checks": {
+      "syntax": true,
+      "semantics": true,
+      "performance": true,
+      "security": true,
+      "best_practices": true
+    }
+  },
+  "quality_recovery": {
+    "enabled": false,
+    "max_recovery_attempts": 3,
+    "recovery_strategies": [
+      "retry",
+      "fallback",
+      "simplify"
+    ],
+    "auto_recovery": true,
+    "instant_hooks_enabled": true,
+    "rag_feedback_enabled": true,
+    "observer_pattern_enabled": true,
+    "mode": "balanced",
+    "fallback_chain": [
+      "retry_once",
+      "simplify_params",
+      "use_fallback_model",
+      "skip_optional"
+    ]
+  },
+  "performance_benchmark": {
+    "enabled": false,
+    "auto_benchmark": false,
+    "benchmark_interval_seconds": 300,
+    "metrics": [
+      "latency",
+      "throughput",
+      "memory",
+      "cpu",
+      "token_rate"
+    ],
+    "store_results": true,
+    "compare_baselines": true,
+    "alert_on_regression": false
+  },
+  "rag_feedback": {
+    "enabled": false,
+    "feedback_loop_enabled": true,
+    "learning_rate": 0.05,
+    "feedback_history_size": 100,
+    "auto_adjust_retrieval": true,
+    "relevance_threshold": 0.7
+  },
+  "complexity_analyzer": {
+    "enabled": false,
+    "analysis_depth": "medium",
+    "max_complexity_score": 10,
+    "auto_suggest_refactor": false,
+    "metrics": [
+      "cyclomatic",
+      "cognitive",
+      "halstead",
+      "maintainability"
+    ],
+    "warn_threshold": 7,
+    "error_threshold": 10
+  },
+  "hardening_manager": {
+    "enabled": false,
+    "security_level": "medium",
+    "auto_harden": false,
+    "scan_on_execute": false,
+    "checks": {
+      "path_traversal": true,
+      "command_injection": true,
+      "code_execution": true,
+      "file_permissions": true
+    },
+    "block_unsafe_operations": false,
+    "warn_only": true
+  },
+  "atomic_writer": {
+    "enabled": false,
+    "use_temp_files": true,
+    "verify_writes": true,
+    "auto_backup": true,
+    "backup_dir": ".backups",
+    "fsync_enabled": true,
+    "rollback_on_error": true
+  },
+  "confirmation_gates": {
+    "enabled": false,
+    "gate_level": "medium",
+    "require_explicit_confirm": false,
+    "timeout_seconds": 30,
+    "auto_approve_safe": true,
+    "gates": {
+      "file_write": "low",
+      "file_delete": "high",
+      "bash_execute": "medium",
+      "git_operations": "medium"
+    }
+  },
+  "model_optimizer": {
+    "enabled": false,
+    "optimization_target": "balanced",
+    "auto_tune_params": false,
+    "cache_optimizations": true,
+    "optimize_temperature": true,
+    "optimize_max_tokens": true,
+    "optimize_top_p": true,
+    "learning_enabled": true
+  },
+  "model_selector": {
+    "enabled": false,
+    "selection_criteria": "auto",
+    "fallback_enabled": true,
+    "context_aware": true,
+    "models": [
+      "gemma2:2b",
+      "gemma2:2b-16k",
+      "gemma2:9b"
+    ],
+    "prefer_fast_models": true,
+    "auto_switch_on_context_limit": true
+  },
+  "quant_manager": {
+    "enabled": false,
+    "auto_quant": false,
+    "preferred_quant": "q4_k_m",
+    "quality_threshold": 0.9,
+    "available_quants": [
+      "q4_k_m",
+      "q5_k_m",
+      "q6_k",
+      "q8_0"
+    ],
+    "benchmark_before_switch": true
+  },
+  "mvco_engine": {
+    "enabled": false,
+    "max_versions": 3,
+    "version_strategy": "latest",
+    "auto_optimize_context": false,
+    "merge_strategy": "intelligent",
+    "deduplicate_content": true
+  },
+  "auto_policy": {
+    "enabled": false,
+    "policy_generation": "conservative",
+    "auto_apply": false,
+    "learning_enabled": true,
+    "policy_types": [
+      "safety",
+      "performance",
+      "quality"
+    ],
+    "review_before_apply": true
+  },
+  "command_policy": {
+    "enabled": false,
+    "default_policy": "safe",
+    "custom_policies": {},
+    "enforce_policies": true,
+    "allowed_commands": [
+      "git",
+      "npm",
+      "pip",
+      "python",
+      "python3",
+      "ls",
+      "pwd",
+      "cat"
+    ],
+    "blocked_commands": [
+      "rm -rf",
+      "sudo",
+      "chmod 777"
+    ],
+    "require_approval_for": [
+      "bash_execute",
+      "git_operations"
+    ]
+  },
+  "mcp_integration": {
+    "enabled": false,
+    "server_url": "http://localhost:8000",
+    "auto_connect": false,
+    "protocol_version": "1.0",
+    "timeout_seconds": 30,
+    "retry_on_failure": true,
+    "max_retries": 3
+  },
+  "mcp_server": {
+    "enabled": false,
+    "port": 8000,
+    "auto_start": false,
+    "enable_tls": false,
+    "mode": "embedded",
+    "server_script": "mcp_server_wrapper.py",
+    "host": "localhost"
+  },
+  "langchain_adapter": {
+    "enabled": false,
+    "adapter_type": "simple",
+    "enable_memory": true,
+    "chain_type": "conversation",
+    "memory_type": "buffer",
+    "max_memory_size": 1000,
+    "enable_callbacks": true
+  },
+  "instant_hooks": {
+    "enabled": false,
+    "hook_triggers": [
+      "pre_execute",
+      "post_execute",
+      "on_error",
+      "on_success"
+    ],
+    "async_hooks": true,
+    "max_hook_time_ms": 100,
+    "enable_custom_hooks": true,
+    "hook_dir": ".opencode_hooks"
+  },
+  "version_manager": {
+    "enabled": false,
+    "auto_version": false,
+    "version_strategy": "semantic",
+    "track_changes": true,
+    "create_tags": false,
+    "changelog_enabled": true
+  },
+  "ollama_direct": {
+    "enabled": false,
+    "use_direct_client": false,
+    "connection_pool_size": 5,
+    "timeout_seconds": 120,
+    "base_url": "http://localhost:11434",
+    "stream_responses": false,
+    "retry_on_failure": true
+  }
+}

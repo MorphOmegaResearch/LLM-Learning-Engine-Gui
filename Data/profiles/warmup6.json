@@ -1,0 +1,30 @@
+{
+  "training_runs": 1,
+  "batch_size": 1,
+  "learning_strength": "2e-4",
+  "base_model": "Qwen-Custom-opencode-tools:latest",
+  "categories": [
+    "Tools"
+  ],
+  "subcategories": {
+    "Tools": [
+      "train1.py",
+      "git_operations.jsonl",
+      "web_operations.jsonl"
+    ]
+  },
+  "runner_settings": {
+    "max_time": 20,
+    "run_delay": 0,
+    "save_checkpoints": true,
+    "checkpoint_interval": 5,
+    "early_stop": false,
+    "early_stop_patience": 3,
+    "use_mixed_precision": true,
+    "gradient_accumulation": 16,
+    "warmup_steps": 5,
+    "max_cpu_threads": 2,
+    "max_ram_percent": 70,
+    "auto_restart": false
+  }
+}

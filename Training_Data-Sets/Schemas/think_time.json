@@ -1,0 +1,20 @@
+{
+  "name": "Think Time Tool",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "think_time",
+        "description": "Request extended thinking time (seconds).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "seconds": {"type": "integer", "description": "Requested think time in seconds (30–900)"},
+            "reason": {"type": "string", "description": "Brief reason or plan focus", "default": "Deep analysis required"}
+          },
+          "required": ["seconds"]
+        }
+      }
+    }
+  ]
+}

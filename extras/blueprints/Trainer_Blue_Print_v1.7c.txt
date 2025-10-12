@@ -1,0 +1,92 @@
+system blueprint:
+
+  ---
+
+  🏗️ OpenCode Trainer System - Complete Blueprint
+
+  Version: 1.7c (UI Standardization)
+  Date: 2025-10-07
+  Status: Feature Complete
+
+  ---
+
+  📋 Table of Contents
+
+   1. System Overview
+   2. Architecture Diagram
+   3. Centralized Debug & Logging System
+   4. Application Launch Mechanism (Wrapper Script)
+   5. Component Specifications
+   6. Data Flow & State
+   7. Appendix A: Changelog
+
+  ---
+
+  1. System Overview
+
+  (No change from v1.7b)
+
+  ---
+
+  2. Architecture Diagram
+
+  (No change from v1.7a)
+
+  ---
+
+  3. Centralized Debug & Logging System
+
+  (No change from v1.7a)
+
+  ---
+
+  4. Application Launch Mechanism (Wrapper Script)
+
+  (No change from v1.7a)
+
+  ---
+
+  5. Component Specifications
+
+  (Sections 5.1 to 5.10 remain the same as v1.7a)
+
+  5.11. `tabs/training_tab/category_manager_panel.py` (Script Manager Panel)
+   - **Sub-Tab System:** The panel is a self-contained manager with three internal tabs: "Training Scripts", "Prompts", and "Schemas".
+   - **Standardized UI:** All three sub-tabs now feature a consistent bottom action bar: `[New File(s)] [New Category] [Save] [Rename] [Delete] [Clear] [Copy]`.
+   - **Streamlined Workflow:** Redundant buttons (`Open From Selection`, `View/Edit JSONL`) have been removed. Files are now loaded into a writable editor by default simply by clicking them in the main right-side selection panel.
+   - **Category Management:** The "New Category" button on each sub-tab allows for the creation of sub-folders within `Training_Data-Sets/`, `Prompts/`, and `Schemas/` respectively, for better organization.
+
+  (Sections 5.12 to 5.15 remain the same as v1.7a)
+
+  ---
+
+  6. Data Flow & State
+
+  (No change from v1.7a)
+
+  ---
+
+  7. Appendix A: Changelog
+
+  **v1.7c (2025-10-07): Script Manager UI Standardization**
+  - ENHANCED: Standardized the button layout across all three 'Script Manager' sub-tabs for a consistent user experience.
+  - ADDED: 'Clear' button to all sub-tab editors to wipe the current text.
+  - ADDED: 'Copy' button to all sub-tab editors to copy content to the clipboard.
+  - ADDED: 'New Category' button to all three sub-tabs to allow for sub-folder organization.
+  - REMOVED: Obsolete 'Open From Selection', 'View JSONL', and 'Edit JSONL' buttons to streamline the workflow.
+  - FIXED: A `SyntaxError` in the f-string of the success message for new prompt/schema creation.
+
+  **v1.7b (2025-10-07): Script Manager Refactor**
+  - REFACTORED: The "Script Manager" sub-tab in the Training Tab is now a self-contained manager with its own internal tabs for "Training Scripts", "Prompts", and "Schemas".
+  - ENHANCED: The new Script Manager provides dedicated UI for viewing, editing, and managing each type of asset.
+
+  **v1.7a (2025-10-07): UI/UX Polish & Synchronization**
+  - ENHANCED: Model Selection dropdown in Training tab now only shows trainable models.
+  - ENHANCED: Model Selection info panel now displays a richer overview.
+  - FIXED: "Send to Training" button now correctly updates the Runner's target model.
+  - ENHANCED: Profiles now save and load evaluation preferences.
+  - ENHANCED: Summary panel now displays the status of evaluation prompt/schema usage.
+  - ENHANCED: Models tab evaluation panel now defaults to the prompt/schema selections from the Training tab.
+  - ENHANCED: Help Menu in Settings tab has been updated with the latest descriptions.
+
+  (Previous changelog entries remain the same)

@@ -1,0 +1,44 @@
+Concise TODO for Trainer (based on Plans.txt and current state)
+
+Done (recent)
+- Baseline detection + Runner “View Active Baseline” and status line
+- Behavior metrics in eval reports (compliance/creativity/coherence)
+- Rich aggregates (per_tool/per_difficulty/per_policy/per_tag/confusions/arg_errors/latency)
+- Skills tab shows behavior + tags + difficulty + tools (0.00% fallbacks)
+- Overview shows Behavior Indicators (no hints)
+- GGUF lineage recorded in level manifests; lineage displayed on GGUF Overview
+- Models → Baselines: removed confusing “Active Baseline Summary” panel
+- Script Manager: New Category + New JSONL creation refreshes right‑side Training Scripts
+
+High priority
+- Evaluation UI details
+  - Add Behavior Details panel in Models → Stats to show per_tool/per_tag/per_difficulty/per_policy and top confusions
+  - Add toggle to force “All suites” evaluation in Models Eval
+
+- Efficiency metrics
+  - Measure and store tokens/sec and TTFT during eval (aggregate avg, include in metrics)
+  - Surface efficiency in Behavior/metrics and consider stability readouts
+
+- Test suites expansion
+  - Add Web test suites (fetch, scraping) per Plans.txt
+  - Expand Tools tests for underused tools: process_manage, git_operations, resource_request, etc.
+  - Increase coverage for ThinkTime, Workflows (multi‑step), Adversarial, Paraphrasing
+
+- Storage/linkage
+  - Add level/adapter evaluation storage helpers (Models/levels/<base>/<level>/evaluations/<ts>.json + index)
+  - On GGUF Overview, add “Compare to Parent Baseline” action (one‑click)
+
+Medium priority
+- Baseline integrity
+  - Add Baseline Conformer checks (prompt/schema integrity for baseline runs)
+
+- Determinism controls
+  - Provide temperature/top_p controls for eval paths to reduce flakiness; record in metadata
+
+Later (Evolution system from Plans.txt)
+- Compute ELP (Evolution Points) from deltas + penalties
+- Gate rules per type/tier and Evolution Conformer UI
+- Tier/badge storage (tiers/, evolution/, lineage/ updates) and Promote Base workflow
+
+Notes
+. Data consistency accross all tabs per parent base and gguf (lineage-linked) model selected.

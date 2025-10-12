@@ -1,0 +1,17 @@
+{
+  "session_id": "qwen2.5:0.5b_20251012_190446",
+  "model_name": "qwen2.5:0.5b",
+  "chat_history": [
+    {
+      "role": "user",
+      "content": "hey qwen"
+    },
+    {
+      "role": "assistant",
+      "content": "hello! how can i assist you today?"
+    }
+  ],
+  "message_count": 2,
+  "saved_at": "2025-10-12T19:04:46.513385",
+  "metadata": {}
+}

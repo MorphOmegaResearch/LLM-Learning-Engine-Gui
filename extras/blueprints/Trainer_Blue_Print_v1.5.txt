@@ -1,0 +1,101 @@
+system blueprint:
+
+  ---
+
+  🏗️ OpenCode Trainer System - Complete Blueprint
+
+  Version: 1.5 (Sequential Runner & Functional Controls)
+  Date: 2025-10-05
+  Status: In Development
+
+  ---
+
+  📋 Table of Contents
+
+   1. System Overview
+   2. Architecture Diagram
+   3. Centralized Debug & Logging System
+   4. Component Specifications
+   5. Data Flow & State
+   6. Appendix A: Changelog
+
+  ---
+
+  1. System Overview
+
+  Purpose
+  Train small language models to use OpenCode tools correctly through fine-tuning. The system features a modular GUI, a reusable training engine, and a comprehensive live-debugging system.
+
+  Key Features (v1.5)
+   - ✅ Modular GUI Architecture with error-isolated tabs.
+   - ✅ Centralized Logging with a live Debug Tab.
+   - ✅ Sequential Script Execution: The Runner can now queue and run multiple training scripts in sequence.
+   - ✅ Functional Runner Controls: "Early Stopping" and "Max Training Time" are now fully implemented in the training engine.
+   - ✅ Application Lifecycle Logging.
+   - ✅ Robust, scrollable UI layouts.
+   - ✅ Settings Persistence for Runner Panel and general settings.
+   - ✅ Quick Restart functionality.
+
+  ---
+
+  2. Architecture Diagram
+
+  (No changes from v1.4)
+
+  ---
+
+  3. Centralized Debug & Logging System
+
+  (No changes from v1.4)
+
+  ---
+
+  4. Component Specifications
+
+  This section details updates to existing components.
+
+  4.1. Settings Tab (`settings_tab.py`)
+   - **Script Manager Sub-Tab:** The "Categories" sub-tab has been renamed to "Script Manager" to more accurately reflect its purpose of managing `train.py` files.
+   - (Other features remain as described in v1.4)
+
+  4.2. Runner Panel (`runner_panel.py`)
+   - **Sequential Execution (NEW):** The core logic has been re-architected into a queue-based system. It now iterates through all user-selected scripts and executes them one after another.
+   - **Legacy Controls:** The "Max Runs" control is now functionally deprecated in favor of the script queue, but remains in the UI for legacy purposes.
+
+  4.3. Training Engine (`training_engine.py`)
+   - **Functional Callbacks (NEW):**
+       - **Early Stopping:** The engine now uses the `EarlyStoppingCallback` from the `transformers` library. If enabled in the UI, it will monitor the validation loss and stop training if it doesn't improve for a set number of steps (patience).
+       - **Max Time:** A custom `TimeLimitCallback` has been implemented. It stops the training process if it exceeds the duration set in the Runner Panel.
+   - **Trainer Setup:** The `setup_trainer` method has been upgraded to correctly instantiate these callbacks and pass them to the `SFTTrainer`.
+
+  ---
+
+  5. Data Flow & State
+
+  (No changes from v1.4)
+
+  ---
+
+  6. Appendix A: Changelog
+
+  **v1.5 (2025-10-05): Sequential Runner & Functional Controls**
+  - ENHANCED: Runner Panel now executes all selected training scripts sequentially.
+  - IMPLEMENTED: "Early Stopping" and "Max Training Time" controls are now fully functional.
+  - RENAMED: "Categories" sub-tab is now "Script Manager".
+
+  **v1.4 (2025-10-05): Live Debug & UI Enhancements**
+  - ADDED: Centralized logging system with live-updating Debug tab in Settings.
+  - ADDED: "Quick Restart" button to Settings tab.
+  - ADDED: "Save/Load Defaults" functionality for Runner Panel settings.
+  - ADDED: "Save All" and "Reset All" buttons to the General Settings tab.
+  - FIXED: Major layout bugs in General Settings and Runner Panel.
+  - FIXED: Mouse wheel scrolling in Runner Panel.
+  - ENHANCED: Replaced Settings "Quick Access" menu with a hierarchical "Help Menu".
+  - ENHANCED: The "Select All" control in the Training Tab sidebar is now a state-aware checkbox with a live counter.
+
+  **v1.3 (2025-10-05): Initial Document**
+  - Created based on analysis of the v1.0 application state.
+
+  ---
+
+  End of Blueprint

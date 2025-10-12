@@ -1,0 +1,154 @@
+agentic:
+  auto_handoff_enabled: false
+  confirmation_level: MODERATE
+  enabled: true
+  resource_constraints: STANDARD
+history:
+  file_path: .opencode_history
+  max_entries: 100
+  resume_last_session: false
+  save_to_file: true
+interface:
+  auto_model_selection: false
+  auto_save: false
+  compact_mode: false
+  confirm_destructive: true
+  default_mode: smart
+  interactive_mode: true
+  syntax_highlighting: true
+mcp:
+  auto_start: false
+  enabled: false
+  mode: embedded
+  server_script: mcp_server_wrapper.py
+model:
+  base_url: http://localhost:11434
+  max_tokens: 3072
+  name: hf.co/bartowski/Qwen2.5-Coder-1.5B-Instruct-GGUF:Q6_K_L
+  temperature: 0.7
+optimization:
+  adaptive_timeouts: true
+  context_scoring: true
+  dynamic_pruning: true
+  enabled: false
+  max_context_tokens: 2000
+  performance_monitoring: true
+  pruning_ratio: 0.8
+policy:
+  allow_options_override: true
+  caps_auto:
+    reasoning: 450
+    standard: 300
+    structured: 220
+  caps_fast:
+    reasoning: 200
+    standard: 120
+    structured: 90
+  caps_think:
+    reasoning: 900
+    standard: 600
+    structured: 350
+  enabled: true
+  provider: basic
+quality_recovery:
+  enabled: false
+  instant_hooks_enabled: true
+  mode: balanced
+  observer_pattern_enabled: true
+  rag_feedback_enabled: true
+routing:
+  continuation_threshold: 0.8
+  enabled: true
+  lane_timeouts:
+    deliberate: 25
+    recall: 5
+    standard: 12
+    tool_use: 15
+  memory_gate_min_score: 0.6
+  performance_targets:
+    general: 80.0
+    recall: 95.0
+    structured: 90.0
+  reasoning_threshold: 0.6
+  recall_threshold: 0.8
+  structured_threshold: 0.7
+  summary_gate_min_score: 0.5
+  tool_threshold: 0.7
+runtime:
+  auto_detect: true
+  cpu_threads: null
+  fallback_model: gemma2:2b-16k
+  gpu_enabled: true
+  max_memory_mb: null
+  resources: 25
+  slice_generation: true
+system_prompt: |
+  You are an advanced AI assistant designed to solve problems and answer questions by leveraging a suite of powerful tools.
+  Your primary goal is to fulfill the user's request.
+
+  **STRICT OUTPUT FORMAT:**
+  - If you need to use a tool, **RESPOND ONLY WITH A SINGLE JSON OBJECT**. No other text, no conversational filler, no explanations, no planning.
+  - The JSON object MUST conform to the following structure:
+    ```json
+    {"type":"tool_call","name":"TOOL_NAME","args":{}}
+    ```
+  - The `args` object MUST strictly adhere to the schema of the chosen tool.
+  - If you can answer the user's request directly without using any tools, then respond in plain English text.
+
+  **AVAILABLE TOOLS:**
+  {available_tools}
+
+  **TOOL USAGE RULES:**
+  - **NEVER** use Python function call syntax (e.g., `tool_name(param="value")`).
+  - **NEVER** chain multiple tool calls with semicolons (e.g., `{...};{...}`). Output one tool call, await results, then decide the next action.
+  - **PATH RULES:**
+    - ALWAYS use "." for the current directory in path arguments.
+    - File paths are relative to the working directory (no absolute paths unless explicitly provided by the system).
+    - Working directory: {working_dir}
+
+  **WHEN TO STOP CALLING TOOLS:**
+  - If you have enough information to fully answer the user's request, **OUTPUT PLAIN ENGLISH TEXT** (not another JSON tool call).
+  - Do NOT keep calling tools if you have already achieved your initial goal.
+
+  **CHAINING POLICY (System Auto-Handles):**
+  - **Safe chains (auto-executed):** `file_search` → `file_read`, `directory_list` → `file_read`. When you call `file_search` or `directory_list`, the system automatically reads the first result. You will receive BOTH results in one response with an "auto_chain" field. This saves you from making a separate `file_read` call.
+  - **Unsafe chains (blocked):** `file_write`, `file_delete`, `bash_execute` cannot be chained. If you need multiple actions, output ONE call, see the result, then make the next call.
+
+  **IMPORTANT:** If your intent is unclear, or you need more information from the user *before* using a tool, ask clarifying questions in plain English. However, if a tool can clearly address the request, prioritize using the tool.
+system_prompt_enabled: true
+tools:
+  bash:
+    allowed_commands:
+    - npm
+    - pip
+    - python
+    - node
+    - cargo
+    - make
+    - git
+    - ls
+    - cat
+    - grep
+    timeout: 30
+  enabled:
+  - file_search
+  - file_read
+  - file_edit
+  - file_write
+  - file_copy
+  - file_move
+  - file_delete
+  - file_create
+  - file_fill
+  - directory_list
+  - bash_execute
+  - grep_search
+  - change_directory
+  - system_info
+  - think_time
+  - process_manage
+  - web_search
+  - web_fetch
+  - code_analyze
+  - package_check
+tools_prompt_enabled: true

@@ -1,0 +1,162 @@
+system blueprint:
+
+  ---
+
+  🏗️ OpenCode Trainer System - Complete Blueprint
+
+  Version: 1.4 (Live Debug & UI Enhancements)
+  Date: 2025-10-05
+  Status: In Development
+
+  ---
+
+  📋 Table of Contents
+
+   1. System Overview
+   2. Architecture Diagram
+   3. Centralized Debug & Logging System (NEW)
+   4. Component Specifications
+   5. Data Flow & State
+   6. Appendix A: Changelog
+
+  ---
+
+  1. System Overview
+
+  Purpose
+  Train small language models to use OpenCode tools correctly through fine-tuning. The system features a modular GUI, a reusable training engine, and a comprehensive live-debugging system.
+
+  Key Features (v1.4)
+   - ✅ Modular GUI Architecture with error-isolated tabs.
+   - ✅ Centralized Logging: All system events, user actions, and subprocess outputs are logged to a single, timestamped file per session.
+   - ✅ Live Debug Tab: A new sub-tab in Settings provides a real-time feed of the application's debug log.
+   - ✅ Application Lifecycle Logging: Logs application start, shutdown, and individual tab loading success/failure.
+   - ✅ Robust Layouts: UI panels are now built with more robust, scrollable layouts to prevent controls from being hidden on smaller window sizes.
+   - ✅ Settings Persistence: 
+       - Runner Panel settings (e.g., max time, checkpoints) can be saved as defaults.
+       - All other settings can be saved or reset to factory defaults from the General Settings tab.
+   - ✅ Quick Restart: A button in the Settings tab allows for a fast application restart to apply code changes.
+   - ✅ Interactive Training Confirmation: The training engine now pauses and asks for user confirmation before proceeding with GGUF export.
+
+  ---
+
+  2. Architecture Diagram
+
+  (Diagram remains largely the same as v1.3, but with the understanding that all components now feed into the central logger)
+
+  ┌─────────────────────────┐
+  │         MAIN GUI        │
+  │ (interactive_trainer...)├───┐
+  └─────────────────────────┘   │
+              │               │
+              ▼               │
+  ┌─────────────────────────┐   │
+  │       SETTINGS TAB      │   │
+  │ ┌─────────────────────┐ │   │
+  │ │      DEBUG TAB      │ │   │
+  │ │ (Live Log Viewer)   │ │   │
+  │ └─────────────────────┘ │   │
+  └─────────────────────────┘   │
+              ▲               │
+              │ Polls         │ Feeds
+  ┌─────────────────────────┐   │
+  │      LOGGER_UTIL.PY     │<──┘
+  │ (Writes to single file) │
+  └─────────────────────────┘
+              ▲
+              │ Calls
+  ┌─────────────────────────┐
+  │      ALL OTHER          │
+  │       COMPONENTS        │
+  │ (BaseTab, RunnerPanel,  │
+  │  TrainingEngine, etc.)  │
+  └─────────────────────────┘
+
+  ---
+
+  3. Centralized Debug & Logging System (NEW)
+
+  This system provides a comprehensive, real-time view into the application's state and behavior.
+
+  3.1. Core Components
+   - `logger_util.py`: The central utility that manages logging. It's upgraded to ensure all processes (main GUI and subprocesses) write to a single, unified log file for each session.
+   - `GEMINI_LOG_FILE` Environment Variable: The main GUI sets this variable when launching subprocesses, telling them which log file to use.
+   - `DeBug/` Directory: All session logs are stored here, named with a timestamp (e.g., `debug_log_20251005_180000.txt`).
+
+  3.2. Live Debug Tab
+   - Location: Settings -> Debug.
+   - Functionality: Provides a read-only, live-updating view of the current session's log file.
+   - Mechanism: It polls the latest log file in the `DeBug/` directory every 2 seconds and appends any new content.
+
+  3.3. Implemented Logging Points
+   - **Application Lifecycle:** Start, shutdown, and Quick Restart events.
+   - **Tab Loading:** The `BaseTab` class now logs the success or failure (with full traceback) of every tab's UI creation.
+   - **Training Subprocess:** The entire `stdout` from the `training_engine.py` is redirected to the log, in addition to its own internal, structured log messages.
+   - **Runner Panel:** All user actions (start, stop, clear) and internal debug messages are logged.
+
+  ---
+
+  4. Component Specifications
+
+  This section details updates to existing components.
+
+  4.1. Settings Tab (`settings_tab.py`)
+   - **General Sub-Tab:**
+       - **Layout Fix:** The layout has been rebuilt to be fully scrollable and robust against window resizing, fixing the widget displacement bug.
+       - **New Buttons:** Now contains a "💾 Save All Settings" button and a "⚠️ Reset All Settings" button at the bottom of the content area.
+   - **Help Menu:**
+       - The right-hand "Quick Access" panel has been replaced with a "🆘 Help Menu".
+       - It displays a `Treeview` of all main tabs and their sub-tabs, laying the groundwork for a future contextual help system.
+   - **Debug Sub-Tab (NEW):**
+       - A new "Debug" sub-tab has been added.
+       - It contains a live-scrolling text area that displays the contents of the latest log file from the `DeBug/` directory.
+   - **Quick Restart Button:**
+       - The "Refresh All Tabs" button has been replaced with a "🚀 Quick Restart" button.
+       - This button saves all current settings and re-launches the application, allowing code changes to be seen without a manual restart.
+
+  4.2. Runner Panel (`runner_panel.py`)
+   - **Layout Fix:** The right-hand controls panel is now fully scrollable and responds to the mouse wheel, fixing the bug where buttons would be cut off on shorter windows.
+   - **Settings Persistence (NEW):**
+       - "Save Defaults" and "Load Defaults" buttons have been added to the controls header.
+       - These allow the user to save the state of all runner controls (Max Time, Checkpoints, etc.) to `settings.json` and reload them on startup or on command.
+   - **Logging Integration:** All internal `print()` statements have been replaced with calls to the central logger.
+
+  4.3. Training Tab (`training_tab.py`)
+   - **Selection Sidebar UI:**
+       - The "Select All" button has been converted to a proper, state-aware checkbox.
+       - A live counter `(X scripts in Y cats)` has been added next to the "Training Scripts" title.
+
+  4.4. Training Engine (`training_engine.py`)
+   - **Interactive Confirmation:** The `run_full_training` pipeline now pauses after saving the model and prompts the user via command-line `input()` before proceeding with GGUF export.
+   - **Logging Integration:** All internal `print()` statements have been replaced with calls to the central logger, providing structured, source-identified messages (e.g., "ENGINE: ✓ Model saved.").
+
+  ---
+
+  5. Data Flow & State
+
+  The `settings.json` file has been updated to potentially include a new top-level key:
+  - `"runner_defaults"`: Stores the saved default values for all controls in the Runner Panel.
+
+  ---
+
+  6. Appendix A: Changelog
+
+  **v1.4 (2025-10-05): Live Debug & UI Enhancements**
+  - ADDED: Centralized logging system with live-updating Debug tab in Settings.
+  - ADDED: "Quick Restart" button to Settings tab.
+  - ADDED: "Save/Load Defaults" functionality for Runner Panel settings.
+  - ADDED: "Save All" and "Reset All" buttons to the General Settings tab.
+  - ADDED: This changelog.
+  - FIXED: Major layout bug causing blank/displaced content in the General Settings tab.
+  - FIXED: Major layout bug causing buttons to be hidden in the Runner Panel on short windows.
+  - FIXED: Mouse wheel scrolling now works on the Runner Panel's controls.
+  - ENHANCED: Replaced Settings "Quick Access" menu with a hierarchical "Help Menu".
+  - ENHANCED: The "Select All" control in the Training Tab sidebar is now a state-aware checkbox with a live counter.
+  - ENHANCED: `training_engine.py` now uses the central logger and has an interactive confirmation before GGUF export.
+
+  **v1.3 (2025-10-05): Initial Document**
+  - Created based on analysis of the v1.0 application state.
+
+  ---
+
+  End of Blueprint

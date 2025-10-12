@@ -1,0 +1,12 @@
+{
+  "enabled_tools": [
+    "file_read",
+    "file_search",
+    "grep_search",
+    "directory_list",
+    "web_search",
+    "web_fetch",
+    "code_analyze"
+  ],
+  "description": "Search & Analyze - Research and code analysis tools"
+}

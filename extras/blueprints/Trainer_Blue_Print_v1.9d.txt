@@ -1,0 +1,89 @@
+system blueprint:
+
+  🏗️ OpenCode Trainer System - Complete Blueprint (v1.9d - Temperature Controls)
+
+  Highlights in v1.9d - Temperature Controls
+  - Global Temperature Control:
+    - Added a temperature scale to the "Basic" settings tab.
+    - Allows setting a global temperature for all models.
+    - The setting is persisted in `custom_code_settings.json`.
+  - Session-Specific Temperature Control:
+    - Added a temporary temperature scale to the chat interface.
+    - Allows overriding the global temperature for the current chat session.
+    - Resets to the global temperature when a new model is selected or the chat is cleared.
+
+  Highlights in v1.9c - Complete Advanced Systems Integration
+  - Advanced Settings Expansion (Complete)
+    - 37 OpenCode v1.2 systems fully integrated
+    - 252 total configuration settings across all systems
+    - Collapsible UI with 8 organized categories
+    - All systems disabled by default for safe testing
+    - Individual enable/disable toggles with debug logging
+    - Full configuration from config.py extracted and exposed
+
+  - System Prompt & Tool Schema Selectors (Complete)
+    - Dynamic system prompt selector in chat interface
+    - Dynamic tool schema selector in chat interface
+    - 5 system prompts copied from PromptBox
+    - 6 pre-configured tool schema profiles
+    - Direct wiring to chat generation pipeline
+    - Auto-remount on changes
+
+  - Enhanced Configuration (Complete)
+    - Tool Orchestrator failure hints fully configurable
+    - Intelligent Router with lane timeouts and thresholds
+    - Quality Recovery with fallback chains
+    - Command Policy with allow/block lists
+    - All nested settings exposed in UI
+
+  Highlights in v1.9b - Advanced Settings & Tool Execution
+  - Tool Execution System (Complete)
+    - 20 OpenCode tool schemas for Ollama function calling
+    - Tool executor bridge between Ollama and OpenCode tools
+    - Full tool call parsing and execution pipeline
+    - Real-time tool result display in chat interface
+    - Tool enable/disable via Tools sub-tab
+
+  - Advanced Settings Sub-Sub-Tab (Complete)
+    - Nested settings structure: Basic → Advanced
+    - 50+ configurable options across 5 categories
+    - Format Translation & Parsing (8 settings)
+    - Tool Intelligence (10 settings)
+    - Resource Management (7 settings)
+    - Context & RAG Optimization (15+ settings)
+    - Quality & Verification (5 settings)
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ## VERSION HISTORY
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  **v1.9d (2025-10-12)** - Temperature Controls
+  - Added a global temperature control in the "Basic" settings tab.
+  - Added a session-specific temperature control in the chat interface.
+
+  **v1.9c (2025-10-11)** - Full Advanced Integration
+  - Added 26 additional OpenCode systems
+  - Expanded to 252 total settings
+  - Rebuilt UI with collapsible sections
+  - Added System Prompt selector
+  - Added Tool Schema selector
+  - Copied 5 prompts from PromptBox
+  - Created 6 tool schema profiles
+
+  **v1.9b (2025-10-08)** - Advanced Settings Foundation
+  - Integrated first 11 OpenCode systems
+  - Created Advanced Settings sub-tab
+  - Added tool execution pipeline
+  - Implemented debug logging
+
+  **v1.9 (2025-10-01)** - Custom Code Tab
+  - Created modular tab architecture
+  - Implemented chat interface
+  - Added model mount/dismount
+  - Per-model conversation history
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  End of Blueprint v1.9d

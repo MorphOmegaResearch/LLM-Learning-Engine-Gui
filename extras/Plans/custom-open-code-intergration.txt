@@ -1,0 +1,245 @@
+**total GUI control migration plan** for the `custom-open-code` system, integrating it cleanly into your existing **Trainer GUI architecture** (Tkinter tabs, models, settings, data, etc.), while preparing to **retire obsolete TUI components**.
+
+Here’s a full **ONF + Audit + Refactor Blueprint** to guide that transition.
+
+---
+
+# ONF — Full GUI Integration of Open-Code (Rich/TUI → Tk GUI)
+
+## **State**
+
+* The **custom-open-code** build is a **Rich-based TUI** built for terminal interaction:
+
+  * `interactive.py` drives menus, progress, and live console feedback.
+  * Core logic lives in “controller” functions that rely on `rich.Console` for rendering.
+  * It’s currently **not GUI aware** — no event dispatch, no widget I/O, no non-blocking UX.
+* The **Trainer GUI (Tk)** already has:
+
+  * Multi-tab Notebook system.
+  * Separate Settings, Models, Training, Evaluation, and Logging subsystems.
+  * JSON-based persistent config, model registry, and semantic state system.
+* Goal: unify both into a **modular GUI-first framework**, with Open-Code becoming **the GUI's “Toolchain” layer**, not a separate TUI runtime.
+
+---
+
+## **Outline (Phased Plan)**
+
+| Phase                              | Goal                                          | Focus                    | Output                 |
+| ---------------------------------- | --------------------------------------------- | ------------------------ | ---------------------- |
+| **Phase 0 – Audit & Freeze**       | Identify obsolete TUI code                    | mapping, dependencies    | Obsolete Map           |
+| **Phase 1 – Decouple Core Logic**  | Separate “engine logic” from Rich I/O         | create API modules       | `open_code_core/`      |
+| **Phase 2 – GUI Controller Layer** | Replace Rich with Tk-compatible signals       | unified event bus        | Tk GUI connectors      |
+| **Phase 3 – Tab/UI Integration**   | Integrate as tab(s) + subpanels               | Tools, Repos, Benchmarks | `OpenCodeTab` + frames |
+| **Phase 4 – Settings Integration** | Move config persistence into Trainer’s system | unify paths/configs      | GUI settings merge     |
+| **Phase 5 – Retirement & Cleanup** | Delete Rich/TUI subsystems                    | unify logger, docs       | Deprecation log        |
+
+---
+
+## **List (Obsolete or To-Be-Replaced Components)**
+
+| Module / File                           | Status          | Reason                                | Replacement                                    |
+| --------------------------------------- | --------------- | ------------------------------------- | ---------------------------------------------- |
+| `interactive.py`                        | 🟥 **Obsolete** | Handles menu input via Rich           | Split into Tk tab classes (`open_code_tab.py`) |
+| `rich_console.py` / `console_ui.py`     | 🟥 **Obsolete** | Rich-only output                      | Use `TkOutputPanel` widget                     |
+| `cli_launcher.py`                       | 🟥 **Obsolete** | CLI-only entrypoint                   | Replaced by GUI menu actions                   |
+| `menu_system.py`                        | 🟧 **Refactor** | logic fine, input/output tied to Rich | extract logic to `open_code_core.menu`         |
+| `status_display.py`                     | 🟧 **Refactor** | progress handled via Rich live        | use `ttk.Progressbar` + event signals          |
+| `logger_rich.py`                        | 🟥 **Obsolete** | Rich console logs                     | Use unified `Data/logger.py` (JSON + Tk sink)  |
+| `config_cli.json` / `settings_cli.yaml` | 🟥 **Obsolete** | redundant with Trainer config         | migrate keys to Trainer `settings.json`        |
+| `theme_rich.json`                       | 🟥 **Obsolete** | colors for terminal                   | unify with Tk themes (`theme_dark.json`)       |
+| `interactive_help.py`                   | 🟧 **Partial**  | documentation ok, UI layer obsolete   | port to `help_tab.py`                          |
+| `tool_handlers/`                        | 🟩 **Keep**     | functional logic for file ops, etc.   | keep as engine layer                           |
+| `data_ops/`, `model_ops/`               | 🟩 **Keep**     | model-level operations                | directly callable from GUI                     |
+| `benchmark_runner.py`                   | 🟩 **Keep**     | logic reused by Eval Engine           | adapt API calls                                |
+| `tests/cli_test_cases/`                 | 🟧 **Refactor** | CLI harness                           | integrate into GUI regression tests            |
+
+---
+
+## **View (Revised File Structure)**
+
+```
+open_code_core/                 ← new pure logic layer (Rich removed)
+  __init__.py
+  tools_engine.py               # handles file ops, repo ops, etc.
+  benchmarks_engine.py
+  menu_controller.py            # now GUI-agnostic logic dispatcher
+  config_adapter.py             # links to Trainer settings.json
+
+tabs/
+  open_code_tab.py              # GUI tab for main interface
+  open_code_tools_tab.py        # sub-tab for Tools
+  open_code_benchmarks_tab.py   # sub-tab for Benchmarks
+  open_code_repos_tab.py        # sub-tab for Repo management
+
+Data/
+  utils/
+    gui_event_bus.py            # unified event signaling system
+    logger_bridge.py            # GUI-safe logging channel
+    progress_bus.py             # replaces Rich live progress
+
+themes/
+  theme_dark.json               # shared color palette
+  theme_light.json
+
+Models/
+  benchmarks/
+  evaluations/
+  training_stats/
+```
+
+---
+
+## **Evaluate**
+
+| Metric                     | Score                   | Justification                                  |
+| -------------------------- | ----------------------- | ---------------------------------------------- |
+| **Evidence Balance (EBI)** | 0.85                    | Codebase reuse high; TUI separation achievable |
+| **Decision Risk (DR)**     | 0.30                    | Moderate — threading/event conflicts possible  |
+| **Credence Band (CB)**     | 0.80                    | Confident plan with fallback path              |
+| **Gate**                   | 🟢 **Green (approved)** | Begin with core decoupling                     |
+
+Top Disconfirmers:
+
+1. Deep coupling between Rich and logic in `interactive.py`.
+2. Engine functions referencing Rich Console directly.
+3. Blocking loops in TUI input system that will hang GUI threads.
+
+---
+
+# **Phase Breakdown**
+
+### **Phase 0 – Audit & Freeze**
+
+* Locate all `from rich import ...` and `Console()` calls.
+* Trace dependencies on `.print()`, `.status()`, `.live()`.
+* Freeze current TUI branch (tag as `v-cli-stable`).
+  **Deliverable:** `obsolete_map.json` listing all modules with Rich dependency lines.
+
+---
+
+### **Phase 1 – Decouple Core Logic**
+
+* Move all operational functions (tools, file ops, benchmarks) into **pure Python modules** (`open_code_core/`).
+* Replace `console.print` calls with `self._emit(event, payload)`.
+* Introduce a small **event bus** system:
+
+  ```python
+  from Data.utils.gui_event_bus import emit
+  emit("progress_update", {"pct": 42, "msg": "Benchmark running"})
+  ```
+
+---
+
+### **Phase 2 – GUI Controller Layer**
+
+* Build Tk tabs mirroring previous menu hierarchy:
+
+  * Open-Code (main)
+  * Tools
+  * Benchmarks
+  * Repos
+* Use `ttk.Notebook` sub-tabs for nested menus.
+* Add event bindings for progress updates and log messages.
+
+---
+
+### **Phase 3 – Integration with Trainer**
+
+* Connect to shared:
+
+  * Settings (via `config.py`)
+  * Logger (unified `Data/logger.py`)
+  * Model registry (`Models/`)
+  * Eval engine (reuse `evaluation_engine.py` for benchmark calls)
+* Replace CLI file management with calls to Trainer’s storage APIs.
+
+---
+
+### **Phase 4 – Full GUI Control Features**
+
+* Replace `rich` progress bars with `ttk.Progressbar`.
+* Replace live logs with Tk `Text` widget + `Scrollbar`.
+* Replace menu text prompts with dropdowns, comboboxes, and toggles.
+* Add persistent layout state (window sizes, tab focus) to `settings.json`.
+
+---
+
+### **Phase 5 – Retirement**
+
+* Deprecate or delete:
+
+  * `interactive.py`
+  * `rich_console.py`
+  * CLI configs/themes
+* Update documentation:
+
+  * `README_GUI.md`
+  * Developer migration guide
+  * Change log summary
+
+---
+
+# **Problem Card**
+
+**Problem:** TUI interface limits user control and integration with Trainer GUI.
+**Impact:** Duplication of logic, inconsistent UI, lack of event sync.
+**Done when:**
+
+* Open-Code logic modularized.
+* All outputs routed via GUI event bus.
+* Rich & CLI configs deprecated.
+
+---
+
+# **Option Matrix**
+
+| Option                        | Pros         | Cons                 | Decision         |
+| ----------------------------- | ------------ | -------------------- | ---------------- |
+| Replace Rich incrementally    | Lower risk   | Delayed full control | Phase 1 approach |
+| Rewrite interactive.py for Tk | Full control | 2–3× effort          | Later (Phase 3)  |
+| Hybrid (keep subprocess)      | Fast         | Limited GUI linkage  | Temporary only   |
+
+**Decision:** ✅ Hybrid bridge → Core refactor → Full GUI control (Phases 1–5).
+
+---
+
+# **Decision Sheet**
+
+Proceed with **GUI-first refactor**, preserve Trainer tab framework, retire Rich after Phase 3.
+Assign Codex work orders per phase:
+
+1. Extract engines.
+2. Build GUI event bus.
+3. Port UI sub-tabs.
+4. Remove obsolete TUI files.
+
+**N-Score (Decision):** SO 9, CD 8, OU 9, R 8, ED 7 → **41/50 (Stable).**
+
+---
+
+# **Refinement Prompts (for Codex / next actions)**
+
+1. “Scan open_code/interactive.py and list all `rich` dependencies and console methods.”
+2. “Generate new `open_code_core/menu_controller.py` without Rich, using event bus stubs.”
+3. “Implement `Data/utils/gui_event_bus.py` to broadcast progress/log signals.”
+4. “Create base `OpenCodeTab` and `ToolsSubTab` with placeholder buttons wired to event bus.”
+5. “Migrate CLI configs into unified `settings.json` schema.”
+6. “List safe-to-delete files after Phase 3 integration.”
+
+---
+
+# **Reviewer Lenses**
+
+* **Skeptic:** Verify engine refactor doesn’t change output correctness; run parity tests.
+* **Engineer:** Use composition > inheritance for GUI controllers; isolate threads.
+* **Operator:** UI remains responsive; logs visible; settings persistent.
+
+---
+
+# **Discovery Brief**
+
+By separating **logic engines** from Rich UI calls and reconnecting them via a unified Tk **event bus**, we achieve full GUI control without rewriting everything. The obsolete Rich layer becomes a thin CLI compatibility shell. Trainer GUI evolves into the single orchestration surface for all Open-Code operations.
+
+---
+
+Would you like me to generate **Phase 1 Codex Work Orders** (the ones that extract pure logic and build the GUI event bus skeleton)? That’s the critical first deliverable to start this migration.

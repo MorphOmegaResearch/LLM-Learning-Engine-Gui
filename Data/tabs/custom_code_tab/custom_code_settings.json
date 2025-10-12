@@ -1,0 +1,19 @@
+{
+  "working_directory": "/home/commander/Desktop/Trainer/The_SandBox",
+  "auto_update_working_dir": false,
+  "confirm_high_risk_tools": true,
+  "confirm_critical_tools": true,
+  "tool_timeout": 30,
+  "log_tool_execution": true,
+  "training_mode_enabled": true,
+  "auto_mount_model": false,
+  "auto_save_history": true,
+  "history_retention_days": 0,
+  "max_message_length": 0,
+  "temperature": 0.1,
+  "default_project_dir": "/home/commander/Projects",
+  "auto_load_last_project": false,
+  "enable_debug_logging": false,
+  "show_tool_call_details": true,
+  "enable_experimental": false
+}

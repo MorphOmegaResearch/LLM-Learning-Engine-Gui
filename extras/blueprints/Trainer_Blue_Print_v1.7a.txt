@@ -1,0 +1,257 @@
+system blueprint:
+
+  ---
+
+  🏗️ OpenCode Trainer System - Complete Blueprint
+
+  Version: 1.7a (UI/UX Polish & Synchronization)
+  Date: 2025-10-07
+  Status: Feature Complete
+
+  ---
+
+  📋 Table of Contents
+
+   1. System Overview
+   2. Architecture Diagram
+   3. Centralized Debug & Logging System
+   4. Application Launch Mechanism (Wrapper Script)
+   5. Component Specifications
+   6. Data Flow & State
+   7. Appendix A: Changelog
+
+  ---
+
+  1. System Overview
+
+  Purpose
+  Train small language models to use OpenCode tools correctly through fine-tuning. The system features a modular GUI, a reusable training engine, and a comprehensive live-debugging system.
+
+  Key Features (v1.7a)
+   - ✅ Robust Application Launch: Utilizes a wrapper script for conditional terminal display and early error capture.
+   - ✅ Centralized Logging with a live Debug Tab and historical log viewer.
+   - ✅ Sequential Script Execution: The Runner can now queue and run multiple training scripts in sequence.
+   - ✅ Functional Runner Controls: "Early Stopping" (with safe gating) and "Max Training Time" are fully implemented.
+   - ✅ Refactored Training Configuration: Dedicated "Model Selection" tab with model info display and "Send To Training" button.
+   - ✅ Debug Tab Enhancements: Includes log history viewer and "Copy to Clipboard" functionality.
+   - ✅ UI Layout Fixes: Resolved various layout and display issues across tabs.
+   - ✅ Quick Restart functionality.
+   - ✅ Enhanced Profile Management: Profiles now save all relevant settings from Runner, Model Selection, and evaluation preferences.
+   - ✅ **Comprehensive Model Management:** Dedicated "Models Tab" for unified listing, detailed info, renaming, and deletion of all model types.
+   - ✅ **Dynamic Training Data Management:** Backend functions for creating new training data categories and subcategories.
+   - ✅ **Modular GUI & Advanced Tab Management:** Dynamic loading of GUI tabs, interactive tab reordering, and a "Tab Manager" for creating/editing custom tabs.
+   - ✅ **Enhanced Resource Control:** "Resources" settings for CPU threads, RAM usage, max sequence length, and gradient accumulation.
+   - ✅ **Embedded Terminal:** An in-house terminal within the Settings tab for direct command execution.
+   - ✅ **Advanced Runner Panel:** Core training parameters directly configurable in the Runner for run-specific overrides, plus an "Auto-restart" option.
+   - ✅ **Standalone Tool Trainer:** A command-line utility for generating training data, managing Ollama models, and performing live validation.
+   - ✅ **Improved Training Script:** Dynamic configuration via environment variables, automated output directories, integrated stats saving, and GGUF conversion.
+   - ✅ **Robustness Enhancements:** Graceful handling of `transformers` library compatibility for Early Stopping and CPU training mode fallback.
+
+  ---
+
+  2. Architecture Diagram
+
+  (Diagram updated to reflect wrapper script and early logging)
+
+  ┌─────────────────────────┐
+  │   DESKTOP LAUNCHER      │
+  │ (TRAIN_MODULAR.desktop) ├───┐
+  └─────────────────────────┘   │
+              │                 │
+              ▼                 │
+  ┌─────────────────────────┐   │
+  │   WRAPPER SCRIPT        │   │
+  │ (launch_trainer.sh)     │   │
+  │ (Conditional Terminal)  ├───┐
+  └─────────────────────────┘   │
+              │                 │
+              ▼                 │
+  ┌─────────────────────────┐   │
+  │   MAIN GUI APP          │   │
+  │ (interactive_trainer...)├───┐
+  └─────────────────────────┘   │
+              │               │
+              ▼               │
+  ┌─────────────────────────┐   │
+  │       SETTINGS TAB      │   │
+  │ ┌─────────────────────┐ │   │
+  │ │      DEBUG TAB      │ │   │
+  │ │ (Live Log Viewer)   │ │   │
+  │ └─────────────────────┘ │   │
+  └─────────────────────────┘   │
+              ▲               │
+              │ Polls         │ Feeds
+  ┌─────────────────────────┐   │
+  │      LOGGER_UTIL.PY     │<──┘
+  │ (Writes to single file) │
+  └─────────────────────────┘
+              ▲
+              │ Calls
+  ┌─────────────────────────┐
+  │      ALL OTHER          │
+  │       COMPONENTS        │
+  │ (BaseTab, RunnerPanel,  │
+  │  TrainingEngine, etc.)  │
+  └─────────────────────────┘
+
+  ---
+
+  3. Centralized Debug & Logging System
+
+  This system provides a comprehensive, real-time view into the application's state and behavior.
+
+  3.1. Core Components
+   - `logger_util.py`: The central utility that manages logging.
+   - `GEMINI_LOG_FILE` Environment Variable: The main GUI sets this variable when launching subprocesses.
+   - `DeBug/` Directory: All session logs are stored here, named with a timestamp.
+
+  3.2. Live Debug Tab
+   - Location: Settings -> Debug.
+   - Functionality: Provides a live-updating view of the current session's log file.
+   - Historical Viewer: Allows selection and viewing of past debug logs.
+   - Copy to Clipboard: A button to easily copy the displayed log content.
+
+  3.3. Implemented Logging Points
+   - Application Lifecycle, Tab Loading, Training Subprocess, Runner Panel actions.
+
+  ---
+
+  4. Application Launch Mechanism (Wrapper Script)
+
+  A wrapper shell script (`launch_trainer.sh`) provides robust error handling and immediate feedback during application startup.
+
+  4.1. `launch_trainer.sh`
+   - Role: Executed by the desktop launcher.
+   - Silent Launch Attempt: First attempts to launch the Python GUI application silently.
+   - Conditional Terminal Re-launch: If the silent launch fails, it automatically opens a terminal window and re-launches the application within it.
+   - Log Redirection: Ensures all output is captured.
+
+  4.2. `interactive_trainer_gui_NEW.py` (Early Logging Support)
+   - Early Redirection: `sys.stdout` and `sys.stderr` are redirected to a temporary log file at startup.
+   - Log Merging: The temporary log is merged into the permanent debug log file.
+
+  ---
+
+  5. Component Specifications
+
+  5.1. `config.py` (Central Configuration & Utilities)
+   - **Model Discovery:** Functions for comprehensive discovery of Ollama, local PyTorch, and trained models.
+   - **Dynamic Data Management:** Functions (`create_category_folder`, `create_subcategory_file`) to create new training data categories and subcategory files programmatically.
+   - **Model Information:** Functions to fetch and parse detailed Ollama model information.
+   - **Model Notes Management:** Full CRUD functionality for model-specific notes.
+   - **Training Statistics Management:** Functions to store and retrieve detailed training run statistics.
+   - **Model Deletion:** Utility to remove trained model directories and their associated statistics.
+
+  5.2. `interactive_trainer_gui_NEW.py` (Main GUI Application)
+   - **Modular Tab Loading:** Implements dynamic loading of tab modules.
+   - **Interactive Tab Reordering:** Supports drag-and-drop and arrow-button based reordering of main tabs.
+
+  5.3. `tabs/base_tab.py` (Base Tab Class)
+   - Provides a common interface and `safe_create()` error handling for all modular GUI tabs.
+
+  5.4. `tabs/models_tab/models_tab.py` (Dedicated Models Tab)
+   - **Unified Model List:** Displays Ollama, local PyTorch, and trained models with relevant metadata.
+   - **Model Information Display:** Shows detailed information for selected models.
+   - **Model Renaming/Deletion:** Functionality to rename Ollama models and delete trained models.
+   - **Model Notes Panel:** UI for CRUD operations on model-specific notes.
+   - **Training Statistics Panel:** Displays detailed training history for selected models.
+   - **Evaluation Panel:** Allows running benchmark suites against any model. Defaults for prompts and schemas are synced from the Training tab's selections for consistency.
+
+  5.5. `tabs/settings_tab/settings_tab.py` (Application Settings)
+   - **General Sub-Tab:** Scrollable layout with "Save All" and "Reset All" buttons.
+   - **Help Menu:** A hierarchical `Treeview` with detailed help text for all application components.
+   - **Debug Sub-Tab:** Live-scrolling log viewer with history dropdown and "Copy to Clipboard" button.
+   - **Quick Restart Button:** Saves all settings and re-launches the application.
+   - **Tab Manager Sub-Tab:** Tools for creating, browsing, editing, and deleting custom tabs and panels.
+   - **Tab Visibility/Reordering Controls:** UI for managing tab visibility and reorder mode.
+   - **Resources Sub-Tab:** Configures hardware resource limits for training.
+   - **Embedded Terminal:** An in-house terminal for direct command execution.
+
+  5.6. `tabs/training_tab/training_tab.py` (Training Tab Coordinator)
+   - **Script Manager Sub-Tab:** Manages selection of training scripts and data.
+   - **Model Selection Tab:** Refactored to focus on model info display and the "Send To Training" action.
+   - **Profiles Tab:** Enhanced profile management for saving/loading complete training configurations.
+
+  5.7. `tabs/training_tab/runner_panel.py` (Training Runner Panel)
+   - **Sequential Execution:** Queue-based system for running multiple scripts in sequence.
+   - **Functional Runner Controls:** "Early Stopping" and "Max Training Time" are implemented.
+   - **Core Training Parameters:** Epochs, Batch Size, and Learning Rate are directly configurable for run-specific overrides.
+   - **Auto-Restart Option:** A checkbox to automatically restart training sessions upon completion.
+
+  5.8. `tabs/training_tab/model_selection_panel.py` (Model Selection Panel)
+   - **Trainable Model List:** Displays a filtered list of local PyTorch and trained models, excluding non-trainable Ollama models.
+   - **Model Info Display:** Displays a rich overview of the selected model, including architecture details from `config.json`, latest training stats, and verified skills.
+   - **"Send To Training" Button:** Commits the selected model to the Runner for the training session.
+
+  5.9. `tabs/training_tab/profiles_panel.py` (Profiles Panel)
+   - **Comprehensive Profile Saving:** Profiles now capture all settings from the Runner Panel, Model Selection Panel, selected training data, and evaluation preferences (prompt/schema selections and toggles).
+   - **Dedicated CRUD Operations:** Buttons for "Create New", "Overwrite", and "Delete" profiles.
+
+  5.10. `tabs/training_tab/summary_panel.py` (Summary Panel)
+   - Provides a final, read-only review of the training configuration. Includes the status of 'Use Prompt'/'Use Schema' toggles for evaluation.
+
+  5.11. `tabs/training_tab/category_manager_panel.py` (Script Manager Panel)
+   - Manages the display and selection of training scripts and JSONL files.
+
+  5.12. `training_engine.py` (Core Training Engine)
+   - **CPU Training Fallback:** Gracefully falls back to CPU-only training if CUDA is unavailable.
+   - **Early Stopping Robustness:** Includes a `try-except` block to handle `transformers` library version compatibility.
+
+  5.13. `tool_trainer.py` (Standalone Command-Line Tool)
+   - A comprehensive CLI utility for generating training data, managing models, and performing live validation.
+
+  5.14. `train_with_unsloth.py` (Unsloth Training Script)
+   - **Dynamic Configuration:** Reads all training parameters from environment variables.
+   - **Automated Output:** Creates timestamped output directories for trained models.
+   - **Integrated Stats Saving:** Persists detailed training run statistics.
+   - **GGUF Conversion:** Includes logic to convert the trained model to GGUF format.
+
+  5.15. `tab_generator.py` (Tab Generation Utility)
+   - Provides programmatic tools for creating new GUI tab modules, used by the "Tab Manager".
+
+  ---
+
+  6. Data Flow & State
+
+  The `settings.json` file has been updated to include keys for `"runner_defaults"`, `"tab_order"`, `"tab_visibility"`, and `"reorder_mode"`. Profiles are saved as individual JSON files in the `profiles/` directory. New directories `model_notes/` and `training_stats/` have been added for persistent data.
+
+  ---
+
+  7. Appendix A: Changelog
+
+  **v1.7a (2025-10-07): UI/UX Polish & Synchronization**
+  - ENHANCED: Model Selection dropdown in Training tab now only shows trainable models (PyTorch & trained).
+  - ENHANCED: Model Selection info panel now displays a richer overview, including architecture details and training stats, and shows "Unverified" for missing data.
+  - FIXED: "Send to Training" button now correctly updates the Runner's target model, instead of the dropdown selection doing it directly.
+  - ENHANCED: Profiles now save and load evaluation preferences (Use Prompt/Schema toggles and selected names).
+  - ENHANCED: Summary panel now displays the status of evaluation prompt/schema usage.
+  - ENHANCED: Models tab evaluation panel now defaults to the prompt/schema selections from the Training tab for better consistency.
+  - ENHANCED: Help Menu in Settings tab has been updated with the latest descriptions for all components.
+
+  **v1.7 (2025-10-06): Comprehensive Model & UI Management**
+  - ADDED: Dedicated "Models Tab" for unified model management.
+  - ADDED: Model-specific notes and training statistics management.
+  - ADDED: Dynamic creation of training data categories (backend).
+  - ADDED: Modular GUI architecture with dynamic tab loading and reordering.
+  - ADDED: "Tab Manager", "Resources" sub-tab, and Embedded Terminal in Settings.
+  - ADDED: Core training parameters in Runner Panel and "Auto-restart" option.
+  - ADDED: Standalone `tool_trainer.py` for CLI data generation.
+  - ENHANCED: `train_with_unsloth.py` and `training_engine.py` with dynamic config and robustness features.
+
+  **v1.6 (2025-10-05): Robust Launch & UI Refinements**
+  - ADDED: Wrapper shell script (`launch_trainer.sh`) for robust launch.
+  - ADDED: Early startup logging and enhanced Debug tab.
+  - ENHANCED: Profiles tab with dedicated CRUD buttons and comprehensive settings saving.
+  - FIXED: Numerous bugs related to `AttributeError`, `NameError`, and layout issues.
+
+  **v1.5 (2025-10-05): Sequential Runner & Functional Controls**
+  - ENHANCED: Runner Panel now executes scripts sequentially.
+  - IMPLEMENTED: "Early Stopping" and "Max Training Time" controls.
+
+  **v1.4 (2025-10-05): Live Debug & UI Enhancements**
+  - ADDED: Centralized logging system with live-updating Debug tab.
+  - ADDED: "Quick Restart", "Save/Load Defaults", "Save All", and "Reset All" buttons.
+  - FIXED: Major layout and scrolling bugs.
+
+  **v1.3 (2025-10-05): Initial Document**
+  - Created based on analysis of the v1.0 application state.

@@ -1,0 +1,13 @@
+{
+  "enabled_tools": [
+    "file_read",
+    "file_write",
+    "file_edit",
+    "file_search",
+    "directory_list",
+    "grep_search",
+    "git_operations",
+    "bash_execute"
+  ],
+  "description": "Git Workflow - File ops + git + limited bash"
+}

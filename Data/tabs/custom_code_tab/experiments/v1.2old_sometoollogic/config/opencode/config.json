@@ -1,0 +1,27 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": {
+        "baseURL": "http://localhost:11434/v1"
+      },
+      "models": {
+        "gemma2:2b-16k": {"name": "Gemma2:2b 16k"},
+        "tinyllama-1.1b-chat-v1.0.Q4_K_M:latest": {"name": "Tinyllama 1.1b Chat V1.0.Q4 K M"},
+        "gemma-3-4b-it-Q5_K_M:latest": {"name": "Gemma 3 4b It Q5 K M"},
+        "gemma_coder_9b.i1-Q4_K_M:latest": {"name": "Gemma Coder 9b.I1 Q4 K M"},
+        "gemma2-tools:latest": {"name": "Gemma2 Tools"},
+        "gemma2:2b": {"name": "Gemma2:2b"},
+        "tinyllama-tools:latest": {"name": "Tinyllama Tools"},
+        "phi3-tools:latest": {"name": "Phi3 Tools"},
+        "tinyllama:latest": {"name": "Tinyllama"},
+        "phi3:mini": {"name": "Phi3:Mini"},
+        "phi3:mini-ok": {"name": "Phi3:Mini Ok"},
+        "phi3:mini-fast": {"name": "Phi3:Mini Fast"},
+        "mistral:instruct": {"name": "Mistral:Instruct"}
+      }
+    }
+  }
+}

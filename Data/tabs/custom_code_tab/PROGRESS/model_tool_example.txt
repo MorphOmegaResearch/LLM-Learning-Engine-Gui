@@ -1,0 +1,495 @@
+Complete End-to-End Flow: file_search Tool
+
+  PHASE 1: Tool Definition & Registration
+
+  Step 1.1: Tool Class Definition
+
+  File: /home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/o
+  pencode/tools.pyLines: 501-556
+
+  class FileSearchTool(BaseTool):
+      """Tool for searching files by name/pattern"""
+
+      async def execute(self, pattern: str, path: str = ".",
+                       case_sensitive: bool = False, max_results: int = 100)
+   -> ToolResult:
+          # Implementation...
+
+  Key Features:
+  - Inherits from BaseTool (line 38)
+  - Has execute() async method
+  - Returns ToolResult (line 31-36)
+  - Uses _safe_path() validation (line 66-70)
+
+  ---
+  Step 1.2: Tool Registration in ToolManager
+
+  File: tools.pyLines: 1092-1108
+
+  self.tools = {
+      ...
+      "file_search": FileSearchTool(config),
+      ...
+  }
+
+  Purpose: Makes tool discoverable by name lookup
+
+  ---
+  Step 1.3: Tool Description for Model
+
+  File: tools.pyLines: 1138
+
+  'file_search': 'file_search(pattern, path, file_type, max_results, 
+  recursive) - Find files by name pattern'
+
+  Purpose: This description is injected into system prompt so model knows
+  the tool exists
+
+  ---
+  PHASE 2: Model Response → Tool Detection
+
+  Step 2.1: Model Generates Tool Call
+
+  Flow: Model sees tool in system prompt → Decides to use it → Outputs:
+
+  [{"name": "file_search", "arguments": {"pattern": "Read2.txt"}}]
+
+  ---
+  Step 2.2: Format Translation
+
+  File: /home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/o
+  pencode/format_translator.pyLines: 31-49
+
+  class FormatTranslator:
+      def translate(self, response: str) -> Optional[Dict[str, Any]]:
+          result = (
+              self._try_json_format(response) or
+              self._try_python_function_format(response) or
+              self._try_gemma_tools_format(response) or
+              self._try_simple_function_format(response)
+          )
+          return result
+
+  Purpose: Converts model output to standard format:
+  {
+      "type": "tool_call",
+      "name": "file_search",
+      "args": {"pattern": "Read2.txt"}
+  }
+
+  ---
+  Step 2.3: Tool Chain Detection
+
+  File: interactive.pyLines: 3136-3180
+
+  # Check for tool_call JSON (ONLY from model response, not user input)
+  tool_call = translate_tool_call(response)
+
+  # TOOL CHAIN DETECTION
+  tool_chain_json = None
+  # Format 1: {"type":"tool_chain","tools":[...]}
+  # Format 2: Native array format 
+  [{"name":"tool1",...},{"name":"tool2",...}]
+  array_match =
+  re.search(r'\[\s*\{\s*"name"\s*:\s*"[^"]+"\s*,\s*"arguments"...')
+  if array_match:
+      tool_array = json.loads(array_match.group(0))
+      if len(tool_array) > 1:
+          # Convert to standard tool_chain format
+          tool_chain_json = {"type": "tool_chain", "tools": [...]}
+
+  For your case: Detected as array format tool chain with 2 tools
+
+  ---
+  PHASE 3: Tool Chain Execution
+
+  Step 3.1: Convert Chain to Sequential Calls
+
+  File: interactive.pyLines: 3184-3207
+
+  if tool_chain_json:
+      console.print(f"[green]✓ Tool chain detected[/green]")
+
+      # Convert tool chain to array of individual tool_call objects
+      tool_calls_to_execute = []
+      for tool_step in tool_chain_json.get("tools", []):
+          tool_calls_to_execute.append({
+              "type": "tool_call",
+              "name": tool_step.get("name"),
+              "args": tool_step.get("args", {})
+          })
+
+  Result:
+  [
+      {"type": "tool_call", "name": "file_search", "args": {"pattern":
+  "Read2.txt"}},
+      {"type": "tool_call", "name": "get_animal_description", "args":
+  {"name": "Read2.txt"}}
+  ]
+
+  ---
+  Step 3.2: Execute Each Tool in Sequence
+
+  File: interactive.pyLines: 3209-3245
+
+  # Execute each tool in the chain sequentially
+  chain_results = []
+  for i, current_tool_call in enumerate(tool_calls_to_execute):
+      tool_name = current_tool_call['name']
+      tool_args = current_tool_call['args']
+
+      # Execute through _safe_execute_tool
+      result = await _safe_execute_tool(self, tool_name, tool_args)
+
+      if result.get("success"):
+          console.print(f"[green]  ✓ {tool_name} completed[/green]")
+      else:
+          console.print(f"[red]  ✗ {tool_name} failed[/red]")
+          break  # Stop chain on failure
+
+  For file_search: This loops calls _safe_execute_tool(self, "file_search", 
+  {"pattern": "Read2.txt"})
+
+  ---
+  PHASE 4: Safe Tool Execution Wrapper
+
+  Step 4.1: Parameter Normalization
+
+  File: interactive.pyLines: 279-310
+
+  async def _safe_execute_tool(interactive_self, name: str, args: dict):
+      """Execute tool with orchestrator validation/confirmation gates"""
+
+      # PARAMETER NORMALIZATION
+      # file_search - expects pattern and path
+      if name == "file_search":
+          if "query" in args and "pattern" not in args:
+              args["pattern"] = args.pop("query")
+          if "directory" in args and "path" not in args:
+              args["path"] = args.pop("directory")
+
+  Purpose: Fixes parameter mismatches (e.g., model says query instead of
+  pattern)
+
+  ---
+  Step 4.2: Orchestrator Validation
+
+  File: interactive.pyLines: 325-388
+
+  # PRE-EXECUTION VALIDATION through orchestrator
+  if hasattr(interactive_self, 'tool_orchestrator') and
+  interactive_self.tool_orchestrator:
+      validation = await
+  interactive_self.tool_orchestrator.validate_tool_call(name, args)
+
+      # Check if tool exists
+      if not validation.get('valid', True):
+          return {
+              "success": False,
+              "output": "",
+              "error": f"Tool validation failed: {validation.get('reason')}"
+          }
+
+  For file_search: Checks if tool is registered, if args are valid
+
+  ---
+  Step 4.3: Confirmation Gate Check
+
+  File: interactive.pyLines: 390-425
+
+  # CONFIRMATION GATES - Check if user confirmation needed
+  operation_info = OperationInfo(
+      tool_name=name,
+      operation_type="search",
+      risk_level=RiskLevel.SAFE,
+      description=f"Search for files matching '{args.get('pattern')}'"
+  )
+
+  # file_search is SAFE - no confirmation needed
+  requires_confirmation =
+  confirmation_gate.require_confirmation(operation_info)
+
+  if requires_confirmation:
+      confirmed = await confirm_operation(operation_info)
+      if not confirmed:
+          return {"success": False, "output": "", "error": "Operation 
+  cancelled by user"}
+
+  For file_search: Risk level = SAFE → No confirmation needed
+
+  ---
+  PHASE 5: Actual Tool Execution
+
+  Step 5.1: Call ToolManager.execute_tool()
+
+  File: interactive.pyLines: 427-445
+
+  try:
+      # Execute the actual tool
+      result = await interactive_self.tool_manager.execute_tool(name,
+  **args)
+
+      return {
+          "success": result.success,
+          "output": result.output,
+          "error": result.error,
+          "data": result.data
+      }
+  except Exception as e:
+      return {"success": False, "output": "", "error": str(e)}
+
+  Routes to: ToolManager.execute_tool() at tools.py:1503
+
+  ---
+  Step 5.2: ToolManager.execute_tool()
+
+  File: tools.pyLines: 1503-1550
+
+  async def execute_tool(self, tool_name: str, **kwargs) -> ToolResult:
+      """Execute a tool with given parameters, applying caching, retry, and 
+  confirmation"""
+
+      # Check if tool is enabled
+      if tool_name not in self.config.enabled:
+          return ToolResult(success=False, error=f"Tool not enabled: 
+  {tool_name}")
+
+      # Check if tool exists
+      if tool_name not in self.tools:
+          return ToolResult(success=False, error=f"Tool not found: 
+  {tool_name}")
+
+      # Argument normalization (additional layer)
+      # ... parameter fixing ...
+
+      # Get the tool instance
+      tool = self.tools[tool_name]
+
+      # Execute with retry logic
+      for attempt in range(max_retries):
+          try:
+              result = await tool.execute(**kwargs)
+
+              # Cache result if successful
+              if result.success and self.config.cache_enabled:
+                  self._cache_result(tool_name, kwargs, result)
+
+              return result
+          except Exception as e:
+              if attempt == max_retries - 1:
+                  return ToolResult(success=False, error=str(e))
+              await asyncio.sleep(retry_delay)
+
+  Routes to: FileSearchTool.execute() at tools.py:504
+
+  ---
+  Step 5.3: FileSearchTool.execute()
+
+  File: tools.pyLines: 504-555
+
+  async def execute(self, pattern: str, path: str = ".",
+                   case_sensitive: bool = False, max_results: int = 100) -> 
+  ToolResult:
+      try:
+          # Validate search path is within working directory
+          safe_search_path = self._safe_path(path)
+          if safe_search_path is None:
+              return ToolResult(success=False, error="Access denied")
+
+          if not safe_search_path.exists():
+              return ToolResult(success=False, error=f"Path not found: 
+  {path}")
+
+          # Search for matching files
+          results = []
+          search_pattern = pattern if case_sensitive else pattern.lower()
+
+          for file_path in safe_search_path.rglob('*'):
+              # Validate each file is within working dir
+              if not self._validate_path(str(file_path)):
+                  continue
+
+              file_name = file_path.name if case_sensitive else
+  file_path.name.lower()
+
+              # Pattern matching (glob or substring)
+              if '*' in search_pattern or '?' in search_pattern:
+                  from fnmatch import fnmatch
+                  if fnmatch(file_name, search_pattern):
+
+  results.append(str(file_path.relative_to(safe_search_path)))
+              else:
+                  if search_pattern in file_name:
+
+  results.append(str(file_path.relative_to(safe_search_path)))
+
+              if len(results) >= max_results:
+                  break
+
+          output = '\n'.join(results)
+          return ToolResult(
+              success=True,
+              output=output,
+              data={"matches": len(results), "truncated": len(results) >=
+  max_results}
+          )
+      except Exception as e:
+          return ToolResult(success=False, error=str(e))
+
+  THE ACTUAL WORK HAPPENS HERE:
+  1. Validates path with _safe_path() → Uses BaseTool._validate_path() (line
+   45-64)
+  2. Uses Path.rglob('*') to recursively search
+  3. Matches pattern with fnmatch (glob) or substring
+  4. Returns ToolResult with file paths
+
+  ---
+  PHASE 6: Result Processing & Display
+
+  Step 6.1: Return to _safe_execute_tool
+
+  File: interactive.pyLines: 427-445
+
+  result = await interactive_self.tool_manager.execute_tool(name, **args)
+
+  return {
+      "success": result.success,  # True
+      "output": result.output,    # 
+  "versions/v1.2/experiments/exp_20250930_114209/Read2.txt"
+      "error": result.error,      # None
+      "data": result.data         # {"matches": 1, "truncated": False}
+  }
+
+  ---
+  Step 6.2: Return to Chain Executor
+
+  File: interactive.pyLines: 3222-3231
+
+  result = await _safe_execute_tool(self, tool_name, tool_args)
+  chain_results.append(result)
+
+  if result.get("success"):
+      output_preview = str(result.get("output", ""))[:150]
+      console.print(f"[green]  ✓ {tool_name} completed[/green]")
+      if output_preview:
+          console.print(f"[dim]    {output_preview}...[/dim]")
+
+  Output:
+  → Step 1/2: file_search Read2.txt
+    ✓ file_search completed
+      versions/v1.2/experiments/exp_20250930_114209/Read2.txt
+
+  ---
+  Step 6.3: Final Chain Summary
+
+  File: interactive.pyLines: 3243
+
+  console.print(f"\n[green]✓ Tool chain completed: {len([r for r in 
+  chain_results if r.get('success')])}/{len(tool_calls_to_execute)} 
+  successful[/green]")
+
+  ---
+  KEY COUPLINGS & DATA STRUCTURES
+
+  1. ToolResult (tools.py:31-36)
+
+  @dataclass
+  class ToolResult:
+      success: bool
+      output: str
+      error: Optional[str] = None
+      data: Optional[Dict] = None
+  Used by: Every tool returns this, _safe_execute_tool converts it to dict
+
+  ---
+  2. BaseTool (tools.py:38-74)
+
+  class BaseTool:
+      def __init__(self, config: ToolsConfig)
+      def _validate_path(self, file_path: str) -> bool
+      def _safe_path(self, file_path: str) -> Optional[Path]
+      async def execute(self, **kwargs) -> ToolResult
+  Used by: All tool classes inherit this for path validation
+
+  ---
+  3. Tool Registration (tools.py:1092-1108)
+
+  self.tools = {
+      "file_search": FileSearchTool(config),
+      ...
+  }
+  Accessed by: ToolManager.execute_tool() line 1509: tool = 
+  self.tools[tool_name]
+
+  ---
+  4. Format Translator (format_translator.py:31-49)
+
+  Input: Raw model response stringOutput: {"type": "tool_call", "name": 
+  "...", "args": {...}}Called by: interactive.py:3137 → tool_call = 
+  translate_tool_call(response)
+
+  ---
+  5. Confirmation Gate (confirmation_gates.py)
+
+  def require_confirmation(operation_info: OperationInfo) -> bool
+  Called by: _safe_execute_tool() line 390For file_search: Returns False
+  (SAFE risk level)
+
+  ---
+  COMPLETE CALL STACK FOR YOUR EXAMPLE
+
+  1. User asks model about "animal"
+  2. Model outputs:
+  [{"name":"file_search","arguments":{"pattern":"Read2.txt"}}, ...]
+     
+  3. interactive.py:3137
+     └─> translate_tool_call(response)
+         └─> format_translator.py:262
+             └─> FormatTranslator().translate()
+                 └─> Returns:
+  {"type":"tool_call","name":"file_search","args":{...}}
+
+  4. interactive.py:3157-3178
+     └─> Detects array format tool chain
+         └─> Converts to tool_calls_to_execute list
+
+  5. interactive.py:3209-3245 (LOOP for each tool)
+     └─> For tool #1: file_search
+         
+  6. interactive.py:3224
+     └─> _safe_execute_tool(self, "file_search", {"pattern":"Read2.txt"})
+     
+  7. interactive.py:279-445
+     ├─> Parameter normalization (line 294-310)
+     ├─> Orchestrator validation (line 325-388)
+     ├─> Confirmation gate check (line 390-425) → SAFE, skip
+     └─> tool_manager.execute_tool("file_search", pattern="Read2.txt")
+
+  8. tools.py:1503-1550
+     ├─> Check enabled (line 1505)
+     ├─> Check exists (line 1508)
+     ├─> Get tool instance (line 1509): tool = self.tools["file_search"]
+     └─> tool.execute(pattern="Read2.txt")
+
+  9. tools.py:504-555 (FileSearchTool.execute)
+     ├─> _safe_path(".") → validate working dir
+     ├─> safe_search_path.rglob('*') → recursively search all files
+     ├─> Match "read2.txt" in filename (case-insensitive)
+     └─> Return ToolResult(success=True, output="versions/.../Read2.txt")
+
+  10. Returns back up the stack:
+      tools.py:1550 → interactive.py:427 → interactive.py:3224 → 
+  interactive.py:3227
+
+  11. interactive.py:3229
+      └─> console.print("[green]  ✓ file_search completed[/green]")
+      └─> console.print("[dim]    versions/.../Read2.txt[/dim]")
+
+  12. Loop continues to tool #2: get_animal_description
+      └─> FAILS: Tool not found
+      └─> Chain stops
+
+  13. interactive.py:3243
+      └─> console.print("✓ Tool chain completed: 1/2 successful")
+
+  ---

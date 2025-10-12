@@ -1,0 +1,2297 @@
+
+[OpenCode] Fatal error: 'InteractiveMode' object has no attribute 'handle_coding_command'
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 26, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 86, in async_main
+    await interactive_mode.run()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/interactive.py", line 1032, in run
+    await self.handle_coding_command(coding_args)
+AttributeError: 'InteractiveMode' object has no attribute 'handle_coding_command'. Did you mean: 'handle_mode_command'?
+
+[OpenCode] Fatal error: 'InteractiveMode' object has no attribute 'handle_coding_command'
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 26, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 86, in async_main
+    await interactive_mode.run()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/interactive.py", line 1032, in run
+    await self.handle_coding_command(coding_args)
+AttributeError: 'InteractiveMode' object has no attribute 'handle_coding_command'. Did you mean: 'handle_mode_command'?
+
+[OpenCode] Fatal error: 'InteractiveMode' object has no attribute 'handle_coding_command'
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 101, in async_main
+    await interactive_mode.run()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/interactive.py", line 1032, in run
+    await self.handle_coding_command(coding_args)
+AttributeError: 'InteractiveMode' object has no attribute 'handle_coding_command'. Did you mean: 'handle_mode_command'?
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 187, in _run_module_as_main
+    mod_name, mod_spec, code = _get_module_details(mod_name, _Error)
+  File "/usr/lib/python3.10/runpy.py", line 146, in _get_module_details
+    return _get_module_details(pkg_main_name, error)
+  File "/usr/lib/python3.10/runpy.py", line 110, in _get_module_details
+    __import__(pkg_name)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__init__.py", line 13, in <module>
+    from .cli import main
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 27, in <module>
+    from .interactive import InteractiveMode
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/interactive.py", line 3991
+    console.print("[yellow]Experiment creation cancelled.[/yellow]
+                  ^
+SyntaxError: unterminated string literal (detected at line 3991)
+Warning: Input is not a terminal (fd=0).
+/home/commander/Desktop/BackupOpencode/versions/v1.3/Launcher: line 116: $2: unbound variable
+Warning: Input is not a terminal (fd=0).
+/home/commander/Desktop/BackupOpencode/versions/v1.3/Launcher: line 116: $2: unbound variable
+Warning: Input is not a terminal (fd=0).
+/home/commander/Desktop/BackupOpencode/versions/v1.3/Launcher: line 126: $2: unbound variable
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+Aborted!
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 187, in _run_module_as_main
+    mod_name, mod_spec, code = _get_module_details(mod_name, _Error)
+  File "/usr/lib/python3.10/runpy.py", line 146, in _get_module_details
+    return _get_module_details(pkg_main_name, error)
+  File "/usr/lib/python3.10/runpy.py", line 110, in _get_module_details
+    __import__(pkg_name)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__init__.py", line 13, in <module>
+    from .cli import main
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 27, in <module>
+    from .interactive import InteractiveMode
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/interactive.py", line 18, in <module>
+    from prompt_toolkit import PromptSession
+  File "/home/commander/.local/lib/python3.10/site-packages/prompt_toolkit/__init__.py", line 27, in <module>
+    from .application import Application
+  File "/home/commander/.local/lib/python3.10/site-packages/prompt_toolkit/application/__init__.py", line 3, in <module>
+    from .application import Application
+  File "/home/commander/.local/lib/python3.10/site-packages/prompt_toolkit/application/application.py", line 36, in <module>
+    from prompt_toolkit.buffer import Buffer
+  File "/home/commander/.local/lib/python3.10/site-packages/prompt_toolkit/buffer.py", line 26, in <module>
+    from .completion import (
+  File "/home/commander/.local/lib/python3.10/site-packages/prompt_toolkit/completion/__init__.py", line 3, in <module>
+    from .base import (
+  File "/home/commander/.local/lib/python3.10/site-packages/prompt_toolkit/completion/base.py", line 11, in <module>
+    from prompt_toolkit.formatted_text import AnyFormattedText, StyleAndTextTuples
+  File "/home/commander/.local/lib/python3.10/site-packages/prompt_toolkit/formatted_text/__init__.py", line 27, in <module>
+    from .html import HTML
+  File "/home/commander/.local/lib/python3.10/site-packages/prompt_toolkit/formatted_text/html.py", line 3, in <module>
+    import xml.dom.minidom as minidom
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 879, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1012, in get_code
+  File "<frozen importlib._bootstrap_external>", line 672, in _compile_bytecode
+KeyboardInterrupt
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 187, in _run_module_as_main
+    mod_name, mod_spec, code = _get_module_details(mod_name, _Error)
+  File "/usr/lib/python3.10/runpy.py", line 146, in _get_module_details
+    return _get_module_details(pkg_main_name, error)
+  File "/usr/lib/python3.10/runpy.py", line 110, in _get_module_details
+    __import__(pkg_name)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__init__.py", line 13, in <module>
+    from .cli import main
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 27, in <module>
+    from .interactive import InteractiveMode
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/interactive.py", line 31, in <module>
+    from .mvco_engine import MarkovContextOrchestrator, MVCO
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/mvco_engine.py", line 1, in <module>
+    import numpy as np
+  File "/home/commander/.local/lib/python3.10/site-packages/numpy/__init__.py", line 181, in <module>
+    from . import lib
+  File "/home/commander/.local/lib/python3.10/site-packages/numpy/lib/__init__.py", line 23, in <module>
+    from . import _index_tricks_impl
+  File "/home/commander/.local/lib/python3.10/site-packages/numpy/lib/_index_tricks_impl.py", line 12, in <module>
+    import numpy.matrixlib as matrixlib
+  File "/home/commander/.local/lib/python3.10/site-packages/numpy/matrixlib/__init__.py", line 4, in <module>
+    from . import defmatrix
+  File "/home/commander/.local/lib/python3.10/site-packages/numpy/matrixlib/defmatrix.py", line 12, in <module>
+    from numpy.linalg import matrix_power
+  File "/home/commander/.local/lib/python3.10/site-packages/numpy/linalg/__init__.py", line 88, in <module>
+    from . import _linalg
+  File "/home/commander/.local/lib/python3.10/site-packages/numpy/linalg/_linalg.py", line 41, in <module>
+    from numpy._typing import NDArray
+  File "/home/commander/.local/lib/python3.10/site-packages/numpy/_typing/__init__.py", line 102, in <module>
+    from ._dtype_like import (
+  File "/home/commander/.local/lib/python3.10/site-packages/numpy/_typing/_dtype_like.py", line 244, in <module>
+    _DTypeLikeBool
+  File "/usr/lib/python3.10/typing.py", line 1041, in __or__
+    return Union[self, right]
+  File "/usr/lib/python3.10/typing.py", line 309, in inner
+    return cached(*args, **kwds)
+  File "/usr/lib/python3.10/typing.py", line 403, in __getitem__
+    return self._getitem(self, parameters)
+  File "/usr/lib/python3.10/typing.py", line 516, in Union
+    parameters = _remove_dups_flatten(parameters)
+  File "/usr/lib/python3.10/typing.py", line 281, in _remove_dups_flatten
+    return tuple(_deduplicate(params))
+  File "/usr/lib/python3.10/typing.py", line 255, in _deduplicate
+    all_params = set(params)
+  File "/usr/lib/python3.10/typing.py", line 1285, in __hash__
+    return hash(frozenset(_value_and_type_iter(self.__args__)))
+KeyboardInterrupt
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/runpy.py", line 187, in _run_module_as_main
+    mod_name, mod_spec, code = _get_module_details(mod_name, _Error)
+  File "/usr/lib/python3.10/runpy.py", line 146, in _get_module_details
+    return _get_module_details(pkg_main_name, error)
+  File "/usr/lib/python3.10/runpy.py", line 110, in _get_module_details
+    __import__(pkg_name)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__init__.py", line 13, in <module>
+    from .cli import main
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 21, in <module>
+    from rich.markdown import Markdown
+  File "/home/commander/.local/lib/python3.10/site-packages/rich/markdown.py", line 6, in <module>
+    from markdown_it import MarkdownIt
+  File "/home/commander/.local/lib/python3.10/site-packages/markdown_it/__init__.py", line 6, in <module>
+    from .main import MarkdownIt
+  File "/home/commander/.local/lib/python3.10/site-packages/markdown_it/main.py", line 7, in <module>
+    from . import helpers, presets
+  File "/home/commander/.local/lib/python3.10/site-packages/markdown_it/presets/__init__.py", line 4, in <module>
+    from . import commonmark, default, zero
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 879, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1012, in get_code
+  File "<frozen importlib._bootstrap_external>", line 672, in _compile_bytecode
+KeyboardInterrupt
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 10: must be one of [25, 50, 75, 100]
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+Warning: Input is not a terminal (fd=0).
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 20: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 20: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 20: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 20: must be one of [25, 50, 75, 100]
+Warning: Input is not a terminal (fd=0).
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 20: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 20: must be one of [25, 50, 75, 100]
+
+[OpenCode] Fatal error: Configuration validation failed:
+  - Invalid runtime resources 20: must be one of [25, 50, 75, 100]
+Traceback (most recent call last):
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/__main__.py", line 9, in <module>
+    main()
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1442, in __call__
+    return self.main(*args, **kwargs)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1363, in main
+    rv = self.invoke(ctx)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 1226, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+  File "/home/commander/.local/lib/python3.10/site-packages/click/core.py", line 794, in invoke
+    return callback(*args, **kwargs)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 41, in main
+    asyncio.run(async_main(model, file, config, interactive, verbose, prompt))
+  File "/usr/lib/python3.10/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.10/asyncio/base_events.py", line 649, in run_until_complete
+    return future.result()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/cli.py", line 66, in async_main
+    cfg = Config.load(config_path)
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 168, in load
+    config.validate_and_raise()
+  File "/home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/opencode/config.py", line 494, in validate_and_raise
+    raise ValueError(f"Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors))
+ValueError: Configuration validation failed:
+  - Invalid runtime resources 20: must be one of [25, 50, 75, 100]
+Warning: Input is not a terminal (fd=0).

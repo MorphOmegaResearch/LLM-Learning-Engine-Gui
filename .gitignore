@@ -1,0 +1,113 @@
+# ============================================================================
+# OpenCode Trainer - Git Ignore Configuration
+# ============================================================================
+
+# ============================================================================
+# CRITICAL: Exclude Large Directories (7.6 GB total to exclude)
+# ============================================================================
+
+# Virtual Environments (7.5 GB) - Never commit these
+Data/Data/venvs/
+venv/
+env/
+.venv/
+*.egg-info/
+
+# Trained Models & Checkpoints (1.1 GB) - Too large for GitHub
+Models/
+models/
+*.safetensors
+*.bin
+*.pt
+*.pth
+checkpoint*/
+
+# GGUF Exports (949 MB) - Quantized model files
+exports/
+*.gguf
+
+# ============================================================================
+# Temporary & Generated Files
+# ============================================================================
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs & Debug
+*.log
+logs/
+DeBug/
+Data/DeBug/
+Data/Data/DeBug/
+
+# Temporary Files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ============================================================================
+# Runtime Data & User-Generated Content
+# ============================================================================
+
+# Chat History (session-specific, can be regenerated)
+Data/tabs/custom_code_tab/chat_history/*.json
+
+# Tool Call Logs (runtime data, can be regenerated)
+Training_Data-Sets/Tools/tool_realtime_data.jsonl
+Training_Data-Sets/Tools/tool_training_data.jsonl
+Training_Data-Sets/Tools/tool_errors.jsonl
+
+# Evaluation Reports (can be regenerated)
+Training_Data-Sets/Test/evaluation_reports/*.json
+
+# Lineage Data (runtime generated)
+Training_Data-Sets/Lineage/*.jsonl
+Training_Data-Sets/Lineage/*.json
+
+# Model Notes (user-specific)
+model_notes/*.txt
+
+# Backup Files
+*.backup
+backup_*/
+archive/
+
+# ============================================================================
+# Keep Configuration Templates (commented out)
+# ============================================================================
+
+# These should be committed as templates with defaults
+# !Data/tabs/custom_code_tab/custom_code_settings.json
+# !Data/tabs/custom_code_tab/advanced_settings.json
+# !Data/tabs/custom_code_tab/mode_settings.json
+# !Data/tabs/custom_code_tab/tool_settings.json
+
+# ============================================================================
+# System Files
+# ============================================================================
+
+# Desktop Entry Files (user-specific paths)
+*.desktop
+
+# OS-specific
+.Trash-*/
+.directory

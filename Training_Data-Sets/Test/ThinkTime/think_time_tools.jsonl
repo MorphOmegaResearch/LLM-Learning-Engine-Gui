@@ -1,0 +1,3 @@
+{"category": "ThinkTime", "skill": "careful_path_selection", "input": "Carefully, without rushing, display what's inside extras/requirements.txt", "expected_tool": "file_read", "expected_args": {"file_path": "extras/requirements.txt"}, "scoring": "args_subset"}
+{"category": "ThinkTime", "skill": "range_reading", "input": "Take a moment and show me the first 5 lines of Data/interactive_trainer_gui_NEW.py", "expected_tool": "file_read", "expected_args": {"file_path": "Data/interactive_trainer_gui_NEW.py", "start_line": 1, "end_line": 5}, "scoring": "args_subset"}
+

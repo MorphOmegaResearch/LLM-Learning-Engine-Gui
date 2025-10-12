@@ -1,0 +1,39 @@
+{
+  "name": "Search Tools",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "file_search",
+        "description": "Search for files matching a pattern within a path.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "pattern": {"type": "string", "description": "Filename or glob pattern, e.g., **/*.py"},
+            "path": {"type": "string", "description": "Directory to search", "default": "."},
+            "case_sensitive": {"type": "boolean", "default": false},
+            "max_results": {"type": "integer", "default": 100}
+          },
+          "required": ["pattern"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "grep_search",
+        "description": "Grep for a regex/pattern within files.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "pattern": {"type": "string", "description": "Regex or plain text to search for"},
+            "path": {"type": "string", "description": "Directory or file to search", "default": "."},
+            "file_pattern": {"type": "string", "description": "Glob for files to search (optional)"},
+            "case_sensitive": {"type": "boolean", "default": true}
+          },
+          "required": ["pattern"]
+        }
+      }
+    }
+  ]
+}

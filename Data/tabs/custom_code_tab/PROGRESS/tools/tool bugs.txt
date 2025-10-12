@@ -1,0 +1,202 @@
+ Phase 1: Critical Bug Resolution (Foundation for `file_search` and 
+  `file_read` Robustness)
+
+  Target 1: `OperationInfo` Constructor Mismatch in `FileWriteTool`
+
+   * Location:
+       * tools.py (where FileWriteTool is defined)
+       * confirmation_gates.py (where OperationInfo is defined)
+   * Reason: The FileWriteTool is attempting to instantiate OperationInfo 
+     without providing the newly required consequences, reversible, and 
+     backup_available arguments, leading to a TypeError.
+   * Plan:
+       * Step 1.1: Update `FileWriteTool` to provide `OperationInfo` 
+         arguments.
+           * Reference File: /home/commander/Desktop/BackupOpencode/versio
+             ns/v1.2/site-packages/opencode/tools.py
+           * Code Lines (approx): FileWriteTool.execute method, around 
+             Line 130-150.
+           * Change: Modify the OperationInfo instantiation to include the
+              missing arguments.
+           * Considerations:
+               * `consequences`: "Existing file content will be 
+                 overwritten."
+               * `reversible`: False (as FileWriteTool does not currently 
+                 implement a backup/restore mechanism for overwrites).
+               * `backup_available`: False (for the same reason as 
+                 reversible).
+           * Conflict Mitigation: Setting reversible and backup_available 
+             to False will make the confirmation prompt more stringent, 
+             aligning with safety principles until a proper backup 
+             mechanism is implemented.
+
+  Target 2: `ToolResult` Constructor Mismatch in `FileEditTool`
+
+   * Location:
+       * tools.py (where FileEditTool and ToolResult are defined)
+   * Reason: The FileEditTool is instantiating ToolResult without 
+     providing the output argument, leading to a TypeError.
+   * Plan:
+       * Step 2.1: Update `FileEditTool` to provide `output` argument to 
+         `ToolResult`.
+           * Reference File: /home/commander/Desktop/BackupOpencode/versio
+             ns/v1.2/site-packages/opencode/tools.py
+           * Code Lines (approx): FileEditTool.execute method, around Line
+              190-205.
+           * Change: Ensure ToolResult is called with output (e.g., 
+             output=f"File edited successfully: {file_path}" for success, 
+             or output="" for failure cases where error is provided).
+           * Considerations: The ToolResult dataclass likely changed to 
+             make output a required field. Providing a meaningful output 
+             string for success cases and an empty string for failure 
+             cases (where the error field will contain details) is 
+             appropriate.
+
+  Target 3: `FileWriteTool` Path Resolution Error
+
+   * Location:
+       * tools.py (FileWriteTool.execute and BaseTool._validate_path)
+   * Reason: FileWriteTool is incorrectly resolving paths, causing an 
+     "Access denied: parent directory ... is outside the working 
+     directory" error even when writing within the temporary test 
+     directory. This suggests an issue with how _validate_path or 
+     safe_path handles parent directories or relative paths.
+   * Plan:
+       * Step 3.1: Debug `FileWriteTool`'s path validation/resolution.
+           * Reference File: /home/commander/Desktop/BackupOpencode/versio
+             ns/v1.2/site-packages/opencode/tools.py
+           * Code Lines (approx): FileWriteTool.execute (Lines ~112-160), 
+             BaseTool._validate_path (Lines ~60-70).
+           * Change: Add print statements or temporarily simplify the path
+              validation logic within _validate_path and 
+             FileWriteTool.execute to trace how safe_path and parent_path 
+             are being constructed and validated.
+           * Considerations: The issue might be in safe_path.parent not 
+             being correctly resolved relative to self.working_dir before 
+             validation, or _validate_path being too strict for parent 
+             directories. The mkdir(parents=True, exist_ok=True) call 
+             might be attempting to create a path that _validate_path then
+              rejects.
+           * Conflict Mitigation: This bug directly impacts the safety and
+              functionality of file_write. Fixing it is paramount.
+
+  ---
+
+  Phase 2: Re-validation and Initial `file_search`/`file_read` 
+  Robustness
+
+   * Step 4: Re-run validation tests.
+       * Reason: Confirm that the fixes for OperationInfo and ToolResult 
+         constructors, and the FileWriteTool path resolution, have 
+         resolved the identified bugs without introducing new regressions.
+       * Action: Execute the validate_tools.py script again.
+       * Considerations: Expect all file_create, file_write, file_read, 
+         file_edit, directory_list, file_search, change_directory, and 
+         file_delete tests to pass as intended.
+
+   * Step 5: Verify `file_search` and `file_read` as single tool calls.
+       * Reason: Ensure the most basic functionality is solid before 
+         moving to chaining.
+       * Action: Analyze the output from Step 4 specifically for 
+         file_search and file_read tests.
+       * Considerations: Confirm correct output for existing/non-existent 
+         files, and accurate search results.
+
+  ---
+
+  Phase 3: Implementing and Validating Chaining and Auto-Chaining
+
+  Target 4: Explicit Tool Chaining for `file_search` -> `file_read`
+
+   * Location:
+       * interactive.py (tool call detection, execution loop)
+       * tool_orchestrator.py (chain execution logic)
+   * Reason: Ensure the system correctly handles a model's explicit 
+     decision to first search for a file and then read its content based 
+     on the search results.
+   * Plan:
+       * Step 6.1: Design a test scenario for explicit chaining.
+           * Action: Simulate a model response that first calls 
+             file_search, then, in a subsequent turn, calls file_read 
+             using a path from the file_search result.
+           * Considerations: This will likely involve interacting with the
+              interactive.py loop, possibly requiring a more advanced test
+              harness or manual interaction.
+       * Step 6.2: Validate chain execution.
+           * Action: Observe the system's behavior, ensuring 
+             tool_orchestrator.py correctly processes the sequence and 
+             interactive.py presents the results cleanly to the model.
+
+  Target 5: Implicit Auto-Chaining for `file_read` (Search & Read)
+
+   * Location:
+       * interactive.py (tool call detection, auto-chaining logic)
+       * config.yaml (auto-chaining policy)
+   * Reason: Provide a helpful "search & read" fallback for models, 
+     especially smaller ones, when a direct file_read fails.
+   * Plan:
+       * Step 7.1: Configure auto-chaining policy.
+           * Reference File: /home/commander/Desktop/BackupOpencode/versio
+             ns/v1.2/config.yaml
+           * Code Lines (approx): system_prompt section, CHAINING POLICY 
+             (Lines ~117-120).
+           * Change: Ensure file_search -> file_read is explicitly enabled
+              and correctly configured as a safe auto-chain.
+       * Step 7.2: Implement/verify auto-chaining logic.
+           * Reference File: /home/commander/Desktop/BackupOpencode/versio
+             ns/v1.2/site-packages/opencode/interactive.py
+           * Code Lines (approx): _call_model_with_tool_result (Lines 
+             ~342-390), and surrounding logic that processes tool results 
+             and decides next actions.
+           * Change: Ensure that if a file_read fails with "file not 
+             found," the system triggers an internal file_search and, if 
+             successful, an internal file_read, then presents the combined
+              result to the model.
+           * Considerations: This might involve modifying interactive.py 
+             to detect the file_read failure and then programmatically 
+             initiate the file_search and subsequent file_read. The 
+             _format_tool_result_as_text function must correctly combine 
+             and present these auto-chained results.
+       * Step 7.3: Design a test scenario for auto-chaining.
+           * Action: Simulate a model calling file_read on a non-existent 
+             file, and observe if the auto-chain correctly executes 
+             file_search and then file_read (if found).
+           * Considerations: This will require careful observation of the 
+             system's internal state and the final output presented to the
+              model.
+
+  ---
+
+  Phase 4: Clean Model-Tool Interface (No Leakage)
+
+  Target 6: Eliminate System Leakage in Tool Results
+
+   * Location:
+       * interactive.py (_format_tool_result_as_text, 
+         _format_tool_result_for_model, _call_model_with_tool_result)
+   * Reason: Ensure the model receives only clean, structured tool 
+     results, free from internal debug messages, status updates, or other 
+     extraneous text.
+   * Plan:
+       * Step 8.1: Review `_format_tool_result_as_text` and 
+         `_format_tool_result_for_model`.
+           * Reference File: /home/commander/Desktop/BackupOpencode/versio
+             ns/v1.2/site-packages/opencode/interactive.py
+           * Code Lines (approx): Lines ~400-700.
+           * Change: Ensure these functions strictly output only the tool 
+             result content and relevant metadata, without any internal 
+             console.print statements or debug information that would be 
+             visible to the model.
+       * Step 8.2: Review `_call_model_with_tool_result`.
+           * Reference File: /home/commander/Desktop/BackupOpencode/versio
+             ns/v1.2/site-packages/opencode/interactive.py
+           * Code Lines (approx): Lines ~342-390.
+           * Change: Ensure the enhanced_prompt constructed here contains 
+             only the user input, the clean tool result, and necessary 
+             exit/next action hints, without any internal system chatter.
+       * Step 8.3: Comprehensive output review.
+           * Action: During all test runs (single calls, explicit chains, 
+             auto-chains), meticulously examine the raw output that would 
+             be fed back to the model, ensuring absolute cleanliness.
+           * Considerations: This might involve temporarily logging the 
+             exact string passed to the model's generate method.

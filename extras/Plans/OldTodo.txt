@@ -1,0 +1,51 @@
+~Update Plans~
+
+
+
+
+<High-Priority>
+
+-Training data set folder linked to GUI button.
+  -additional buttons to create/name/view folders wired up
+  -Area to create data sets in-GUI
+  -
+  -
+  -
+
+-Model Selection TAB
+ -Information & details
+ -
+ -
+ -
+
+
+-Settings TAB
+ -
+ -
+ -
+ -
+
+-
+
+
+
+
+
+
+
+
+
+<Med-Priority>
+
+-Prettier GUI
+
+
+
+
+
+
+
+
+
+
+<Low-Priority>

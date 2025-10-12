@@ -1,0 +1,10 @@
+{
+  "enabled_tools": [
+    "file_read",
+    "file_search",
+    "directory_list",
+    "grep_search",
+    "system_info"
+  ],
+  "description": "Read-Only - Safe mode, no modifications allowed"
+}

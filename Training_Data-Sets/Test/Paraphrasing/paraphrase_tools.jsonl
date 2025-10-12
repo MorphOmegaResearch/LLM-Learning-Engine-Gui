@@ -1,0 +1,4 @@
+{"category": "Paraphrasing", "skill": "file_search_py_glob", "input": "find python sources", "expected_tool": "file_search", "expected_args": {"pattern": "**/*.py"}, "scoring": "function_call_match"}
+{"category": "Paraphrasing", "skill": "file_search_py_glob", "input": "show me all .py files across the project", "expected_tool": "file_search", "expected_args": {"pattern": "**/*.py"}, "scoring": "function_call_match"}
+{"category": "Paraphrasing", "skill": "grep_in_py", "input": "look up 'import tkinter' in python modules", "expected_tool": "grep_search", "expected_args": {"pattern": "import tkinter", "file_pattern": "*.py"}, "scoring": "args_subset"}
+

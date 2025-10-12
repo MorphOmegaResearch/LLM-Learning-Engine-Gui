@@ -1,0 +1,15 @@
+FROM gemma-3-4b-it-Q5_K_M:latest
+PARAMETER stop "<start_of_turn>"
+PARAMETER stop "<end_of_turn>"
+PARAMETER stop "<|im_start|>"
+PARAMETER stop "<|im_end|>"
+
+TEMPLATE """{{ if .System }}<start_of_turn>system
+{{ .System }}<end_of_turn>
+{{ end }}{{ if .Prompt }}<start_of_turn>user
+{{ .Prompt }}<end_of_turn>
+{{ end }}<start_of_turn>model
+{{ .Response }}<end_of_turn>
+"""
+
+SYSTEM """ILSv2:Intent→ToolMapping|MPLv2:5LayerAnalysis|Tools:file[read,write,edit,search,list],grep,bash,git,cd,system,resources,code_analysis,dependency_check,performance,security,api,db,network|Protocol:{"type":"tool_call","name":"tool","args":{},"meta":{}}|Rhythm:Analyze→Select→Execute→Validate→Optimize|Closure:Conversational,ToolBased,Mixed,Predictive|Memory:ContextPersistence|Optimization:Parallel,Cache,Retry|Error:Recovery,Fallback"""

@@ -1,0 +1,129 @@
+agentic:
+  auto_handoff_enabled: false
+  confirmation_level: MODERATE
+  enabled: true
+  resource_constraints: STANDARD
+history:
+  file_path: .opencode_history
+  max_entries: 100
+  resume_last_session: false
+  save_to_file: true
+interface:
+  auto_model_selection: false
+  auto_save: false
+  compact_mode: true
+  confirm_destructive: true
+  default_mode: auto
+  interactive_mode: true
+  syntax_highlighting: true
+model:
+  base_url: http://localhost:11434
+  max_tokens: 1024
+  name: tinyllama:latest
+  temperature: 0.1
+optimization:
+  adaptive_timeouts: true
+  context_scoring: true
+  dynamic_pruning: true
+  enabled: false
+  max_context_tokens: 2000
+  performance_monitoring: true
+  pruning_ratio: 0.8
+policy:
+  allow_options_override: true
+  caps_auto:
+    reasoning: 450
+    standard: 300
+    structured: 220
+  caps_fast:
+    reasoning: 200
+    standard: 120
+    structured: 90
+  caps_think:
+    reasoning: 900
+    standard: 600
+    structured: 350
+  enabled: true
+  provider: advanced
+quality_recovery:
+  enabled: true
+  instant_hooks_enabled: true
+  mode: balanced
+  observer_pattern_enabled: true
+  rag_feedback_enabled: true
+routing:
+  continuation_threshold: 0.8
+  enabled: true
+  lane_timeouts:
+    deliberate: 25
+    recall: 5
+    standard: 12
+    tool_use: 15
+  memory_gate_min_score: 0.6
+  performance_targets:
+    general: 80.0
+    recall: 95.0
+    structured: 90.0
+  reasoning_threshold: 0.6
+  recall_threshold: 0.9
+  structured_threshold: 0.7
+  summary_gate_min_score: 0.5
+  tool_threshold: 0.7
+runtime:
+  auto_detect: true
+  cpu_threads: null
+  fallback_model: gemma2:2b-16k
+  gpu_enabled: false
+  max_memory_mb: null
+  resources: 50
+  slice_generation: true
+system_prompt: 'You are OpenCode, an AI-powered code assistant. You help users with
+  software development tasks including:
+
+  - Code generation and refactoring
+
+  - Bug fixes and debugging
+
+  - Code analysis and explanation
+
+  - Project structure understanding
+
+  - File operations and editing
+
+
+  You have access to various tools to interact with the file system, execute commands,
+  and search code.
+
+  Be concise, accurate, and helpful. Always consider security best practices.'
+tools:
+  bash:
+    allowed_commands:
+    - git
+    - npm
+    - pip
+    - python
+    - python3
+    - node
+    - cargo
+    - go
+    - make
+    - docker
+    - ls
+    - pwd
+    - whoami
+    - date
+    - cat
+    - head
+    - tail
+    - grep
+    - find
+    - mkdir
+    - touch
+    timeout: 30
+  enabled:
+  - file_read
+  - file_write
+  - file_edit
+  - bash_execute
+  - grep_search
+  - git_operations

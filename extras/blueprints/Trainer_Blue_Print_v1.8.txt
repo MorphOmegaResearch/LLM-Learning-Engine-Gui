@@ -1,0 +1,105 @@
+system blueprint:
+
+  🏗️ OpenCode Trainer System - Complete Blueprint (v1.8)
+
+  Highlights in v1.8
+  - Baseline → GGUF → Auto‑Resume
+    - If a trainable base has no inference model, export/pull a GGUF first.
+    - After export/pull completes, evaluation auto‑resumes using the created/pulled tag, while saving the baseline under the parent base name.
+    - Baseline catalog updated; active baseline is set for regression checks.
+  - Baseline Options
+    - Overwrite existing baseline or Create New (timestamped). Optionally delete the old file when creating new.
+  - Schema‑Aware Evaluation Improvements
+    - Parser accepts both "args" and "arguments" and decodes JSON‑string arguments from Ollama tool_calls.
+    - Request/response debug logging added (Data/DeBug/eval_debug.log).
+  - Tool Conformer for JSON Calls
+    - Enforces exact tool selection, arguments, and path patterns to match test suites.
+    - Adds mapping rules (e.g., grep_search for text search; recursive **/*.py for project‑wide searches).
+  - Quantization Picker
+    - Unified dialog for Level Up / Export to GGUF includes quant picker and size estimates; passes --quant to exporter.
+  - Help & Beginner’s Guide
+    - Help Menu categories updated; new Beginner’s Guide walks through the full flow: install datasets, run baseline, train, export, and compare.
+
+  v1.8 Addendum (Compare UX + Training Suggestions)
+  - Parent‑centric Compare
+    - Compare tab now treats selection A as the Parent Model. The lists only include trainable parents that actually have a baseline/evaluation.
+    - Baseline selectors are tolerant of name variants (e.g., colon/underscore/case differences) and auto‑populate when opening the tab.
+    - Clear labels for baselines: "YYYY‑MM‑DD HH:MM | pass XX.XX% | suite | schema | prompt -> /path.json".
+  - Three compare modes
+    1) Baseline vs Baseline (Parent): pick any two baselines saved for the parent.
+    2) Latest Eval vs Reference (Parent): requires one saved evaluation report for the parent; compares the latest eval to a chosen baseline.
+    3) Advanced: Other Model (latest eval): enabled only when both models have evaluation reports.
+  - Actionable output
+    - "🧠 Generate Training Suggestions" analyzes diffs and classifies common failure reasons (missing_arg, tool_mismatch, schema_validation, json_format, other).
+    - Produces example JSONL stubs (category/skill/input/expected_tool/expected_args) to guide training data additions.
+    - "💾 Save Example Stubs" writes suggestions to Training_Data‑Sets/Tools/suggestions_<timestamp>.jsonl for rapid iteration.
+  - Reliability polish
+    - Baseline selections resolve via internal label→path mapping (no fragile string parsing).
+    - "Compare (Other Model)" button stays disabled until both models have latest evaluation reports; baseline compares never require evals.
+
+  **Recent Enhancements (Post-v1.8 Release):**
+  - **Skills Tab:** Now displays the `prompt_name` and `schema_name` used for the active baseline, providing better context for skill verification.
+  - **Integrated Post-Training Evaluation:**
+    - After a training run completes, an automatic evaluation of the newly trained model is performed.
+    - A comprehensive evaluation report is generated and saved.
+    - The path to this evaluation report is linked directly to the training run's statistics.
+  - **Enhanced Stats Tab:**
+    - Displays detailed evaluation results (overall pass rate, prompt, schema) for each training run.
+    - Automatically compares the training run's evaluation against the active baseline of its base model.
+    - Presents a clear "Evaluation vs. Baseline" summary, including:
+        - "Overall Pass Rate Delta"
+        - Identified "Regressions" (skills that performed worse)
+        - Identified "Improvements" (skills that performed better)
+    - Features a "💡 Get Suggestions" button (if regressions are found) that opens a dialog with:
+        - Summary of regression cases and unique failure reasons.
+        - Top failing test cases.
+        - Example JSONL stubs for retraining, based on identified regressions.
+
+  End‑to‑End Flow (Beginner’s Guide)
+  1) Start with a Base (PyTorch)
+     - Select a local base (Models tab, Base Models section).
+  2) Pull/Prepare Datasets
+     - Place JSONL training/evaluation sets under Training_Data‑Sets (or use provided examples).
+  3) Run Pre‑Training Baseline
+     - Models → 🧪 Evaluation: choose suite + Tool Schema (json_calls_full) and the Tools_JSON_Calls_Conformer prompt.
+     - If no GGUF exists, export/pull; evaluation auto‑resumes with the created tag.
+     - Baseline saved to Models/benchmarks and set active.
+  4) Train
+     - Go to Training → Runner. Commit a model and scripts; start training.
+     - **(NEW)** Post-training evaluation is now automatic.
+  5) Level Up + Export
+     - Create Level 1 from adapters.
+     - Export Level to GGUF with desired quant.
+  6) Evaluate & Compare
+     - Run evaluation for the Level; compare vs parent’s active baseline.
+     - Review regression summary and per‑skill changes.
+     - **(NEW)** View detailed evaluation and comparison results directly in the "Stats" tab.
+     - **(NEW)** Get training suggestions if regressions are found.
+
+  Directory Conventions
+  - Models/benchmarks: baselines + index.json catalog
+  - Models/evaluations: all non‑baseline evaluation reports
+  - Training_Data‑Sets/Test: evaluation suites
+  - Training_Data‑Sets/Prompts: system prompts
+  - Training_Data‑Sets/Schemas: tool schemas
+
+  Appendix: Key Files Updated in v1.8
+  - Data/evaluation_engine.py
+    - inference_override parameter
+    - args/arguments parsing & tool_call JSON decoding
+    - request/response debug logging
+  - Data/tabs/models_tab/models_tab.py
+    - Baseline Options dialog (overwrite/new/delete old)
+    - Auto‑resume evaluation after export/pull
+    - Robust GGUF selection; re‑enable Run button on cancel
+    - **(NEW)** Display of prompt_name and schema_name in Skills tab.
+    - **(NEW)** Enhanced Stats tab with evaluation comparison and suggestions.
+  - Data/training_engine.py
+    - **(NEW)** Integration of post-training evaluation.
+  - Data/config.py
+    - **(NEW)** `save_training_stats` now stores `eval_report_path`.
+    - **(NEW)** `get_model_skills` now includes prompt and schema names in `__meta__`.
+  - Training_Data‑Sets/Prompts/Tools/Tools_JSON_Calls_Conformer.json
+    - Tightened task mapping rules
+
+  End of Blueprint

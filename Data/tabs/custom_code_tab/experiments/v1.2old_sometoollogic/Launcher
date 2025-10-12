@@ -1,0 +1,65 @@
+#!/bin/bash
+set -euo pipefail
+
+BASE_DIR="/home/commander/Desktop/BackupOpencode/versions/v1.2"
+ROOT_DIR="/home/commander/Desktop/BackupOpencode"
+VERS_DIR="$ROOT_DIR/versions"
+label="v1.2"
+
+is_test=0
+no_prompt=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --test) is_test=1; shift ;;
+    --no-prompt) no_prompt=1; shift ;;
+    --version) shift ;; # ignored; label is fixed for this launcher
+    *) shift ;;
+  esac
+done
+
+cd "$ROOT_DIR"
+
+# Point to this version's code/config
+export OPENCODE_VERSION="$label"
+export OPENCODE_TEST="$is_test"
+export PYTHONPATH="$BASE_DIR/site-packages"
+
+CFG=
+if [[ -f "$BASE_DIR/config.yaml" ]]; then
+  CFG="$BASE_DIR/config.yaml"
+elif [[ -f "$BASE_DIR/config/config.yaml" ]]; then
+  CFG="$BASE_DIR/config/config.yaml"
+fi
+
+cmd=( python3 -m opencode -i )
+if [[ -n "$CFG" ]]; then cmd+=( -c "$CFG" ); fi
+
+start_ts=$(date +%s)
+set +e
+"${cmd[@]}" 2>> "$BASE_DIR/crash_log.txt"
+status=$?
+set -e
+end_ts=$(date +%s)
+runtime=$(( end_ts - start_ts ))
+
+# Helper: relaunch STABLE via base launcher and clear ACTIVE_TEST
+relaunch_stable() {
+  if [[ -f "$VERS_DIR/ACTIVE_TEST" ]]; then rm -f "$VERS_DIR/ACTIVE_TEST"; fi
+  if [[ -f "$VERS_DIR/STABLE" ]]; then
+    local stable
+    stable=$(cat "$VERS_DIR/STABLE" | tr -d '\n\r')
+    if [[ -n "$stable" && -d "$VERS_DIR/$stable/site-packages" ]]; then
+      exec "$ROOT_DIR/Launcher" --version "$stable" --no-prompt
+    fi
+  fi
+}
+
+if [[ $status -ne 0 || $runtime -lt 3 ]]; then
+  relaunch_stable
+elif [[ "$is_test" -eq 1 ]]; then
+  relaunch_stable
+fi
+
+if [[ "$no_prompt" -ne 1 ]]; then
+  read -p "Press Enter to close this window..."
+fi

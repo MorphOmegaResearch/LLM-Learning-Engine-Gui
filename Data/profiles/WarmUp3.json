@@ -1,0 +1,22 @@
+{
+  "training_runs": 1,
+  "batch_size": 1,
+  "learning_strength": "2e-4",
+  "base_model": "LOCAL: Qwen2.5-0.5b-Instruct (/home/commander/Desktop/Trainer/Models/Qwen2.5-0.5b-Instruct)",
+  "categories": [],
+  "subcategories": {},
+  "runner_settings": {
+    "max_time": 20,
+    "run_delay": 0,
+    "save_checkpoints": true,
+    "checkpoint_interval": 5,
+    "early_stop": false,
+    "early_stop_patience": 3,
+    "use_mixed_precision": true,
+    "gradient_accumulation": 16,
+    "warmup_steps": 5,
+    "max_cpu_threads": 2,
+    "max_ram_percent": 70,
+    "auto_restart": false
+  }
+}

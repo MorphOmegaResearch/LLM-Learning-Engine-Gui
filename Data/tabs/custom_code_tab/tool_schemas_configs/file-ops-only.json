@@ -1,0 +1,15 @@
+{
+  "enabled_tools": [
+    "file_read",
+    "file_write",
+    "file_edit",
+    "file_search",
+    "file_copy",
+    "file_move",
+    "file_delete",
+    "file_create",
+    "file_fill",
+    "directory_list"
+  ],
+  "description": "File Operations Only - No bash, git, or web access"
+}

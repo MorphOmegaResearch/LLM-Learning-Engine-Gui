@@ -1,0 +1,315 @@
+>>
+  Phase 1: Unify Tool & Schema Management
+
+  Objective: Execute the Tool_management_plan.txt. This is the highest 
+  priority as it standardizes the tool system, which all subsequent 
+  phases will depend on.
+
+   * Step 1.1: Centralize Backend Assets.
+       * Action: Create the new central directory: 
+         Training_Data-Sets/Schema_Profiles/.
+       * Action: Move the existing profile files from 
+         Data/tabs/custom_code_tab/tool_schemas_configs/ to this new 
+         directory.
+       * Action: Solidify Training_Data-Sets/Schemas/ as the single source
+          for all individual tool definitions.
+       * Considerations: This is primarily a file system operation. I must
+          ensure that any code referencing the old tool_schemas_configs 
+         path is updated to point to the new Schema_Profiles directory to 
+         prevent breaking the chat tab's functionality.
+
+   * Step 1.2: Overhaul the "Tools" Sub-Tab into a Profile Manager.
+       * Action: Redesign the UI in tools_tab.py to feature a dropdown 
+         menu for selecting, creating, and deleting profiles.
+       * Action: The tool checkboxes will now dynamically update to 
+         reflect the contents of the profile currently selected in the 
+         dropdown.
+       * Action: The "Save Settings" button will be repurposed to "Save 
+         Profile."
+       * Considerations: This is a significant UI modification. The 
+         internal logic of tools_tab.py will need to change from managing 
+         a single global state to handling multiple, named profile states 
+         that are loaded from and saved to different files.
+
+   * Step 1.3: Integrate the Unified Profile System.
+       * Action: Update the "Chat" sub-tab (chat_interface_tab.py) to 
+         populate its "Tool Schema" selector from the new 
+         Training_Data-Sets/Schema_Profiles/ directory.
+       * Action: Update the "Training" tab's Runner Panel 
+         (runner_panel.py) so its "Evaluation Context" dropdown also lists
+          and uses these new profiles.
+       * Considerations: This ensures a consistent user experience. When 
+         you create a profile in the "Tools" tab, it should immediately be
+          available for use in both the chat and evaluation contexts.
+
+   * Step 1.4: Implement Context-Aware Data Collection.
+       * Action: Modify the ToolCallLogger in tool_call_logger.py to 
+         accept a context dictionary in its logging methods.
+       * Action: Update the chat_interface_tab.py to capture the active 
+         tool profile name and pass it to the logger with every logged 
+         tool call.
+       * Considerations: The format of the log files 
+         (tool_realtime_data.jsonl and tool_training_data.jsonl) will 
+         change. I must verify that downstream systems, like the analytics
+          functions for the "Skills" tab, are either compatible with this 
+         new format or are updated accordingly.
+
+  ---
+
+  Phase 2: Enhance Evaluation and Analytics
+
+  Objective: Build upon the existing evaluation framework by adding more
+   detailed metrics and UI improvements as outlined in your 
+  Todo_list.txt.
+
+   * Step 2.1: Implement Efficiency Metrics.
+       * Action: Modify evaluation_engine.py to measure and store 
+         tokens/second and time-to-first-token (TTFT) during evaluation 
+         runs.
+       * Considerations: This requires adding timing logic within the 
+         evaluation loop. I need to ensure this measurement is accurate 
+         and doesn't add significant overhead to the evaluation process 
+         itself.
+
+   * Step 2.2: Add "Behavior Details" Panel.
+       * Action: In models_tab.py, create a new UI panel within the 
+         "Stats" sub-tab.
+       * Action: This panel will be designed to clearly display granular 
+         metrics from evaluation reports, such as performance per_tool, 
+         per_difficulty, and top confusions.
+       * Considerations: This is a UI-heavy task. The goal will be to 
+         present potentially dense data in a way that is easy to 
+         understand at a glance.
+
+   * Step 2.3: Add Minor UI Enhancements.
+       * Action: Add a "Compare to Parent Baseline" button to the GGUF 
+         model overview screen in models_tab.py.
+       * Action: Add a toggle/checkbox in the "Evaluation" tab to force an
+          evaluation to run against "All suites."
+       * Considerations: These are small but impactful changes that will 
+         require locating the correct UI code in models_tab.py and 
+         runner_panel.py to modify.
+
+  ---
+
+  Phase 3: Implement Model Gamification & Evolution
+
+  Objective: Implement the gamification system described in gamify.txt to 
+  provide clear, motivating feedback on model progression.
+
+   * Step 3.1: Implement Backend Logic & Data Structures.
+       * Action: Create the new Python files model_typing.py (to define 
+         model "Types") and tiering.py (to calculate ranks and "Evolution 
+         Points").
+       * Action: Establish the skills/<model_id>.json file structure to 
+         store a model's type, rank, and capability scores.
+       * Considerations: The logic in these new files will be critical and
+          must be robust. The calculations for rank and type will directly
+          depend on the structure of the evaluation reports.
+
+   * Step 3.2: Integrate Gamification with the Evaluation Engine.
+       * Action: Modify evaluation_engine.py to call the new tiering and 
+         typing logic after each evaluation run is complete.
+       * Considerations: This creates a dependency between the evaluation 
+         engine and the new gamification logic. I need to ensure they 
+         communicate correctly and that failures in the gamification step 
+         don't prevent evaluation reports from being saved.
+
+   * Step 3.3: Build the Gamification UI.
+       * Action: In models_tab.py, modify the UI to display the "Type" and
+          "Rank" as colored badges next to the model name.
+       * Action: The "Skills" tab will be updated to show the detailed 
+         capability scores and the requirements for reaching the next 
+         tier.
+       * Considerations: This involves creating or modifying custom 
+         widgets to display the new gamified information in a visually 
+         appealing way.
+
+   * Step 3.4: Implement the "Evolution Conformer".
+       * Action: Create a new UI pop-up that appears when a model's 
+         evaluation scores meet the criteria for an "Evolution."
+       * Action: This pop-up will present the user with choices like 
+         "Promote to New Base Model" or "Unlock Growth Mode."
+       * Considerations: This is a complex UI component that is 
+         conditionally triggered. The actions it performs (like merging 
+         adapters or enabling full-weight training) are significant and 
+         must be handled carefully, likely by calling other scripts.
+
+--------->>>
+ Considerations for Investigation
+
+   1. How does the "Training" tab select its data, and can this be 
+      influenced by a model's "Type"?
+       * Goal: To see if we can create a feedback loop where a model's 
+         designated "Type" (e.g., "Coder") can automatically suggest or 
+         pre-select the most relevant training scripts and datasets in the
+          "Training" tab.
+       * Tabs/Functions to Investigate:
+           * training_tab.py: create_training_menu() and 
+             populate_category_tree() to understand how the script/dataset
+              list is built and controlled.
+           * runner_panel.py: start_runner_training() to see how the final
+              selection is gathered and passed to the training process.
+           * model_typing.py (from the plan): We need to consider how the 
+             output of this future module (the model's Type) would be 
+             passed to the TrainingTab instance.
+
+   * Findings (12 Oct 2025):
+       * Data Selection is currently 100% manual. The user selects training scripts and datasets via checkboxes in the UI.
+       * The `training_tab.py` module builds this UI, and `runner_panel.py` collects the user's choices when a training run is initiated.
+       * There is currently no logic to automatically select data based on a model's "Type".
+       * This is a viable new feature. The `TrainingTab` class owns the selection variables (`script_vars`, `jsonl_vars`) and could be extended with a new method (e.g., `set_selection_for_type(type)`) to enable this feedback loop.
+
+   2. How is "Lineage" currently tracked, and can it store "Evolution"
+      events?
+       * Goal: To verify that when a model is "Promoted" or enters "Growth
+          Mode," this event can be permanently recorded as part of its
+         history, visible in the "Models" tab.
+       * Tabs/Functions to Investigate:
+           * training_engine.py: The run_full_training() method already
+             contains a section for "Record Lineage" that uses a
+             lineage_tracker. I need to analyze this tracker.
+           * lineage_tracker.py (in custom_code_tab): I must read this
+             file to see what data it stores and if it can be extended to
+             include "Evolution" events like promotions or mode changes.
+           * models_tab.py: The display_model_info() functions to see how
+             lineage is currently displayed and where the new "Evolution"
+             information would fit.
+
+   * Findings (12 Oct 2025):
+       * LineageTracker is fully functional and located at Data/tabs/custom_code_tab/lineage_tracker.py
+       * Records are stored in Training_Data-Sets/Lineage/model_lineage.jsonl (JSONL format, one record per line)
+       * Each lineage record contains:
+           - model_name: Name of the newly trained model
+           - base_model: Name of the parent model
+           - training_date: ISO format timestamp
+           - training_data_source: Path/description of training data
+           - training_method: Method used (currently "LoRA fine-tune", but extensible)
+           - metadata: Dict containing epochs, batch_size, learning_rate, lora params, training_loss, category, etc.
+           - recorded_at: Timestamp when lineage was recorded
+       * The metadata field is already a flexible dictionary that can store arbitrary key-value pairs
+       * Evolution events CAN be stored by:
+           1. Adding new fields to metadata (e.g., "evolution_type": "promotion", "evolution_from_rank": "bronze", "evolution_to_rank": "silver")
+           2. Using training_method field to indicate special operations (e.g., "promotion", "growth_mode_activation", "adapter_merge")
+           3. Creating new lineage entries for evolution events (model_name stays same, but base_model references itself with new metadata)
+       * training_engine.py already records lineage at lines 466-499 in run_full_training()
+       * models_tab.py displays lineage at lines 3540-3639 in display_model_info():
+           - Shows base model, training method, training date, data source
+           - Displays full ancestry chain with "Ancestry: Model1 → Model2 → Model3" format
+           - Uses a "🧬 Model Lineage" labelframe in the Overview tab
+       * The lineage system is READY to support Evolution events. We just need to:
+           1. Create a new method in lineage_tracker.py like record_evolution() that wraps record_training() with evolution-specific metadata
+           2. Call this method from the gamification system when promotions/evolutions occur
+           3. Update models_tab.py display to show evolution events with special formatting (e.g., "⭐ Evolution: Bronze → Silver" alongside regular training lineage)
+
+   3. How does the "Chat" tab's data collection feed the "Parent Model"
+      profile?
+       * Goal: To trace the data pipeline from a chat session all the way
+         to the "Skills" and "Stats" displays for a parent model in the
+         "Models" tab, confirming the link is solid.
+       * Tabs/Functions to Investigate:
+           * chat_interface_tab.py: The handle_tool_calls() method,
+             specifically the part gated by if
+             self.training_mode_enabled:.
+           * tool_call_logger.py: The log_tool_call() and
+             get_tool_statistics() methods to confirm how data is written
+             and read.
+           * models_tab.py: The populate_skills_display() method, which
+             calls _get_runtime_skills(). I need to confirm that
+             _get_runtime_skills correctly aggregates data for a given
+             model name.
+           * config.py: The get_all_trained_models() function, to see how
+             it identifies and groups models, which is essential for
+             aggregating stats under a single parent.
+
+   * Findings (12 Oct 2025):
+       * The data pipeline is FULLY FUNCTIONAL and works as follows:
+       * Step 1 - Data Collection (chat_interface_tab.py):
+           - User enables training mode via set_training_mode(True) method (line 2933)
+           - Tool calls are executed in handle_tool_calls() method (lines 1100-1170)
+           - When training_mode_enabled is True (line 1103):
+               - ToolCallLogger.log_training_example() saves full conversation to tool_training_data.jsonl (line 1109)
+               - ToolCallLogger.log_batch_tool_calls() logs individual tool calls to tool_realtime_data.jsonl (line 1110)
+           - Real-time evaluation scores are accumulated in self.realtime_eval_scores dict during the session
+           - When training mode is disabled or model is dismounted, persist_realtime_scores() is called (lines 2571-2611)
+       * Step 2 - Data Storage (tool_call_logger.py):
+           - ToolCallLogger stores logs in Training_Data-Sets/Tools/ directory (line 24)
+           - Three log files: tool_training_data.jsonl (full conversations), tool_realtime_data.jsonl (individual tool calls), tool_errors.jsonl (errors)
+           - Each log entry includes: timestamp, model name, tool name, arguments, result, success status, execution_time
+           - Log format: {"timestamp": "...", "model": "model_name", "tool": "tool_name", "arguments": {...}, "result": "...", "success": true/false, "execution_time": 0.5}
+           - get_tool_statistics(model_name) method (lines 190-234) reads tool_realtime_data.jsonl and aggregates by model
+       * Step 3 - Data Reading (config.py):
+           - _get_runtime_skills(model_name) function (lines 1171-1280) reads tool call logs
+           - First tries to use ToolCallLogger.get_tool_statistics() method
+           - Falls back to direct file reading if logger not available
+           - Filters log entries by model name (line 1262: if entry.get('model') == model_name)
+           - Aggregates success/failure counts per tool
+           - Returns dict: {tool_name: {"level": "active"/"dormant", "success_rate": 85.2, "total_calls": 42, "errors": [...]}}
+       * Step 4 - Display (models_tab.py):
+           - populate_skills_display() method (lines 2269-2400) called when model is selected
+           - Calls config._get_runtime_skills(model_name) to get runtime data (line 2282)
+           - Also calls config.get_model_skills(model_name) to get evaluation data (line 2283)
+           - Displays both runtime skills (actual usage) and evaluation skills (test results) side-by-side
+           - Skills are grouped and colored based on success rates
+       * The pipeline is SOLID and works correctly. Model names are used as the primary key throughout the entire pipeline, ensuring proper aggregation.
+       * Current limitation: Tool profile context is NOT captured in logs (Investigation 4 explores adding this)
+
+   4. Can the unified "Tool Profiles" be used to dynamically generate new
+      training data?
+       * Goal: To investigate if a user-defined Tool Profile (e.g.,
+         "read-only") can be fed into the tool_trainer.py script to
+         automatically generate negative training examples (i.e., examples
+          that teach the model not to call disabled tools in that
+         context).
+       * Tabs/Functions to Investigate:
+           * tool_trainer.py: I need to read this file to understand its
+             capabilities for data generation.
+           * tools_tab.py (the planned overhaul): The new Profile Manager
+             UI could have a button like "Generate Training Data from
+             Profile."
+           * training_engine.py: To see how newly generated data could be
+             incorporated into a training run.
+
+   * Findings (12 Oct 2025):
+       * tool_trainer.py EXISTS and is a comprehensive training data generator (Data/tool_trainer.py, 671 lines)
+       * Current capabilities:
+           - Generates training examples for all tool categories: file ops, search, system, git, web (lines 169-356)
+           - Supports auto-chain examples (e.g., file_search → file_read) for better model reasoning (lines 358-373)
+           - Uses TrainingDataGenerator module for scenario-based examples (line 188)
+           - Exports data in multiple formats for fine-tuning (lines 440-471)
+           - Validates generated data with live Ollama inference (optional, lines 524-599)
+           - Tracks statistics: success rate, pass rate, response times, baseline skill tests (lines 40-64)
+       * Data generation methods per tool type:
+           - _generate_file_ops_examples() (lines 193-252): file_write, file_read, file_edit examples
+           - _generate_search_examples() (lines 254-288): file_search, grep_search, directory_list
+           - _generate_system_examples() (lines 290-314): system_info, process_manage
+           - _generate_git_examples() (lines 316-340): git status, log, operations
+           - _generate_web_examples() (lines 342-356): web_search
+           - _generate_auto_chain_examples() (lines 358-373): multi-tool sequences
+       * Profile-based generation is NOT currently implemented BUT is highly feasible:
+           - Current approach: Generates examples for ALL tools (lines 169-191)
+           - Each tool category is limited by max_examples_per_tool config (default: 50)
+           - To support profiles, we need to:
+               1. Add a load_tool_profile() method that reads from Training_Data-Sets/Schema_Profiles/
+               2. Filter generation methods based on enabled_tools list from profile
+               3. Generate POSITIVE examples for enabled tools (current behavior)
+               4. Generate NEGATIVE examples for disabled tools (NEW: show correct refusal/alternative)
+       * Example negative training data structure:
+           {"scenario": "file_write_disabled",
+            "conversation": [
+                {"role": "user", "content": "Create a file called test.txt"},
+                {"role": "assistant", "content": "I cannot create files in read-only mode. However, I can help you read existing files or search for content."}
+            ]}
+       * Integration path:
+           1. Extend OpenCodeToolTrainer.__init__() to accept tool_profile parameter
+           2. Add generate_profile_specific_examples(profile_config) method
+           3. Modify generate_training_examples() to use profile filtering
+           4. Add UI button in tools_tab.py: "🎯 Generate Training Data" that calls tool_trainer with current profile
+           5. Save generated data to Training_Data-Sets/Tools/profile_specific/ directory
+       * This feature would enable:
+           - Context-aware model training (read-only mode vs full-access mode)
+           - Safety training (explicitly teach models to refuse dangerous operations)
+           - Role-based tool usage (coder profile vs analyst profile vs admin profile)
+       * RECOMMENDATION: This is a HIGH-VALUE feature that should be prioritized after Phase 1 completion.
+<<<---------
+>>

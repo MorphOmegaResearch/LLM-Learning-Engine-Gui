@@ -1,0 +1,209 @@
+>>
+  Phase 1: Unify Tool & Schema Management
+
+  Objective: Execute the Tool_management_plan.txt. This is the highest 
+  priority as it standardizes the tool system, which all subsequent 
+  phases will depend on.
+
+   * Step 1.1: Centralize Backend Assets.
+       * Action: Create the new central directory: 
+         Training_Data-Sets/Schema_Profiles/.
+       * Action: Move the existing profile files from 
+         Data/tabs/custom_code_tab/tool_schemas_configs/ to this new 
+         directory.
+       * Action: Solidify Training_Data-Sets/Schemas/ as the single source
+          for all individual tool definitions.
+       * Considerations: This is primarily a file system operation. I must
+          ensure that any code referencing the old tool_schemas_configs 
+         path is updated to point to the new Schema_Profiles directory to 
+         prevent breaking the chat tab's functionality.
+
+   * Step 1.2: Overhaul the "Tools" Sub-Tab into a Profile Manager.
+       * Action: Redesign the UI in tools_tab.py to feature a dropdown 
+         menu for selecting, creating, and deleting profiles.
+       * Action: The tool checkboxes will now dynamically update to 
+         reflect the contents of the profile currently selected in the 
+         dropdown.
+       * Action: The "Save Settings" button will be repurposed to "Save 
+         Profile."
+       * Considerations: This is a significant UI modification. The 
+         internal logic of tools_tab.py will need to change from managing 
+         a single global state to handling multiple, named profile states 
+         that are loaded from and saved to different files.
+
+   * Step 1.3: Integrate the Unified Profile System.
+       * Action: Update the "Chat" sub-tab (chat_interface_tab.py) to 
+         populate its "Tool Schema" selector from the new 
+         Training_Data-Sets/Schema_Profiles/ directory.
+       * Action: Update the "Training" tab's Runner Panel 
+         (runner_panel.py) so its "Evaluation Context" dropdown also lists
+          and uses these new profiles.
+       * Considerations: This ensures a consistent user experience. When 
+         you create a profile in the "Tools" tab, it should immediately be
+          available for use in both the chat and evaluation contexts.
+
+   * Step 1.4: Implement Context-Aware Data Collection.
+       * Action: Modify the ToolCallLogger in tool_call_logger.py to 
+         accept a context dictionary in its logging methods.
+       * Action: Update the chat_interface_tab.py to capture the active 
+         tool profile name and pass it to the logger with every logged 
+         tool call.
+       * Considerations: The format of the log files 
+         (tool_realtime_data.jsonl and tool_training_data.jsonl) will 
+         change. I must verify that downstream systems, like the analytics
+          functions for the "Skills" tab, are either compatible with this 
+         new format or are updated accordingly.
+
+  ---
+
+  Phase 2: Enhance Evaluation and Analytics
+
+  Objective: Build upon the existing evaluation framework by adding more
+   detailed metrics and UI improvements as outlined in your 
+  Todo_list.txt.
+
+   * Step 2.1: Implement Efficiency Metrics.
+       * Action: Modify evaluation_engine.py to measure and store 
+         tokens/second and time-to-first-token (TTFT) during evaluation 
+         runs.
+       * Considerations: This requires adding timing logic within the 
+         evaluation loop. I need to ensure this measurement is accurate 
+         and doesn't add significant overhead to the evaluation process 
+         itself.
+
+   * Step 2.2: Add "Behavior Details" Panel.
+       * Action: In models_tab.py, create a new UI panel within the 
+         "Stats" sub-tab.
+       * Action: This panel will be designed to clearly display granular 
+         metrics from evaluation reports, such as performance per_tool, 
+         per_difficulty, and top confusions.
+       * Considerations: This is a UI-heavy task. The goal will be to 
+         present potentially dense data in a way that is easy to 
+         understand at a glance.
+
+   * Step 2.3: Add Minor UI Enhancements.
+       * Action: Add a "Compare to Parent Baseline" button to the GGUF 
+         model overview screen in models_tab.py.
+       * Action: Add a toggle/checkbox in the "Evaluation" tab to force an
+          evaluation to run against "All suites."
+       * Considerations: These are small but impactful changes that will 
+         require locating the correct UI code in models_tab.py and 
+         runner_panel.py to modify.
+
+  ---
+
+  Phase 3: Implement Model Gamification & Evolution
+
+  Objective: Implement the gamification system described in gamify.txt to 
+  provide clear, motivating feedback on model progression.
+
+   * Step 3.1: Implement Backend Logic & Data Structures.
+       * Action: Create the new Python files model_typing.py (to define 
+         model "Types") and tiering.py (to calculate ranks and "Evolution 
+         Points").
+       * Action: Establish the skills/<model_id>.json file structure to 
+         store a model's type, rank, and capability scores.
+       * Considerations: The logic in these new files will be critical and
+          must be robust. The calculations for rank and type will directly
+          depend on the structure of the evaluation reports.
+
+   * Step 3.2: Integrate Gamification with the Evaluation Engine.
+       * Action: Modify evaluation_engine.py to call the new tiering and 
+         typing logic after each evaluation run is complete.
+       * Considerations: This creates a dependency between the evaluation 
+         engine and the new gamification logic. I need to ensure they 
+         communicate correctly and that failures in the gamification step 
+         don't prevent evaluation reports from being saved.
+
+   * Step 3.3: Build the Gamification UI.
+       * Action: In models_tab.py, modify the UI to display the "Type" and
+          "Rank" as colored badges next to the model name.
+       * Action: The "Skills" tab will be updated to show the detailed 
+         capability scores and the requirements for reaching the next 
+         tier.
+       * Considerations: This involves creating or modifying custom 
+         widgets to display the new gamified information in a visually 
+         appealing way.
+
+   * Step 3.4: Implement the "Evolution Conformer".
+       * Action: Create a new UI pop-up that appears when a model's 
+         evaluation scores meet the criteria for an "Evolution."
+       * Action: This pop-up will present the user with choices like 
+         "Promote to New Base Model" or "Unlock Growth Mode."
+       * Considerations: This is a complex UI component that is 
+         conditionally triggered. The actions it performs (like merging 
+         adapters or enabling full-weight training) are significant and 
+         must be handled carefully, likely by calling other scripts.
+
+--------->>>
+ Considerations for Investigation
+
+   1. How does the "Training" tab select its data, and can this be 
+      influenced by a model's "Type"?
+       * Goal: To see if we can create a feedback loop where a model's 
+         designated "Type" (e.g., "Coder") can automatically suggest or 
+         pre-select the most relevant training scripts and datasets in the
+          "Training" tab.
+       * Tabs/Functions to Investigate:
+           * training_tab.py: create_training_menu() and 
+             populate_category_tree() to understand how the script/dataset
+              list is built and controlled.
+           * runner_panel.py: start_runner_training() to see how the final
+              selection is gathered and passed to the training process.
+           * model_typing.py (from the plan): We need to consider how the 
+             output of this future module (the model's Type) would be 
+             passed to the TrainingTab instance.
+
+   2. How is "Lineage" currently tracked, and can it store "Evolution" 
+      events?
+       * Goal: To verify that when a model is "Promoted" or enters "Growth
+          Mode," this event can be permanently recorded as part of its 
+         history, visible in the "Models" tab.
+       * Tabs/Functions to Investigate:
+           * training_engine.py: The run_full_training() method already 
+             contains a section for "Record Lineage" that uses a 
+             lineage_tracker. I need to analyze this tracker.
+           * lineage_tracker.py (in custom_code_tab): I must read this 
+             file to see what data it stores and if it can be extended to 
+             include "Evolution" events like promotions or mode changes.
+           * models_tab.py: The display_model_info() functions to see how 
+             lineage is currently displayed and where the new "Evolution" 
+             information would fit.
+
+   3. How does the "Chat" tab's data collection feed the "Parent Model" 
+      profile?
+       * Goal: To trace the data pipeline from a chat session all the way 
+         to the "Skills" and "Stats" displays for a parent model in the 
+         "Models" tab, confirming the link is solid.
+       * Tabs/Functions to Investigate:
+           * chat_interface_tab.py: The handle_tool_calls() method, 
+             specifically the part gated by if 
+             self.training_mode_enabled:.
+           * tool_call_logger.py: The log_tool_call() and 
+             get_tool_statistics() methods to confirm how data is written 
+             and read.
+           * models_tab.py: The populate_skills_display() method, which 
+             calls _get_runtime_skills(). I need to confirm that 
+             _get_runtime_skills correctly aggregates data for a given 
+             model name.
+           * config.py: The get_all_trained_models() function, to see how 
+             it identifies and groups models, which is essential for 
+             aggregating stats under a single parent.
+
+   4. Can the unified "Tool Profiles" be used to dynamically generate new 
+      training data?
+       * Goal: To investigate if a user-defined Tool Profile (e.g., 
+         "read-only") can be fed into the tool_trainer.py script to 
+         automatically generate negative training examples (i.e., examples
+          that teach the model not to call disabled tools in that 
+         context).
+       * Tabs/Functions to Investigate:
+           * tool_trainer.py: I need to read this file to understand its 
+             capabilities for data generation.
+           * tools_tab.py (the planned overhaul): The new Profile Manager 
+             UI could have a button like "Generate Training Data from 
+             Profile."
+           * training_engine.py: To see how newly generated data could be 
+             incorporated into a training run.
+<<<---------
+>>

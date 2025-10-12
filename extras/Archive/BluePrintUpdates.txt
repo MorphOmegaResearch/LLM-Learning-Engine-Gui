@@ -1,0 +1,327 @@
+Updated System Blueprint - Actual vs Documented
+
+    📊 Blueprint Verification Summary
+
+    I've examined the actual system architecture and compared it to the 
+    existing BluePrint.txt. Here's what I found:
+
+    ---
+    ✅ Accurate in Blueprint (Matches Reality)
+
+    1. Main GUI Structure ✓
+
+    - Actual: 3 main tabs (Training, Models, Settings) loaded via modular 
+    system
+    - Blueprint: Correctly documented
+    - File: interactive_trainer_gui_NEW.py (119 lines)
+
+    2. BaseTab Pattern ✓
+
+    - Actual: Abstract base class with safe_create() error isolation
+    - Blueprint: Correctly documented
+    - File: base_tab.py (96 lines)
+
+    3. Training Tab Module ✓
+
+    - Blueprint: Lists all 6 panels correctly
+    - Actual Files Match:
+      - training_tab.py - Main coordinator
+      - runner_panel.py - Training execution
+      - category_manager_panel.py - Script management
+      - config_panel.py - Configuration
+      - profiles_panel.py - Profile management
+      - summary_panel.py - Training preview
+
+    ---
+    ⚠️ MISSING from Blueprint (New Features Not Documented)
+
+    1. Training Tab - Actual Subtab Structure 🆕
+
+    Blueprint says: 6 subtabs listed by name onlyReality is: 5 subtabs in 
+    notebook + 1 right sidebar
+
+    Actual Training Tab Subtabs:
+    1. Runner - Execute training scripts with live output
+    2. Categories - Manage training scripts per category
+    3. Configuration - Training parameters (epochs, batch, model selection)
+    4. Profiles - Save/load configurations
+    5. Summary - Training preview and validation
+
+    Right Sidebar Menu (Not a subtab):
+    - 📋 Training Scripts selector (collapsible tree)
+    - Script/JSONL checkboxes per category
+    - Select All / Deselect All buttons
+
+    Missing from Blueprint: The right sidebar architecture pattern!
+
+    ---
+    2. Models Tab - Actual Subtab Structure 🆕
+
+    Blueprint says: "Sub-tabs: Overview, Raw Info, Notes, Stats"Reality is:
+     5 subtabs now!
+
+    Actual Models Tab Subtabs:
+    1. Overview - Model information display
+    2. Raw Info - Raw model data (config.json or Ollama info)
+    3. Notes - Model-specific notes with save/load/delete
+    4. Stats - Training statistics WITH CATEGORY FILTER 🆕
+    5. Skills - Verified skills (placeholder) 🆕
+
+    Right Sidebar:
+    - Available Models list (grouped by type)
+    - 🔵 Base Models (PyTorch)
+    - 🟢 Trained Models
+    - 🟡 Ollama Models (GGUF)
+
+    Missing from Blueprint: 
+    - Skills tab
+    - Category filter in Stats tab
+    - Model grouping by type
+    - Delete functionality for trained models
+
+    ---
+    3. Settings Tab - Actual Subtab Structure 🆕
+
+    Blueprint says: "Sub-tabs: General, Paths, Training Defaults, 
+    Interface"Reality is: 6 subtabs now!
+
+    Actual Settings Tab Subtabs:
+    1. General - App info, quick actions
+    2. Paths - Directory configuration
+    3. Training Defaults - Default parameters
+    4. Interface - UI preferences
+    5. Tab Manager - CREATE NEW TABS! 🆕
+    6. Resources - CPU/Memory limits 🆕
+
+    Right Sidebar:
+    - Quick Access menu to jump between subtabs
+    - 💾 Save All Settings button
+
+    Missing from Blueprint:
+    - Tab Manager - Revolutionary tab auto-generation system!
+    - Resources - Memory/CPU limiting controls
+    - Dual refresh button system (Refresh Settings vs Refresh All Tabs)
+
+    ---
+    4. Tab Auto-Generation System 🆕 COMPLETELY MISSING!
+
+    Blueprint: No mention at all!Reality: Fully functional tab/subtab 
+    generator!
+
+    Features:
+    - Tab Manager subtab in Settings
+    - Create custom tabs with N subtabs
+    - Auto-generates BaseTab-compliant code
+    - Optional side menu support
+    - Panel browser with tree view
+    - Add/Edit/Delete panels
+    - Visual tab/panel structure explorer
+
+    Files Not in Blueprint:
+    - tab_generator.py (likely exists based on Settings code)
+    - Tab Manager integration in Settings tab
+
+    ---
+    5. Refresh System 🆕
+
+    Blueprint: No mention!Reality: Comprehensive refresh buttons on ALL 
+    tabs!
+
+    Implementation:
+    - Training Tab: refresh_training_tab() - Reloads models, categories, 
+    panels
+    - Models Tab: refresh_models_tab() - Reloads all models and current 
+    display
+    - Settings Tab: 
+      - refresh_settings_tab() - Reloads settings only
+      - refresh_all_tabs() - MASTER REFRESH for entire app!
+
+    Pattern: Each tab has 🔄 Refresh button in header
+
+    ---
+    6. Model Selection Persistence 🆕
+
+    Blueprint: No mention!Reality: Visual confirmation system in Runner 
+    panel!
+
+    Features:
+    - "Training Model:" display in Runner panel header
+    - Color-coded status:
+      - 🟢 Green = Model set
+      - 🔴 Red = Not set
+    - Updates on tab changes
+    - Syncs between Configuration and Runner tabs
+
+    ---
+    7. Enhanced Model Discovery 🆕
+
+    Blueprint: Says "get_ollama_models()"Reality: get_all_trained_models() 
+    + get_all_available_models()!
+
+    New Functions in config.py:
+    - get_all_trained_models() - Discovers ALL model types:
+      - Local PyTorch models (base models)
+      - Trained models (training_* directories)
+      - Ollama models (GGUF)
+    - delete_trained_model() - Safe deletion with stats cleanup
+    - get_all_available_models() - Combined list for dropdowns
+
+    Model Info Display:
+    - PyTorch/Trained: Parses config.json for architecture info
+    - Ollama: Uses existing Ollama info parsing
+    - Shows: Architecture, Layers, Hidden Size, Vocab Size, Path, Size
+
+    ---
+    8. Category-Specific Stats Filtering 🆕
+
+    Blueprint: No mention!Reality: Stats tab has category dropdown filter!
+
+    Features:
+    - Dropdown: "All Categories" + individual categories
+    - Filters training runs by selected category
+    - Auto-updates category list from stats data
+    - Shows filtered summary and history
+
+    ---
+    📋 Updated Architecture Diagram
+
+    ┌─────────────────────────────────────────────────────────────┐
+    │                    PRESENTATION LAYER                        │
+    │                                                              │
+    │  interactive_trainer_gui_NEW.py (Main Coordinator)          │
+    │  └── ttk.Notebook (Main Tabs)                              │
+    │      │                                                      │
+    │      ├── "⚙️ Training" Tab (TrainingTab)                   │
+    │      │   ├── Left: Notebook (5 subtabs)                   │
+    │      │   │   ├── Runner (+ model display)                 │
+    │      │   │   ├── Categories (script manager)              │
+    │      │   │   ├── Configuration (model selection)          │
+    │      │   │   ├── Profiles                                 │
+    │      │   │   └── Summary                                  │
+    │      │   └── Right: Training Scripts Sidebar              │
+    │      │       ├── Collapsible category tree                │
+    │      │       └── Script/JSONL checkboxes                  │
+    │      │                                                      │
+    │      ├── "🧠 Models" Tab (ModelsTab)                       │
+    │      │   ├── Left: Notebook (5 subtabs)                   │
+    │      │   │   ├── Overview (+ delete for trained models)   │
+    │      │   │   ├── Raw Info (config.json or Ollama)         │
+    │      │   │   ├── Notes (save/load/delete)                 │
+    │      │   │   ├── Stats (+ category filter) ⭐NEW          │
+    │      │   │   └── Skills (placeholder) ⭐NEW                │
+    │      │   └── Right: Model List Sidebar                    │
+    │      │       ├── 🔵 Base Models (PyTorch)                 │
+    │      │       ├── 🟢 Trained Models                        │
+    │      │       └── 🟡 Ollama Models                         │
+    │      │                                                      │
+    │      └── "⚙️ Settings" Tab (SettingsTab)                   │
+    │          ├── Left: Notebook (6 subtabs)                   │
+    │          │   ├── General                                  │
+    │          │   ├── Paths                                    │
+    │          │   ├── Training Defaults                        │
+    │          │   ├── Interface                                │
+    │          │   ├── Tab Manager ⭐NEW (auto-gen system)      │
+    │          │   └── Resources ⭐NEW (CPU/memory limits)      │
+    │          └── Right: Quick Access Sidebar                  │
+    │              ├── Jump-to-subtab buttons                   │
+    │              ├── 🔄 Refresh Settings                      │
+    │              ├── 🔄 Refresh All Tabs ⭐NEW                │
+    │              └── 💾 Save All Settings                     │
+    └──────────────────────────────────────────────────────────────┘
+
+    ---
+    🎯 Key Patterns to Document
+
+    Pattern 1: Tab + Subtabs + Sidebar
+
+    Most tabs use this structure:
+    - Left: ttk.Notebook with subtabs
+    - Right: Context-sensitive sidebar menu
+    - Header: Title + Refresh button
+
+    Pattern 2: BaseTab Safe Loading
+
+    All tabs inherit from BaseTab:
+    - safe_create() wraps create_ui()
+    - Error isolation prevents crashes
+    - Retry button on failure
+
+    Pattern 3: Master Refresh System
+
+    - Each tab: refresh_<tab>_tab() method
+    - Settings: refresh_all_tabs() master method
+    - Passes main_gui reference to Settings for cross-tab access
+
+    Pattern 4: Model Display Syncing
+
+    - Config panel selection triggers Runner update
+    - Tab change events trigger display updates
+    - Color-coded visual feedback
+
+    ---
+    📝 Recommendations for Blueprint Update
+
+    Section to Add: "Tab Auto-Generation System"
+
+    Document the Tab Manager:
+    - How to create new tabs via GUI
+    - Tab template structure
+    - Panel browser and editor
+    - Best practices for custom tabs
+
+    Section to Update: "Component Specifications"
+
+    Add detailed subtab listings for each main tab:
+    - Training: 5 subtabs + right menu
+    - Models: 5 subtabs + model list
+    - Settings: 6 subtabs + quick access
+
+    Section to Add: "Refresh System Architecture"
+
+    Document the refresh pattern:
+    - Per-tab refresh methods
+    - Master refresh in Settings
+    - When to use each type
+
+    Section to Add: "Model Management System"
+
+    Document enhanced model discovery:
+    - get_all_trained_models() function
+    - Model type classification
+    - Delete functionality
+    - Config.json parsing
+
+    ---
+    🚀 Next Steps for Evaluation/Benchmarking
+
+    With this architecture, we can easily add evaluation features:
+
+    1. New "Evaluation" Tab - Use Tab Manager or manual creation
+    2. Subtabs could be:
+      - Test Suite Runner
+      - Benchmark Comparisons
+      - Skill Verification
+      - Before/After Analysis
+    3. Integration Points:
+      - Stats tab already tracks training runs
+      - Skills tab is placeholder waiting for verification
+      - Model selection system ready for testing
+
+    Would you like me to proceed with updating the BluePrint.txt file to 
+    reflect this actual architecture?
+2025-10-07: Evaluation System Enhancements
+
+- Added per-skill aggregation and "All" suite support in `Data/evaluation_engine.py`.
+- Implemented `compare_models`, `verify_skill`, and minimal `detect_regression`.
+- Added scoring methods: `function_call_match` and `args_subset`; placeholder `llm_judge`.
+- Introduced baseline storage helpers in `Data/config.py`:
+  - `save_baseline_report`, `load_baseline_report`, `get_benchmarks_dir`.
+  - Evaluation report helpers: `get_evaluations_dir`, `list_evaluation_reports`, `load_latest_evaluation_report`.
+- Models Tab updates (`Data/tabs/models_tab/models_tab.py`):
+  - New "Compare" sub-tab to diff latest evaluations for two models.
+  - Added "Run as Pre-Training Baseline" checkbox in Evaluation tab; saving to `Models/benchmarks/` when enabled.
+- Test Suites: UI supports selecting "All" to run every test suite under `Training_Data-Sets/Test`.
+- Regression Policy Controls:
+  - New Settings → "Evaluation Policy" sub-tab to configure alert threshold and strict mode.
+ - Policy surfaced in training flow post-evaluation; thresholds applied to regression/improvement detection.
+ - Profiles now persist Evaluation Automation toggles (auto-baseline, auto post-eval). Profile confirmation dialog shows these flags before training. Startup auto-load no longer shows a modal popup.

@@ -1,0 +1,100 @@
+Dynamic Tool Management Plan
+
+  Overall Goal: To create a unified, dynamic, and intelligent system for 
+  managing, using, and training with tool schemas and profiles across the
+   entire application.
+
+  ---
+
+  Phase 1: Centralize and Consolidate the Backend
+
+  Objective: Establish a single source of truth for all tool-related 
+  assets, eliminating the current inconsistency between the "Chat" and 
+  "Training" tabs.
+
+   1. Unify Tool Definitions:
+       * Action: Solidify Training_Data-Sets/Schemas/ as the one and only 
+         directory for individual tool .json schema files.
+       * Why: This creates a master library of all possible tools, making 
+         the system extensible by simply adding or removing definition 
+         files in one location.
+
+   2. Centralize Tool Profiles:
+       * Action: Create a new, central directory: 
+         Training_Data-Sets/Schema_Profiles/.
+       * Action: Move the existing profile files from the chat-specific 
+         Data/tabs/custom_code_tab/tool_schemas_configs/ folder into this 
+         new directory.
+       * Why: This establishes a single, application-wide location for 
+         "Tool Profiles," which are named collections of enabled tools.
+
+  ---
+
+  Phase 2: Overhaul the "Tools" Sub-Tab into a Profile Manager
+
+  Objective: Transform the existing "Tools" sub-tab from a simple global
+   switchboard into a powerful, user-friendly editor for creating and 
+  managing your custom Tool Profiles.
+
+   1. Redesign the UI:
+       * Action: The top of the "Tools" sub-tab will be modified to 
+         feature a dropdown menu to select, create, or delete profiles 
+         (e.g., "read-only", "dev-full", "Create New...").
+       * Action: The main area with the list of tool checkboxes will be 
+         preserved. Its state will now dynamically update to show the 
+         enabled/disabled tools for the profile currently selected in the 
+         dropdown.
+
+   2. Implement Profile Management Logic:
+       * Action: The "Save Settings" button will be repurposed to "Save 
+         Profile". It will save the current state of the checkboxes to the
+          corresponding profile file in the new central directory.
+       * Action: We will add "Delete Profile" and "Rename Profile" buttons
+          to give you full control over your saved profiles.
+
+  ---
+
+  Phase 3: Integrate the Unified Profile System Across the Application
+
+  Objective: Ensure all parts of the application that use tool schemas 
+  are updated to use the new, centralized profile system for a 
+  consistent and predictable user experience.
+
+   1. Update the "Chat" Sub-Tab:
+       * Action: The "Tool Schema" button in the chat interface will be 
+         modified to list the profiles from the new 
+         Training_Data-Sets/Schema_Profiles/ directory.
+       * Why: This allows you to dynamically select a specific toolset for
+          your interactive conversation.
+
+   2. Update the "Training" Tab (Runner Panel):
+       * Action: The "Use Tool Schema" dropdown in the Runner's 
+         "Evaluation Context" section will also be updated to list the 
+         profiles from Training_Data-Sets/Schema_Profiles/.
+       * Why: This enables evaluations to be run against specific, named 
+         groups of tools, ensuring that testing can be done under the same
+          conditions as interactive use.
+
+  ---
+
+  Phase 4: Implement Context-Aware Data Collection
+
+  Objective: Make the "training data collection mode" intelligent by 
+  enriching the collected data with the context of the currently active 
+  tool profile, as you suggested.
+
+   1. Enrich the Data Logger:
+       * Action: The ToolCallLogger will be modified to include a context 
+         field in its log entries. This field will store the name of the 
+         active tool profile (e.g., "read-only").
+
+   2. Capture Context During Chat:
+       * Action: When "training data collection mode" is active in the 
+         chat, the system will capture the name of the currently selected 
+         tool profile.
+       * Action: This context will be passed to the ToolCallLogger every 
+         time a tool call is logged.
+       * Why: This ensures that all collected data—especially model 
+         failures, like attempting to use a disabled tool—is tagged with 
+         the rules that were in effect at that moment. This creates highly
+          valuable, context-rich data for more effective fine-tuning.

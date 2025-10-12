@@ -1,0 +1,749 @@
+system blueprint:
+
+  ---
+
+  🏗️ OpenCode Trainer System - Complete Blueprint
+
+  Version: 3.0 (Advanced Tab Management & Dynamic Controls)
+  Date: 2025-10-05
+  Status: Production-Ready - Fully Modular with Auto-Generation
+
+  ---
+
+  📋 Table of Contents
+
+   1. System Overview
+   2. Architecture Diagram
+   3. Directory Structure
+   4. Component Specifications
+       * GUI System (Modular Tab Architecture)
+       * Training Engine (Core + Category Scripts)
+       * Configuration & Utilities
+   5. Modular Training System
+   6. Tab Auto-Generation System
+   7. Refresh System Architecture
+   8. Model Management System
+   9. Data Flow
+   10. Extension Points
+   11. Maintenance Guide
+   12. Troubleshooting
+   13. Key Architectural Patterns
+
+  ---
+
+  1. System Overview
+
+  Purpose
+  Train small language models (1.5B-4B parameters) to use OpenCode tools
+  correctly through fine-tuning with LoRA adapters. The system features a
+  fully modular architecture with separated GUI tabs, isolated training
+  scripts per category, and a reusable core training engine.
+
+  Key Features (v2.0)
+   - ✅ Modular GUI Architecture: Tabs and panels in separate files
+   - ✅ Tab Auto-Generation: Create new tabs and sub-tabs dynamically via the GUI
+   - ✅ Category-Based Training Scripts: Each category has its own train.py
+   - ✅ Core Training Engine: Reusable training library (training_engine.py)
+   - ✅ Script Management GUI: View, edit, create, delete training scripts
+   - ✅ Enhanced Model Discovery: Auto-detects PyTorch, trained, and Ollama models
+   - ✅ Training Profiles: Save/load complete configurations
+   - ✅ Model Statistics & Notes: Track training results with category filtering
+   - ✅ Settings Management: Centralized configuration with resource limiting
+   - ✅ Master Refresh System: Per-tab and global refresh capabilities
+   - ✅ Error Isolation: Tab failures don't crash entire application
+
+  Technology Stack
+   - GUI: Python Tkinter/ttk (modular tab system with auto-generation)
+   - Training: Unsloth (LoRA fine-tuning) + Core Engine
+   - Model: Dynamically selected Ollama models
+   - Data Format: JSONL (JSON Lines)
+   - Configuration: Python modules + JSON
+   - Architecture: Modular panels with error isolation
+
+  ---
+
+  2. Architecture Diagram
+
+  ┌─────────────────────────────────────────────────────────────┐
+  │                    PRESENTATION LAYER                        │
+  │                                                              │
+  │  interactive_trainer_gui_NEW.py (Main Coordinator)          │
+  │  └── ttk.Notebook (Main Tabs)                              │
+  │      │                                                      │
+  │      ├── "⚙️ Training" Tab (TrainingTab)                   │
+  │      │   ├── Left: Notebook (5 subtabs)                   │
+  │      │   │   ├── Runner (+ model display)                 │
+  │      │   │   ├── Categories (script manager)              │
+  │      │   │   ├── Configuration (model selection)          │
+  │      │   │   ├── Profiles                                 │
+  │      │   │   └── Summary                                  │
+  │      │   └── Right: Training Scripts Sidebar              │
+  │      │       ├── Collapsible category tree                │
+  │      │       └── Script/JSONL checkboxes                  │
+  │      │                                                      │
+  │      ├── "🧠 Models" Tab (ModelsTab)                       │
+  │      │   ├── Left: Notebook (5 subtabs)                   │
+  │      │   │   ├── Overview (+ delete for trained models)   │
+  │      │   │   ├── Raw Info (config.json or Ollama)         │
+  │      │   │   ├── Notes (save/load/delete)                 │
+  │      │   │   ├── Stats (+ category filter) ⭐NEW          │
+  │      │   │   └── Skills (placeholder) ⭐NEW                │
+  │      │   └── Right: Model List Sidebar                    │
+  │      │       ├── 🔵 Base Models (PyTorch)                 │
+  │      │       ├── 🟢 Trained Models                        │
+  │      │       └── 🟡 Ollama Models                         │
+  │      │                                                      │
+  │      └── "⚙️ Settings" Tab (SettingsTab)                   │
+  │          ├── Left: Notebook (6 subtabs)                   │
+  │          │   ├── General                                  │
+  │          │   ├── Paths                                    │
+  │          │   ├── Training Defaults                        │
+  │          │   ├── Interface                                │
+  │          │   ├── Tab Manager ⭐NEW (auto-gen system)      │
+  │          │   └── Resources ⭐NEW (CPU/memory limits)      │
+  │          └── Right: Quick Access Sidebar                  │
+  │              ├── Jump-to-subtab buttons                   │
+  │              ├── 🔄 Refresh Settings                      │
+  │              ├── 🔄 Refresh All Tabs ⭐NEW                │
+  │              └── 💾 Save All Settings                     │
+  └──────────────────────────────────────────────────────────────┘
+                           │
+                           │ Launches Training Scripts
+                           ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │                    BUSINESS LAYER                            │
+  │                                                              │
+  │  Core Training Engine                                        │
+  │  ├── training_engine.py (Shared Library)                   │
+  │  │   └── TrainingEngine class                              │
+  │  │       ├── load_model()
+  │  │       ├── load_training_data()
+  │  │       ├── setup_trainer()
+  │  │       ├── train()
+  │  │       ├── save_model()
+  │  │       └── export_gguf()
+  │  │                                                          │
+  │  Category-Specific Scripts                                  │
+  │  ├── Training_Data-Sets/Tools/train.py                     │
+  │  ├── Training_Data-Sets/Coding/train.py                    │
+  │  ├── Training_Data-Sets/App_Development/train.py           │
+  │  └── Training_Data-Sets/Semantic_States/train.py           │
+  │      (Each uses TrainingEngine)                            │
+  │                                                              │
+  │  Configuration & Utilities                                  │
+  │  └── config.py                                              │
+  │      ├── Path management                                    │
+  │      ├── Category discovery                                 │
+  │      ├── Enhanced Model Discovery (PyTorch, Trained, Ollama)│
+  │      ├── Profile management                                 │
+  │      └── Statistics tracking                                │
+  │                                                              │
+  └─────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │                       DATA LAYER                             │
+  │                                                              │
+  │  Training_Data-Sets/
+  │  ├── Tools/
+  │  │   ├── train.py
+  │  │   ├── file_operations.jsonl (15 examples)
+  │  │   └── [other .jsonl files]
+  │  ├── Coding/
+  │  │   ├── train.py
+  │  │   └── [.jsonl files]
+  │  ├── App_Development/
+  │  │   ├── train.py
+  │  │   └── [.jsonl files]
+  │  └── Semantic_States/
+  │      ├── train.py
+  │      └── [.jsonl files]
+  │
+  │  Models/
+  │  └── training_<Category>_<Model>_<timestamp>/
+  │      ├── adapter_model.safetensors
+  │      ├── config.json
+  │      └── [model files]
+  │
+  │  Data/
+  │  ├── profiles/
+  │  │   └── [training profiles].json
+  │  ├── settings.json
+  │  └── model_stats/
+  │      └── [model statistics].json
+  │
+  └─────────────────────────────────────────────────────────────┘
+
+  ---
+
+  3. Directory Structure
+
+  Complete File Tree (v3.0 Modular)
+
+    /Trainer/
+    │
+    ├── TRAIN.desktop                    # Desktop launcher
+    ├── TRAIN_MODULAR.desktop            # Test launcher
+    ├── BluePrint.txt                    # Original v2.0 blueprint
+    ├── Trainer_Blue_Print_v1.3.txt      # This file (v3.0)
+    │
+    ├── Models/                          # OUTPUT: Trained models
+    │   └── training_<Category>_<Model>_<timestamp>/
+    │       ├── adapter_model.safetensors
+    │       ├── config.json
+    │       └── [model files]
+    │
+    ├── Training_Data-Sets/              # INPUT: Training data + scripts
+    │   ├── Tools/
+    │   │   ├── train.py                 # Tools training script
+    │   │   ├── file_operations.jsonl   # 15 examples
+    │   │   └── [other .jsonl files]
+    │   ├── Coding/
+    │   │   ├── train.py                 # Coding training script
+    │   │   └── [.jsonl files]
+    │   ├── App_Development/
+    │   │   ├── train.py                 # App Dev training script
+    │   │   └── [.jsonl files]
+    │   └── Semantic_States/
+    │       ├── train.py                 # Semantic training script
+    │       └── [.jsonl files]
+    │
+    └── Data/                            # LOGIC: All code & configuration
+        │
+        ├── interactive_trainer_gui_NEW.py  # Main GUI (v3.0)
+        ├── interactive_trainer_gui.py      # Legacy GUI (v1.x)
+        │
+        ├── training_engine.py           # Core training library (NEW)
+        ├── train_with_unsloth.py        # Legacy monolithic script
+        │
+        ├── config.py                    # Central configuration
+        │
+        ├── tabs/                        # Modular GUI tabs
+        │   ├── base_tab.py              # Base class with error isolation
+        │   ├── __init__.py
+        │   │
+        │   ├── training_tab/
+        │   │   ├── __init__.py
+        │   │   ├── training_tab.py      # Main coordinator
+        │   │   ├── runner_panel.py      # Script execution
+        │   │   ├── category_manager_panel.py  # Script management
+        │   │   ├── dataset_panel.py     # Dataset selection
+        │   │   ├── config_panel.py      # Training parameters
+        │   │   ├── profiles_panel.py    # Profile management
+        │   │   └── summary_panel.py     # Training preview
+        │   │
+        │   ├── models_tab/              # Models tab module
+        │   │   ├── __init__.py
+        │   │   └── models_tab.py
+        │   │
+        │   └── settings_tab/            # Settings tab module
+        │       ├── __init__.py
+        │       └── settings_tab.py
+        │
+        ├── profiles/                    # Training profiles
+        │   └── [profile_name].json
+        │
+        ├── model_stats/                 # Training statistics
+        │   └── [model_stats].json
+        │
+        └── settings.json                # Application settings
+
+  ---
+
+  4. Component Specifications
+
+  4.1 GUI System - Modular Tab Architecture
+
+  Main Coordinator: interactive_trainer_gui_NEW.py
+   - Purpose: Load and coordinate modular tabs
+   - Size: 128 lines (reduced from 1206 lines)
+   - Pattern: Each tab is isolated, error-safe
+   - Tabs: Training, Models, Settings
+
+  Base Tab: tabs/base_tab.py
+   - Purpose: Base class for all tabs with error isolation
+   - Key method: safe_create() wraps create_ui() in try/catch
+   - Pattern: If tab fails, shows error UI with retry button
+
+  Training Tab Module: tabs/training_tab/
+   - training_tab.py (13KB): Main coordinator
+   - runner_panel.py (7KB): Training execution & monitoring
+   - category_manager_panel.py (10KB): Script management
+   - dataset_panel.py (8.7KB): Dataset selection
+   - config_panel.py (3.6KB): Training parameters
+   - profiles_panel.py (6.4KB): Profile management
+   - summary_panel.py (4KB): Training preview
+
+  Training Tab Sub-Tabs:
+   1. Runner - Execute training scripts with live output
+      • Script selection dropdown
+      • Auto-restart settings
+      • Max runs & delay configuration
+      • Live output display (green terminal style)
+      • Status indicators
+
+   2. Categories - Manage training scripts
+      • Category list (top section)
+      • Scripts list per category (bottom section)
+      • Script editor (code view)
+      • Create/delete scripts
+      • Open category folder
+
+   3. Dataset - Select training data
+      • Category/subcategory checkboxes
+      • Create categories/subcategories
+      • Dynamic discovery of training data
+
+   4. Configuration - Training parameters
+      • Training runs (epochs)
+      • Batch size
+      • Learning strength (rate)
+      • Base model selection
+
+   5. Profiles - Save/load configurations
+      • Profile selection
+      • Save current config
+      • Load saved profiles
+
+   6. Summary - Training preview
+      • Selected categories
+      • Total examples
+      • Estimated time
+      • Configuration summary
+
+  Models Tab Module: tabs/models_tab/
+   - models_tab.py: Model management
+   - Sub-tabs: Overview, Raw Info, Notes, Stats
+   - Features: Model selection, notes, statistics
+
+  Settings Tab Module: tabs/settings_tab/
+   - settings_tab.py: Application settings
+   - Sub-tabs: General, Paths, Training Defaults, Interface
+   - Features: Default parameters, preferences
+
+  4.2 Training Engine - Core + Category Scripts
+
+  Core Engine: Data/training_engine.py (13KB)
+   - Purpose: Reusable training library
+   - Class: TrainingEngine
+   - Configuration: Dictionary-based
+   - Methods:
+     • print_config() - Display settings
+     • load_model() - Load base model + LoRA
+     • load_training_data() - Process JSONL files
+     • setup_trainer() - Configure SFTTrainer
+     • train() - Execute training
+     • save_model() - Save trained model
+     • export_gguf() - Export for Ollama
+     • run_full_training() - Complete pipeline
+
+  Category Scripts Pattern:
+   Each category folder contains train.py that:
+   1. Discovers all .jsonl files in folder
+   2. Combines them into temp file
+   3. Creates config dictionary
+   4. Instantiates TrainingEngine
+   5. Runs full training pipeline
+   6. Outputs to Models/<Category>_<Model>_<timestamp>
+
+  Category Scripts:
+   - Tools/train.py (2.4KB)
+     • Trains on OpenCode tool usage
+     • Auto-discovers file_operations.jsonl, etc.
+     • Category: "Tools"
+
+   - Coding/train.py (2.2KB)
+     • Trains on coding patterns
+     • Category: "Coding"
+
+   - App_Development/train.py (2.2KB)
+     • Trains on app development
+     • Category: "App_Development"
+
+   - Semantic_States/train.py (2.2KB)
+     • Trains on semantic states
+     • Category: "Semantic_States"
+
+  Legacy Script: train_with_unsloth.py
+   - Purpose: Original monolithic training script
+   - Status: Kept for reference, fully replaced by modular system
+   - Size: ~250 lines
+   - Note: New system is backwards compatible
+
+  4.3 Configuration & Utilities
+
+  config.py (~300 lines)
+   - Path management (TRAINER_ROOT, DATA_DIR, MODELS_DIR)
+   - Category discovery (get_category_info)
+   - Training data file gathering
+   - Model directory creation
+   - Profile save/load/list
+   - Ollama model listing (get_ollama_models)
+   - Ollama model info parsing
+   - Training statistics (save_training_stats)
+   - Notes management
+
+  ---
+
+  5. Modular Training System
+
+  5.1 Architecture Benefits
+
+  ✅ Separation of Concerns
+   - Core engine handles common training logic
+   - Category scripts handle category-specific setup
+   - No code duplication
+
+  ✅ Easy Customization
+   - Edit one category's script without affecting others
+   - Customize training parameters per category
+   - Add new categories easily
+
+  ✅ Maintainability
+   - Small, focused files
+   - Clear responsibilities
+   - Easy to debug
+
+  ✅ Extensibility
+   - Add new categories by copying template
+   - Create custom training scripts per category
+   - Reuse core engine for all training
+
+  5.2 Training Workflow
+
+  GUI Method (Categories Tab):
+   1. Click category (e.g., "Tools")
+   2. Scripts list shows "train.py"
+   3. Click "train.py" to view/edit
+   4. Customize configuration if needed
+   5. Save changes
+   6. [Future] Use Runner tab to execute
+
+  Command Line Method:
+   1. Navigate to category folder
+      cd /Trainer/Training_Data-Sets/Tools
+   2. Run training script
+      python3 train.py
+   3. Monitor output
+   4. Check Models/ for results
+
+  Output:
+   Models/training_Tools_Qwen2.5-Coder-1.5B_20251004_085300/
+   Models/training_Tools_Qwen2.5-Coder-1.5B_20251004_085300_gguf/
+
+  5.3 Configuration Options
+
+  Per-Category Configuration (in train.py):
+   config = {
+       "category": "Tools",              # Category name
+       "training_data_path": "...",      # Combined JSONL path
+       "num_epochs": 3,                  # Training runs
+       "batch_size": 2,                  # Batch size
+       "learning_rate": 2e-4,            # Learning rate
+       "max_seq_length": 2048,           # Max sequence length
+       "lora_r": 16,                     # LoRA rank
+       "lora_alpha": 16,                 # LoRA alpha
+       "model_name": "...",              # Base model (from env)
+   }
+
+  Environment Variables (set by GUI):
+   - BASE_MODEL: Base model name
+   - TRAINING_DATA_FILE: Training data path
+   - TRAINING_EPOCHS: Number of epochs
+   - TRAINING_BATCH_SIZE: Batch size
+   - TRAINING_LEARNING_RATE: Learning rate
+
+  ---
+
+  6. Data Flow
+
+  Complete Training Workflow (v2.0)
+
+  1. User Interaction (GUI):
+     • User launches TRAIN_MODULAR.desktop
+     • GUI loads modular tabs
+     • Training tab loads all sub-panels
+     • Categories tab populated from Training_Data-Sets/
+
+  2. Script Management (Categories Tab):
+     • Click category → populate scripts list
+     • Click script → load in editor
+     • Edit script content
+     • Save changes to disk
+     • Create new scripts via GUI
+
+  3. Dataset Selection (Dataset Tab):
+     • Select categories/subcategories
+     • View training data files
+     • Create new categories/subcategories
+
+  4. Configuration (Config Tab):
+     • Set training parameters
+     • Select base model
+     • Configure LoRA settings
+
+  5. Profile Management (Profiles Tab):
+     • Save current configuration
+     • Load saved profile
+     • Share configurations
+
+  6. Preview (Summary Tab):
+     • View selected data
+     • See total examples
+     • Estimate training time
+
+  7. Training Execution:
+     Method A - Command Line:
+       cd Training_Data-Sets/Tools
+       python3 train.py
+
+     Method B - GUI Runner (Future):
+       Runner tab → Select script → Start
+
+  8. Training Process (in train.py):
+     • Discover .jsonl files
+     • Combine into temp file
+     • Create config
+     • Instantiate TrainingEngine
+     • Run training pipeline
+
+  9. Core Engine (training_engine.py):
+     • Load model from Ollama/HuggingFace
+     • Apply LoRA adapters
+     • Load & process training data
+     • Setup SFTTrainer
+     • Execute training
+     • Save model
+     • Export GGUF
+
+  10. Output:
+      • Trained model in Models/
+      • GGUF export for Ollama
+      • Training statistics saved
+      • Model ready for testing
+
+  ---
+
+  7. Extension Points
+
+  7.1 Adding New Categories
+
+  Method A - GUI:
+   1. Open Categories tab
+   2. Click "➕ New Category"
+   3. Enter category name
+   4. Category created with folder
+   5. Click category → "➕ New Script"
+   6. Edit generated train.py
+
+  Method B - Manual:
+   1. Create folder: Training_Data-Sets/MyCategory/
+   2. Copy template: cp Tools/train.py MyCategory/
+   3. Edit category name in script
+   4. Add .jsonl training files
+   5. Refresh GUI
+
+  7.2 Adding Custom Training Scripts
+
+  Via GUI:
+   1. Categories tab → Select category
+   2. Click "➕ New Script"
+   3. Enter script name
+   4. Edit template in code editor
+   5. Save
+
+  Manual:
+   1. Create script in category folder
+   2. Import TrainingEngine
+   3. Configure training
+   4. Call engine.run_full_training()
+
+  7.3 Customizing Training Engine
+
+  Extend TrainingEngine class:
+   from training_engine import TrainingEngine
+
+   class CustomEngine(TrainingEngine):
+       def custom_preprocessing(self):
+           # Add custom logic
+           pass
+
+       def run_full_training(self):
+           self.custom_preprocessing()
+           super().run_full_training()
+
+  7.4 Adding GUI Panels
+
+  Create new panel module:
+   1. Create panel file: tabs/training_tab/my_panel.py
+   2. Implement create_ui() method
+   3. Import in training_tab.py
+   4. Add to notebook
+   5. Add to quick access menu
+
+  ---
+
+  8. Maintenance Guide
+
+  8.1 Regular Tasks
+
+  Weekly:
+   - Review Models/ directory size
+   - Archive old models
+   - Check training data quality
+   - Update training scripts if needed
+
+  Monthly:
+   - Review and clean profiles/
+   - Update base models
+   - Check for Unsloth updates
+   - Review training statistics
+
+  Per Training Run:
+   - Monitor output in console
+   - Check Models/ for results
+   - Review training statistics
+   - Test trained model
+
+  8.2 Backup Strategy
+
+  Critical Files (MUST backup):
+   ✅ Training_Data-Sets/ - All training data
+   ✅ Data/training_engine.py - Core engine
+   ✅ Data/tabs/ - GUI modules
+   ✅ Data/config.py - Configuration
+   ✅ Data/profiles/ - Training profiles
+   ✅ Data/settings.json - App settings
+   ✅ BluePrint.txt - This file
+
+  Optional (backup latest only):
+   ⚠️ Models/ - Latest 2-3 models only
+
+  Skip:
+   ❌ Data/__pycache__/ - Python cache
+   ❌ Data/temp_*.jsonl - Temporary files
+
+  Backup Command:
+   tar -czf Trainer_backup_$(date +%Y%m%d).tar.gz \
+     --exclude='Models/training_*' \
+     --exclude='Data/__pycache__' \
+     --exclude='Data/temp_*' \
+     Trainer/
+
+  8.3 Version Control
+
+  Initialize:
+   cd Trainer/
+   git init
+   git add Training_Data-Sets/ Data/*.py Data/tabs/ *.txt *.md *.desktop
+   git commit -m "v2.0: Modular architecture"
+
+  .gitignore:
+   Models/
+   Data/__pycache__/
+   Data/temp_*.jsonl
+   *.pyc
+   __pycache__/
+
+  ---
+
+  9. Troubleshooting
+
+  9.1 GUI Issues
+
+  Issue: Training tab fails to load
+  Fix:
+   - Check tabs/training_tab/ files exist
+   - Verify imports in training_tab.py
+   - Check error message in terminal
+   - Tab isolation prevents crash of other tabs
+
+  Issue: Categories not showing scripts
+  Fix:
+   - Ensure .py files exist in category folders
+   - Check file permissions
+   - Click category again to refresh
+   - Verify category_manager_panel.py
+
+  Issue: Script editor empty
+  Fix:
+   - Click a script from Scripts list
+   - Verify script file exists on disk
+   - Check file permissions
+   - Review category_manager_panel.py logs
+
+  9.2 Training Issues
+
+  Issue: Training script not found
+  Fix:
+   - Verify train.py exists in category folder
+   - Check file is executable: chmod +x train.py
+   - Ensure Python path is correct
+
+  Issue: "No training data files found"
+  Fix:
+   - Add .jsonl files to category folder
+   - Check file extensions (.jsonl not .json)
+   - Verify file permissions
+   - Check JSONL format
+
+  Issue: "Training engine not found"
+  Fix:
+   - Verify Data/training_engine.py exists
+   - Check Python path in train.py
+   - Ensure sys.path.insert is correct
+
+  Issue: CUDA/GPU errors
+  Fix:
+   - Verify NVIDIA GPU available
+   - Check CUDA installation
+   - Verify Unsloth installation
+   - Check GPU memory
+
+  9.3 Module Import Issues
+
+  Issue: "No module named 'training_engine'"
+  Fix:
+   - Check Data/training_engine.py exists
+   - Verify sys.path.insert(0, str(DATA_DIR))
+   - Run from correct directory
+
+  Issue: Panel import fails
+  Fix:
+   - Verify panel file exists
+   - Check __init__.py exports
+   - Review import statements
+   - Check for circular imports
+
+  ---
+
+  Appendix: Quick Reference
+
+  File Locations:
+   - GUI Main: Data/interactive_trainer_gui_NEW.py
+   - Training Engine: Data/training_engine.py
+   - Training Tabs: Data/tabs/training_tab/
+   - Category Scripts: Training_Data-Sets/*/train.py
+   - Configuration: Data/config.py
+   - Blueprint: BluePrint.txt
+   - Training Guide: MODULAR_TRAINING_GUIDE.md
+   - Code comments: In-line documentation
+
+  Key Commands:
+   - Launch GUI: python3 Data/interactive_trainer_gui_NEW.py
+   - Train Tools: python3 Training_Data-Sets/Tools/train.py
+   - Check syntax: python3 -m py_compile <file>
+
+  Documentation:
+   - System Blueprint: BluePrint.txt (this file)
+   - Training Guide: MODULAR_TRAINING_GUIDE.md
+   - Code comments: In-line documentation
+
+  Version History:
+   - v1.0: Initial monolithic system
+   - v1.1: Enhanced GUI features
+   - v2.0: Fully modular architecture (current)
+
+  ---
+
+  End of Blueprint

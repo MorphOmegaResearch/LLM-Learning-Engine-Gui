@@ -1,0 +1,35 @@
+{
+  "name": "File Operations Tools (Compat)",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "file_read",
+        "description": "Reads the content of a specified file.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "file_path": {"type": "string", "description": "Path to the file"},
+            "limit": {"type": "integer", "description": "Optional line limit"}
+          },
+          "required": ["file_path"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "file_write",
+        "description": "Writes content to a specified file (overwrite).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "file_path": {"type": "string", "description": "Path to the file"},
+            "content": {"type": "string", "description": "Content to write"}
+          },
+          "required": ["file_path", "content"]
+        }
+      }
+    }
+  ]
+}

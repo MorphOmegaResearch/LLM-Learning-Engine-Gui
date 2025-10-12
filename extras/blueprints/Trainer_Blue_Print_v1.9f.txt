@@ -1,0 +1,281 @@
+system blueprint:
+
+  🏗️ OpenCode Trainer System - Complete Blueprint (v1.9f - Mode Integration & UX Improvements)
+
+  Highlights in v1.9f - Mode Integration & UX Improvements
+
+  - Mode-to-Advanced-Settings Integration (Complete)
+    - Active mode now displays in Advanced Settings tab header
+    - Visual indicators (🔒) show which systems are mode-controlled
+    - System counts displayed per mode (e.g., "Smart: 12 systems enabled")
+    - Mode changes trigger automatic Advanced tab refresh
+    - Mode-specific "Save Advanced Settings" button
+    - Triple notification path ensures UI stays synchronized
+
+  - Mode Parameter Controls (Complete)
+    - Numeric parameters now have ◀ ▶ increment/decrement buttons
+    - Dropdown selectors for choice-based parameters (Resource Usage, Quality Mode, etc.)
+    - Real-time parameter adjustment with min/max validation
+    - Step-based increments (e.g., 512 for tokens, 50 for caps)
+    - "Reset Current to Default" button restores original values per mode
+    - Parameters save per-mode to mode_settings.json
+
+  - Chat Interface Reorganization (Complete)
+    - Mount/Dismount/Clear Chat buttons moved above input area
+    - Quick Mode selector (⚡ Mode) added to top toolbar
+    - Modal dialog with radio buttons for fast mode switching
+    - Keyboard shortcuts: Enter to apply, Escape to cancel
+    - Auto-focus on OK button for immediate selection
+    - System messages confirm mode changes
+
+  - Universal Mousewheel Scrolling (Complete)
+    - Platform-specific event handling (Linux/Windows/Mac)
+    - Applied to Mode Selector tab
+    - Applied to Advanced Settings tab
+    - Applied to Basic Settings tab
+    - Applied to Models tab (both base and Ollama lists)
+    - Applied to Custom Code model selector
+    - Applied to Custom Code history viewer
+    - Hover-to-activate scrolling on all canvas widgets
+
+  - Tool System Corrections (Critical Fix)
+    - Removed Ollama native tools API usage
+    - System now relies on prompt-based tool approach
+    - Format Translator detects tool calls from text output
+    - Works with ANY model, not just Ollama-tools-compatible
+    - Tools tab now properly wired to execution pipeline
+    - Disabled tools are blocked before execution
+    - Clear error messages when tools are disabled
+
+  - Chat Response Fixes (Critical Fix)
+    - Fixed blank response issue caused by tools API error
+    - Added comprehensive error detection and logging
+    - Empty responses now show "[Model returned empty response]"
+    - Raw Ollama responses logged for debugging
+    - Proper error handling for all API responses
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ## KEY ARCHITECTURAL CHANGES IN v1.9f
+
+  ### Mode System Architecture
+
+  MODE_ADVANCED_MAPPINGS defines which advanced systems are enabled per mode:
+  - Standard: No advanced systems (clean baseline)
+  - Fast: 3 systems (json_repair, schema_validation, model_selector)
+  - Smart: 12 systems (includes orchestrator, routing, context scoring)
+  - Think: 30 systems (all advanced features enabled)
+
+  Mode parameters are now fully configurable per mode with controls:
+  - Resource Usage: Dropdown (Default, 25%, 50%, 75%)
+  - Max Context Tokens: ◀ [value] ▶ (1024-16384, step: 512)
+  - Generation Step: ◀ [value] ▶ tokens (8-128, step: 8)
+  - Token Caps: ◀ [value] ▶ with separate limits per type
+  - CPU Threads: Dropdown (Default, Minimal, Half, Most)
+  - Quality Mode: Dropdown (Standard, Fast, Auto/Smart, Think)
+
+  ### Tool Execution Architecture (Corrected)
+
+  The system does NOT use Ollama's native tools API. Instead:
+
+  1. Tool schemas embedded in system prompts
+  2. Model outputs tool calls as text
+  3. Format Translator parses text to detect tool usage
+  4. Tools tab settings checked before execution
+  5. Only enabled tools are executed
+
+  This approach:
+  - Works with any model (not just Ollama-tools-compatible)
+  - Provides fine-grained control via Tools tab
+  - Maintains safety through enable/disable switches
+  - Functions in Standard mode (without Format Translator) if model outputs proper format
+
+  ### Chat Interface Layout (Reorganized)
+
+  Top Bar:
+  - Active Model indicator (left)
+  - Tool Schema, System Prompt, Change Dir, ⚡ Mode buttons (center/right)
+
+  Chat Display Area:
+  - Scrollable chat history
+  - Auto-scroll to bottom on new messages
+
+  Button Bar (Above Input):
+  - 📌 Mount | 📍 Dismount | 🗑️ Clear Chat | 📂 Load Chat
+
+  Input Area:
+  - Text input (left)
+  - Send/Stop buttons (right)
+  - Instructions: "Press Enter to send • Shift+Enter for new line"
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ## CONFIGURATION FILES
+
+  ### mode_settings.json
+  ```json
+  {
+    "current_mode": "smart",
+    "mode_parameters": {
+      "standard": { /* parameters */ },
+      "fast": { /* parameters */ },
+      "smart": { /* parameters */ },
+      "think": { /* parameters */ }
+    },
+    "think_time_min_seconds": 30,
+    "think_time_max_seconds": 300
+  }
+  ```
+
+  ### tool_settings.json
+  ```json
+  {
+    "enabled_tools": {
+      "file_read": true,
+      "file_write": true,
+      "bash_execute": false,  // Critical tools disabled by default
+      "grep_search": true,
+      // ... other tools
+    }
+  }
+  ```
+
+  ### advanced_settings.json
+  Contains 37 OpenCode v1.2 systems with 252 total settings.
+  Each system has an "enabled" flag controlled by mode selection.
+  Mode-controlled systems are locked in UI with 🔒 indicator.
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ## COMPONENT INTERACTIONS
+
+  ### Mode Change Flow
+
+  1. User selects mode (Mode tab radio button OR Chat tab ⚡ Mode dialog)
+  2. on_mode_changed() called
+  3. MODE_ADVANCED_MAPPINGS consulted
+  4. Advanced systems enabled/disabled per mode
+  5. Settings tab notified via on_mode_changed()
+  6. Advanced tab displays active mode
+  7. Mode-controlled systems show 🔒 and are disabled
+  8. Chat interface receives set_mode_parameters()
+  9. System initializes advanced components if not in Standard mode
+
+  ### Tool Execution Flow
+
+  1. User sends message to model
+  2. Model response parsed (JSON)
+  3. Format Translator detects tool calls in text (if enabled)
+  4. handle_tool_calls() invoked
+  5. Tools tab settings checked via get_enabled_tools()
+  6. Disabled tools skipped with error message
+  7. Enabled tools executed via tool_executor
+  8. Tool Orchestrator applies risk gates (if enabled)
+  9. Results displayed in chat
+  10. Follow-up generation if needed
+
+  ### Chat History Flow
+
+  1. Every model response triggers _auto_save_conversation()
+  2. ChatHistoryManager.save_conversation() called
+  3. Session includes: chat_history, model, mode, temperature, prompts, schemas
+  4. Saved to Data/chat_history/{session_id}.json
+  5. History tab displays all sessions via list_conversations()
+  6. Load button restores full conversation state
+  7. Clear Chat saves current session before clearing
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ## UI IMPROVEMENTS SUMMARY
+
+  ### Mousewheel Scrolling
+  - Platform detection (Linux uses Button-4/5, Windows/Mac use MouseWheel)
+  - Hover-to-activate behavior
+  - Unbind on mouse leave to prevent scroll conflicts
+  - Applied to all scrollable canvas widgets across application
+
+  ### Mode Parameters
+  - Visual feedback on value changes
+  - Min/max enforcement with clamping
+  - Step-based increments for usability
+  - Suffix labels (e.g., "tokens") for clarity
+  - Dropdowns prevent invalid input
+  - Reset button per mode preserves originals
+
+  ### Chat Interface
+  - Buttons organized by frequency of use
+  - Mount/Dismount near input for quick access
+  - Mode selector accessible without tab switching
+  - Keyboard shortcuts throughout
+  - Clear visual hierarchy
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ## TECHNICAL NOTES
+
+  ### BaseTab.bind_mousewheel_to_canvas()
+  Universal method for all tabs to enable mousewheel scrolling.
+  Handles platform differences transparently.
+
+  ### MODE_ADVANCED_MAPPINGS
+  Central source of truth for mode-to-system relationships.
+  Located in advanced_settings_tab.py lines 57-133.
+
+  ### Tool Prompt-Based Approach
+  Critical architectural decision: NO use of payload["tools"].
+  Tool schemas embedded in system prompts instead.
+  Enables universal model compatibility.
+
+  ### Session Metadata
+  Comprehensive snapshot of configuration:
+  - mode, temperature
+  - system_prompt, tool_schema
+  - working_directory
+  - training_mode_enabled
+  - model_name
+  - tool_settings (which tools enabled/disabled)
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ## PREVIOUS VERSION HIGHLIGHTS (For Context)
+
+  **v1.9e (2025-10-12)** - Chat History Overhaul
+  - Per-message saving
+  - Renewable sessions
+  - Functional history tab
+  - Session configuration display
+
+  **v1.9d (2025-10-12)** - Temperature Controls
+  - Global and session-specific temperature
+
+  **v1.9c (2025-10-11)** - Full Advanced Integration
+  - 37 OpenCode systems, 252 settings
+  - System prompt & tool schema selectors
+
+  **v1.9b (2025-10-08)** - Advanced Settings Foundation
+  - First 11 OpenCode systems integrated
+  - Tool execution pipeline
+
+  **v1.9 (2025-10-01)** - Custom Code Tab
+  - Modular tab architecture
+  - Chat interface with mount/dismount
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ## VERSION HISTORY
+
+  **v1.9f (2025-10-12)** - Mode Integration & UX Improvements
+  - Integrated mode system with Advanced Settings tab
+  - Added functional parameter controls with increment/decrement buttons
+  - Reorganized chat interface layout for better UX
+  - Implemented universal mousewheel scrolling (cross-platform)
+  - Fixed critical tool execution architecture (removed Ollama tools API)
+  - Fixed blank response issue caused by tools API error
+  - Wired Tools tab to actual execution pipeline
+  - Added quick mode selector to chat interface
+  - Enhanced mode parameter customization per mode
+  - Added "Reset to Default" functionality per mode
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  End of Blueprint v1.9f

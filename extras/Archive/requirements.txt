@@ -1,0 +1,15 @@
+# OpenCode Tool Trainer Requirements
+
+# Core dependencies (built-in with Python 3.7+)
+# asyncio
+# json
+# logging
+# subprocess
+# dataclasses
+
+# HTTP client for Ollama API
+aiohttp>=3.8.0
+
+# Optional enhancements
+# psutil>=5.9.0  # For system monitoring examples
+# rich>=13.0.0   # For pretty console output

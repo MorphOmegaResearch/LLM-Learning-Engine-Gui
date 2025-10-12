@@ -1,0 +1,164 @@
+Here’s a clean inventory of v1.2 with what’s wired, what’s partially wired, and what looks
+  unused/demo-only. No edits were made. (verify these claims as you go per edit, use as a general reference)
+
+  Core runtime (wired and used)
+
+  - interactive.py
+      - TUI, command loop, routing handoff, smart allocation, Plan Phase (save/run), /coding
+  commands, /settings, /version, /project, /agentic, etc.
+      - Calls:
+          - router.py (lane + intent)
+          - time_slicer.py (TimeBudget; optional slicing)
+          - tool_orchestrator.py (TOOL_USE orchestration)
+          - tools.py (tool execution)
+          - confirmation_gates.py (all confirmations)
+          - pre_rag_optimizer.py (optional; guarded)
+          - verification_engine.py (think-mode research verification; guarded)
+          - mvco_engine.py + quant_manager.py (guarded stubs for MVCO; no hard dependency)
+          - runtime_profiles.py (resource profiles)
+          - context_scorer.py + complexity_analyzer.py (routing/context scoring)
+          - session_manager.py + project_store.py (sessions + storage)
+          - ollama_client.py (LLM calls)
+  - config.py + config.yaml
+      - All interface/routing/runtime/tools/policy sections; setters appear in /settings.
+      - interface.auto_suggest_tools = false by default; surfaced and functioning in v1.2.
+  - router.py
+      - Routes to STANDARD/DELIBERATE/TOOL_USE; returns RouteResult with clamped confidence;
+  used by interactive.
+  - tools.py
+      - FileRead, FileWrite, FileEdit, BashExecute, GrepSearch, GitOperations; ToolManager
+  executes with CommandPolicy; wired via orchestrator + /coding run/gen; write overwrites need
+  confirmation; bash respects allowed_commands.
+
+  Quality / Recovery (wired but guarded)
+
+  - quality_integration.py + master_quality_system.py + quality_recovery_engine.py
+      - Integrated via integrate_quality_system(self) in interactive; if enabled,
+  enhanced_generate wraps generation; includes InstantHookEngine for arithmetic shortcuts;
+  adaptive_workflow_engine created in certain tiers; configuration thresholds exist.
+      - Observations:
+          - The quality path is active if QUALITY_SYSTEM_AVAILABLE and enabled in config; it
+  calls back to original generator as needed.
+  - instant_hook_engine.py (used)
+      - Used by master_quality_system + quality_recovery_engine to catch trivial math patterns
+  conservatively.
+  - verification_engine.py (used)
+      - Used optionally in think-mode verification step.
+
+  Orchestration / Tools (wired and used)
+
+  - tool_orchestrator.py
+      - Analyzes NL requests for tools; builds and executes tool chains; has Confirm.ask inside
+  (we added smart-mode gating in interactive before execute_tool_chain).
+  - command_policy.py
+      - Enforces argv-only execution, allowed commands, and timeouts for bash_execute and Git
+  operations; wired via BashExecuteTool and GitOperationsTool.
+
+  Routing and resource management (wired)
+
+  - runtime_profiles.py
+      - Provides resource profiles (threads, ctx tokens) used by smart allocation and time
+  budgets.
+  - time_slicer.py (wired)
+      - TimeBudget + optional time-sliced generation; used by interactive depending on mode and
+  slice_generation flag.
+  - context_scorer.py + complexity_analyzer.py (wired)
+      - Used for adaptive context and scoring; part of routing and optimization hints.
+
+  Agentic workflows (wired entry; minimal implementation)
+
+  - agentic_project_system.py
+      - Referenced via /agentic; InteractiveMode loads AgenticProjectManager on demand; basic
+  status/create/list commands.
+      - Most deeper orchestration features in this module look uninvoked from the TUI (no full
+  workflow linking observed).
+
+  Optional/advanced (present; partially wired or not used by default)
+
+  - pre_rag_optimizer.py (present; optionally used)
+      - Guarded by config.optimization.enabled; interactive calls optimize_query_enhancement;
+  not critical path.
+  - mvco_engine.py + quant_manager.py (present; partially referenced)
+      - MVCO orchestrator initialized guarded; quant_manager used to list models; full scoring/
+  prediction likely not exercised beyond stubs.
+  - rag_feedback_engine.py (present; appears unused by interactive)
+      - Provides a feedback engine + test function; no direct references in the interactive
+  path.
+  - performance_benchmark_system.py (present; likely unused)
+      - A full benchmark manager with run_demo_benchmark() demo; imported into init.py but not
+  referenced at runtime.
+  - model_optimizer.py / model_selector.py (present; not referenced by interactive)
+      - Profiles + benchmark scoring tables; appear unused in current v1.2 TUI path.
+  - workflow_optimizer.py (present; not referenced)
+      - Seems unused by interactive path.
+
+  Security / hardening (present; not tied in by default)
+
+  - hardening_manager.py
+      - Contains KillSwitch/SystemHardeningManager; not referenced by interactive by default;
+  may be planned for future hardening.
+
+  Sessions / storage (wired)
+
+  - session_manager.py
+      - IntelligentSessionManager used by interactive; updates analytics and metadata.
+  - project_store.py
+      - Used for project-scoped logs + storage stats; interactive leverages it.
+
+  CLI and package entry (wired)
+
+  - cli.py
+      - Entry point; we patched sys.path priority for version site-packages; main CLI loads
+  InteractiveMode and starts.
+  - init.py / main.py / main.py (wired)
+      - init exposes symbols; main calls cli.main; main.py is a small shim.
+
+  Unused or demo-only functions/classes (likely)
+
+  - performance_benchmark_system.run_demo_benchmark (explicit demo)
+  - instant_hook_engine.harness/test code at module bottom (if any)
+  - rag_feedback_engine.test_rag_feedback_engine (explicit test/demo function)
+  - master_quality_system.test_master_quality_system (explicit test)
+  - model_optimizer benchmark scaffolding (no use in interactive)
+  - mvco_engine heavy scoring/prediction paths beyond stubs (not fully exercised)
+  - adaptive_workflow_engine’s deeper branches (only created in quality tiers; not confirmed
+  exercised)
+  - workflow_optimizer (no references found)
+  - Many “run as script” blocks under if name == 'main' in auxiliary modules (not triggered
+  by TUI)
+
+  Command surface inventory (interactive)
+
+  - wired commands:
+      - /history, /tools, /model, /compact, /settings, /mode, /doctor, /project, /quality, /
+  agentic, /version, /coding
+  - added in v1.2:
+      - /coding new|list|where|open|status|gen|run
+  - autocompletions defined for: /history, /settings, /mode, /project, /model, /version, /
+  agentic, /coding
+  - /versions legacy alias handled
+
+  Plan/Suggestion paths (wired)
+
+  - Suggestion Phase (legacy): triggers only on exactly one fenced code block; save/run with
+  confirmations (TTY only).
+  - Plan Phase (new): triggers on strong indicators (active experiment + auto_suggest_tools +
+  [single fenced block OR DELIBERATE + intent build/make/generate app/script]); shows plan, lets
+  you reformat code, set filename, then confirm save/run.
+
+  Most probable unused (by interactive)
+  - rag_feedback_engine.py — no references by interactive
+  - hardening_manager.py — not plugged into interactive flow
+  - Some deeper branches in adaptive_workflow_engine.py and mvco_engine.py — only partially exercised via quality systems
+
+  How to verify usage quickly
+
+  Summary
+
+  - The core runtime, routing, tools, confirmations, and smart allocation are wired and active.
+  - Quality system is present and conditionally active.
+  - Agentic has a basic TUI surface but deeper automation isn’t integrated yet.
+  - Several advanced “engines” and benchmark/optimizer modules exist as building blocks or demos and are not exercised by the current TUI flow.
+  - Next practical step before whiteboard:
+      - Decide which optional subsystems you want integrated (e.g., benchmarks, agentic workflows) and whether they should surface in /board and Plan Phase.
+      - I can map each optional module to a /board toggle and add a light integration path if you want to proceed.

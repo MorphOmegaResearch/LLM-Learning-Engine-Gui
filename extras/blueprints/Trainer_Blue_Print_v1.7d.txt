@@ -1,0 +1,126 @@
+system blueprint:
+
+  ---
+
+  🏗️ OpenCode Trainer System - Complete Blueprint
+
+  Version: 1.7d (Models Tab Nesting + Export Conformer)
+  Date: 2025-10-07
+  Status: Feature Complete
+
+  ---
+
+  📋 Table of Contents
+
+   1. System Overview
+   2. Architecture Diagram
+   3. Centralized Debug & Logging System
+   4. Application Launch Mechanism (Wrapper Script)
+   5. Component Specifications
+   6. Data Flow & State
+   7. Appendix A: Changelog
+
+  ---
+
+  1. System Overview
+
+  Purpose
+  Train small language models to use OpenCode tools correctly through fine-tuning. The system features a modular GUI, reusable training engine, and comprehensive live-debugging.
+
+  New in v1.7d
+   - Revamped Models Tab right-side list with two scrollable sections and tidy nested expand/collapse for Bases/Levels and Ollama groups.
+   - Unified Confirm & Export dialog (“conformer”) with quantization selection and live estimates (file size, RAM, disk, tokens/sec, quality notes).
+   - History → Runs shows evaluation summaries and quick actions (View Report, Compare, Open Folder).
+
+  ---
+
+  2. Architecture Diagram
+
+  (No change from v1.7a)
+
+  ---
+
+  3. Centralized Debug & Logging System
+
+  (No change from v1.7a)
+
+  ---
+
+  4. Application Launch Mechanism (Wrapper Script)
+
+  (No change from v1.7a)
+
+  ---
+
+  5. Component Specifications
+
+  (See v1.7a for components not mentioned here. This version focuses on Models Tab upgrades.)
+
+  5.4. `tabs/models_tab/models_tab.py` (Models Tab)
+   - Right-side listing
+     - Two scrollable sections:
+       - Base Models (PyTorch): Each base row has a left arrow to expand/collapse nested Levels beneath it.
+       - Ollama Models (GGUF): Grouped by base (when discoverable via Level export manifests) with their own per-group expand/collapse; unassigned models appear under “Unassigned”.
+     - Dynamic grouping: `_group_ollama_by_base()` maps Ollama export names back to their base via discovered Levels; falls back to “Unassigned”.
+
+   - Levels workflow
+     - Levels appear nested under their base in the Base Models section.
+     - Selecting a Level shows its overview (base/adapters/evaluation summary/status/actions) in the left pane.
+     - “Export to GGUF” on a Level triggers the unified export dialog (see below).
+
+   - Unified Confirm & Export dialog (Conformer)
+     - Single dialog used by both Adapters → Level Up and History → Levels → Export to GGUF.
+     - Shows:
+       - Adapter name, readiness status, and Overall Δ vs baseline (when available), plus issues list.
+       - Quantization dropdown: `q4_k_m`, `q5_k_m`, `q8_0`.
+       - Live estimates, per selected quant:
+         - Estimated GGUF file size (heuristic from HF base size × quant ratio).
+         - Runtime RAM (load) ≈ 1.2× file size.
+         - Disk free recommended during export ≈ 2× file size.
+         - Estimated tokens/sec (CPU, ~N threads) as a range, scaled by cores and quant.
+         - Quality notes per quant.
+     - Export passes `--quant` to the exporter and streams logs to the Evaluation output console.
+     - Exporter path resolution fixed to `Data/merge_and_export.py`.
+
+   - History → Runs enhancements
+     - Each adapter entry shows latest evaluation summary and actions:
+       - View Report (opens latest evaluation JSON).
+       - Compare (vs baseline with Δ%)
+       - Open Folder (adapter directory)
+
+   - Other
+     - Nested expand/collapse UI state tracked per base/group.
+     - Styling: small, black text in the dialog’s info/estimates for clarity.
+
+  5.11. `tabs/training_tab/category_manager_panel.py` (Script Manager Panel)
+   - (From v1.7c) Standardized sub-tab action bars and simplified editing workflow.
+
+  ---
+
+  6. Data Flow & State
+   - `ModelsTab` state additions:
+     - `levels_expanded`: map of base → bool for Levels expansion.
+     - `ollama_expanded`: map of base → bool for Ollama group expansion.
+     - `ollama_ui`: pointers to per-group arrow/button containers.
+   - Export flow:
+     - Readiness computed -> unified dialog -> `_run_merge_and_export(base, adapter, quant)` -> background thread streams output.
+
+  ---
+
+  7. Appendix A: Changelog
+
+  v1.7d (2025-10-07): Models Tab Nesting + Export Conformer
+   - ENHANCED: Split right-side Models list into two scroll panes with nested expand/collapse: Base Models (with Levels) and Ollama Models grouped by base.
+   - ADDED: Unified Confirm & Export dialog with quant selection and live estimates (file size, RAM, disk, tokens/sec, quality notes).
+   - ADDED: History → Runs evaluation summaries and quick actions (View Report, Compare, Open Folder).
+   - FIXED: Exporter path resolution for `merge_and_export.py`; `--quant` forwarded.
+
+  v1.7c (2025-10-07): Script Manager UI Standardization
+   - Standardized action bars across Script Manager sub-tabs; added Clear/Copy/New Category; removed obsolete buttons.
+
+  v1.7b (2025-10-07): Script Manager Refactor
+   - Self-contained manager with internal tabs for Training Scripts, Prompts, Schemas.
+
+  v1.7a (2025-10-07): UI/UX Polish & Synchronization
+   - Model selection and evaluation preference sync improvements; Help updates; general polish.
+

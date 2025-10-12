@@ -1,0 +1,165 @@
+agentic:
+  auto_handoff_enabled: false
+  confirmation_level: MODERATE
+  enabled: true
+  resource_constraints: STANDARD
+history:
+  file_path: .opencode_history
+  max_entries: 100
+  resume_last_session: false
+  save_to_file: true
+interface:
+  auto_model_selection: false
+  auto_save: false
+  compact_mode: false
+  confirm_destructive: true
+  default_mode: smart
+  interactive_mode: true
+  syntax_highlighting: true
+mcp:
+  auto_start: true
+  enabled: false
+  mode: embedded
+  server_script: mcp_server_wrapper.py
+model:
+  base_url: http://localhost:11434
+  max_tokens: 3072
+  name: improved-gemma-coder:latest
+  temperature: 0.1
+optimization:
+  adaptive_timeouts: true
+  context_scoring: true
+  dynamic_pruning: true
+  enabled: false
+  max_context_tokens: 2000
+  performance_monitoring: true
+  pruning_ratio: 0.8
+policy:
+  allow_options_override: true
+  caps_auto:
+    reasoning: 450
+    standard: 300
+    structured: 220
+  caps_fast:
+    reasoning: 200
+    standard: 120
+    structured: 90
+  caps_think:
+    reasoning: 900
+    standard: 600
+    structured: 350
+  enabled: true
+  provider: basic
+quality_recovery:
+  enabled: true
+  instant_hooks_enabled: true
+  mode: balanced
+  observer_pattern_enabled: true
+  rag_feedback_enabled: true
+routing:
+  continuation_threshold: 0.8
+  enabled: true
+  lane_timeouts:
+    deliberate: 25
+    recall: 5
+    standard: 12
+    tool_use: 15
+  memory_gate_min_score: 0.6
+  performance_targets:
+    general: 80.0
+    recall: 95.0
+    structured: 90.0
+  reasoning_threshold: 0.6
+  recall_threshold: 0.8
+  structured_threshold: 0.7
+  summary_gate_min_score: 0.5
+  tool_threshold: 0.7
+runtime:
+  auto_detect: true
+  cpu_threads: null
+  fallback_model: gemma2:2b-16k
+  gpu_enabled: false
+  max_memory_mb: null
+  resources: 75
+  slice_generation: true
+system_prompt: |
+  <CHAIN_OF_COMMAND> : COMMANDER -> AI_PROGRAMMER
+  <ROLE> : AI_PROGRAMMER
+  <GOAL> : ASSIST THE COMMANDER
+
+  <WORK-FLOW> : -> ANALYZE INPUT -> ID-TARGET(S) -> PLAN -> RE-ACT (CHOOSE RELATIVE MODE) ->
+                 -> PARSE-RESULT -> CHECK GOAL COMPLETION -> PARSE-RESULT ->
+                  -> PARSE IF GOAL NOT MET : RETURN TO ANALYZE -> PARSE IF GOAL MET : RESPONSE.
+
+  <MODES>
+       *PARSE:[PROCESS-INPUT(S) & TOOL-RESULT(S). ASSESS-RESULT VS INITIAL-INPUT/GOAL.]
+
+       *PLAN:[FOLLOW YOUR PLAN STEP BY STEP USING TOOLS AS NEEDED]
+
+       *CLARIFY:[UNSURE/OUT-SOURCE/RISKY/AMBIGUOUS? -> -ASK -> WAIT -> PARSE-RESULT -> RE-ACT. IF PLAN IS UNCLEAR OR RISKY, ASK FOR CLARIFICATION OR PERMISSION.]
+
+       *ACTION:[FORMAT JSON "TOOL_CALL" ONLY -> WAIT -> PARSE-RESULT -> RE-ACT]
+
+       *RESPONSE:[PLAIN ENGLISH TEXT ONLY. ONCE GOAL IS MET, PROVIDE FINAL ANSWER. REPLY TO NON-TOOL-RELATED CHAT AND DISCUSSION ACCORDINGLY.]
+
+       *ANALYZE:[THINK -> CREATE PLAN -> CHOOSE APPROPRIATE MODE/TOOL. FOR COMPLEX ANALYSIS, USE "REASON" OR "THINK_TIME" TOOLS.]
+
+  # TOOL CALLS
+  FORMAT: {"type":"tool_call","name":"TOOL","args":{"key":"value"}}
+  - NO extra text, NO python syntax.
+
+  # TOOL KIT (11 enabled)
+  file_search, file_read, file_copy, file_move, file_edit, file_write, file_fill,
+  file_create, file_delete, directory_list, grep_search, bash_execute,
+  change_directory, system_info, think_time, process_manage,
+  web_search, web_fetch, code_analyze, package_check
+
+  # EXAMPLES
+  {"type":"tool_call","name":"file_search","args":{"pattern":"*.py","path":"."}}
+  {"type":"tool_call","name":"file_read","args":{"file_path":"Read.txt"}}
+  {"type":"decision","mode":"THINK","thinktime":180,"reason":"Analyzing complex code"}
+  {"type":"tool_call","name":"web_search","args":{"query":"facts about elephants"}}
+
+  # PATH RULES
+  - Read files by using "file_search" FIRST. If "file not found" "change_directory".
+  - Working directory: {working_dir}
+  - ALWAYS use "." for relative paths
+
+  # CHAINING POLICY
+  • Safe chains (auto): file_search → file_read, directory_list → file_read
+  • Unsafe chains (blocked): file_write/delete/bash_execute chains
+  • One call at a time for unsafe operations
+
+  # SELF-CORRECTION
+    -MISTAKE !ID! -> INFORM/SUGGEST/ASK -> REVISE -> RE-ACT
+
+  # CONSTRAINTS
+  - Do not make assumptions about the user's knowledge level; explain complex topics clearly.
+  - Always operate within the defined workspace.
+
+  # STOPPING CONDITION
+  - Output plain English when goal is achieved
+  - No unnecessary tool calls,
+tools:
+  bash:
+    allowed_commands:
+    - git
+    - npm
+    - pip
+    - python
+    - node
+    - cargo
+    - make
+    timeout: 30
+  enabled:
+  - file_read
+  - file_write
+  - file_edit
+  - bash_execute
+  - grep_search
+  - git_operations
+  - change_directory
+  - directory_list
+  - file_search
+  - system_info
+  - resource_request

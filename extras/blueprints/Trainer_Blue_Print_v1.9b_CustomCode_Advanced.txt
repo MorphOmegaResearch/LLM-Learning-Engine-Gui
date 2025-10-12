@@ -1,0 +1,816 @@
+system blueprint:
+
+  🏗️ OpenCode Trainer System - Complete Blueprint (v1.9b - Custom Code Advanced Settings)
+
+  Highlights in v1.9b - Advanced Settings & Tool Execution
+  - Tool Execution System (Complete)
+    - 20 OpenCode tool schemas for Ollama function calling
+    - Tool executor bridge between Ollama and OpenCode tools
+    - Full tool call parsing and execution pipeline
+    - Real-time tool result display in chat interface
+    - Tool enable/disable via Tools sub-tab
+
+  - Advanced Settings Sub-Sub-Tab (Complete)
+    - Nested settings structure: Basic → Advanced
+    - 50+ configurable options across 5 categories
+    - Format Translation & Parsing (8 settings)
+    - Tool Intelligence (10 settings)
+    - Resource Management (7 settings)
+    - Context & RAG Optimization (15+ settings)
+    - Quality & Verification (5 settings)
+
+  - Backend Configuration System (Complete)
+    - Working directory management with GUI picker
+    - Tool execution preferences (confirmation gates, timeouts)
+    - Chat behavior settings (auto-mount, history retention)
+    - Project workspace settings
+    - Advanced features (debug logging, tool details)
+
+  Highlights in v1.9 - Custom Code Tab Foundation
+  - Custom Code Tab Integration (Phase 1 Complete)
+    - New modular tab with sub-tab architecture
+    - Chat Interface: Direct interaction with Ollama models
+    - Model Selection Panel: Right-side model selector
+    - Mount/Dismount with color-coded status
+    - Per-model conversation history
+    - Safe Integration: Disabled by default
+
+  Previous Features (v1.8)
+  - Baseline → GGUF → Auto-Resume flow
+  - Parent-centric Compare with actionable training suggestions
+  - Integrated post-training evaluation
+  - Schema-aware evaluation improvements
+  - Tool conformer for JSON calls
+  - Quantization picker
+  - Enhanced Stats tab with regression analysis
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  📋 CUSTOM CODE TAB - COMPLETE IMPLEMENTATION (v1.9b)
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ## File Structure
+
+  ```
+  Data/tabs/custom_code_tab/
+  ├── __init__.py                                    # Module exports
+  ├── custom_code_tab.py                             # Main tab class [UPDATED v1.9b]
+  ├── README.md                                      # Documentation
+  ├── CHANGELOG.md                                   # v1.1 enhancements
+  ├── IMPLEMENTATION_GUIDE.md                        # Architecture guide
+  ├── TOOL_EXECUTION_INTEGRATION.md                  # Tool system docs [NEW v1.9b]
+  ├── LEGACY_COMPONENTS_EXPLORATION.md               # OpenCode v1.2 analysis [NEW v1.9b]
+  ├── custom_code_settings.json                      # Basic settings [NEW v1.9b]
+  ├── advanced_settings.json                         # Advanced settings [NEW v1.9b]
+  ├── tool_settings.json                             # Tool enable/disable
+  ├── tool_schemas.py                                # Ollama tool schemas [NEW v1.9b]
+  ├── tool_executor.py                               # Tool execution bridge [NEW v1.9b]
+  ├── tool_alias_translator.py                       # Tool alias mapping
+  └── sub_tabs/
+      ├── __init__.py                                # Sub-tab exports
+      ├── chat_interface_tab.py                      # Chat UI [UPDATED v1.9b]
+      ├── tools_tab.py                               # Tool configuration UI
+      ├── settings_tab.py                            # Basic settings UI [UPDATED v1.9b]
+      └── advanced_settings_tab.py                   # Advanced settings UI [NEW v1.9b]
+  ```
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ## TOOL EXECUTION SYSTEM (v1.9b - NEW)
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ### 1. Tool Schema Definitions
+  **File:** `Data/tabs/custom_code_tab/tool_schemas.py`
+  **Lines:** 1-380
+  **Purpose:** Ollama-compatible tool schemas for function calling
+
+  **Key Code Sections:**
+  - Lines 7-360: TOOL_SCHEMAS dict with 20 tool definitions
+  - Lines 9-33: file_read schema
+  - Lines 35-55: file_write schema
+  - Lines 57-81: file_edit schema
+  - Lines 83-103: file_copy schema
+  - Lines 105-125: file_move schema
+  - Lines 127-143: file_delete schema
+  - Lines 145-161: file_create schema
+  - Lines 163-183: file_fill schema
+  - Lines 186-210: grep_search schema
+  - Lines 212-232: file_search schema
+  - Lines 234-254: directory_list schema
+  - Lines 257-277: bash_execute schema
+  - Lines 279-300: git_operations schema
+  - Lines 303-319: system_info schema
+  - Lines 321-337: change_directory schema
+  - Lines 339-359: resource_request schema
+  - Lines 363-379: get_enabled_tool_schemas() helper function
+
+  **Schema Format:**
+  ```python
+  {
+    "type": "function",
+    "function": {
+      "name": "tool_name",
+      "description": "Tool description",
+      "parameters": {
+        "type": "object",
+        "properties": {...},
+        "required": [...]
+      }
+    }
+  }
+  ```
+
+  ### 2. Tool Executor Bridge
+  **File:** `Data/tabs/custom_code_tab/tool_executor.py`
+  **Lines:** 1-170
+  **Purpose:** Bridges Ollama function calling with OpenCode tool system
+
+  **Key Code Sections:**
+  - Lines 17-24: ToolExecutor class initialization
+  - Lines 20-21: Working directory and tool instances storage
+  - Lines 25-70: _initialize_tools() - Creates all 20 tool instances
+  - Lines 43-60: Tool instances dict with ToolsConfig
+  - Lines 62-64: Set working directory for all tools
+  - Lines 72-115: execute_tool() - Async tool execution
+  - Lines 94-98: Tool execution via OpenCode API
+  - Lines 100-106: ToolResult to dict conversion
+  - Lines 117-136: execute_tool_sync() - Sync wrapper with event loop
+  - Lines 138-141: get_working_directory()
+  - Lines 142-169: set_working_directory() - Updates all tools
+
+  **Usage Pattern:**
+  ```python
+  executor = ToolExecutor(working_dir=Path("/path"))
+  result = executor.execute_tool_sync("file_read", {"file_path": "test.txt"})
+  # Returns: {'success': True, 'output': '...', 'error': None}
+  ```
+
+  ### 3. Chat Interface Integration
+  **File:** `Data/tabs/custom_code_tab/sub_tabs/chat_interface_tab.py`
+  **Lines:** 1-665 (UPDATED)
+
+  **Tool Execution Flow:**
+  - Lines 33-37: Tool executor initialization
+  - Lines 602-619: initialize_tool_executor() - Create executor with working dir
+  - Lines 621-634: load_enabled_tools() - Read tool_settings.json
+  - Lines 615-631: get_tool_schemas() - Get enabled schemas for Ollama
+
+  **API Request with Tools:**
+  - Lines 387-462: generate_response() - Modified to include tools
+  - Lines 392-393: Get enabled tool schemas
+  - Lines 396-400: Build payload dict
+  - Lines 402-405: Add tools to payload if enabled
+  - Lines 407-423: POST to Ollama API with tools
+
+  **Tool Call Handling:**
+  - Lines 434-440: Check for tool_calls in response
+  - Lines 477-533: handle_tool_calls() - Execute tools and display results
+  - Lines 489-503: Parse each tool_call (name + arguments)
+  - Lines 505-532: Execute via tool_executor, display results
+  - Lines 509-519: Show detailed output if enabled in settings
+  - Lines 526: Add tool results to chat_history
+
+  **Final Response Generation:**
+  - Lines 535-586: generate_final_response_after_tools()
+  - Lines 540-545: Build payload with tool results
+  - Lines 547-563: Second API call to get final response
+  - Lines 570-578: Display assistant's final answer
+
+  **Backend Settings Integration:**
+  - Lines 633-653: load_backend_settings() - Load from custom_code_settings.json
+  - Lines 655-664: refresh() - Reload settings and update executor
+  - Lines 237-240: Auto-mount model if setting enabled
+  - Lines 507-510: Show tool details if setting enabled
+
+  **Working Directory Change:**
+  - Lines 318-361: change_working_directory() - GUI picker for working dir
+  - Lines 327-331: Open file dialog
+  - Lines 335-352: Update executor and save to settings
+  - Lines 83-89: "📂 Change Dir" button in top controls
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ## ADVANCED SETTINGS SYSTEM (v1.9b - NEW)
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ### 1. Advanced Settings UI
+  **File:** `Data/tabs/custom_code_tab/sub_tabs/advanced_settings_tab.py`
+  **Lines:** 1-1540 (NEW)
+  **Purpose:** Comprehensive UI for 50+ advanced OpenCode settings
+
+  **Architecture:**
+  - Lines 18-25: AdvancedSettingsTab class initialization
+  - Lines 27-48: create_ui() - Main UI with header, scrollable content, buttons
+  - Lines 50-60: create_header() - Title and reset button
+  - Lines 62-97: create_scrollable_content() - Scrollable canvas setup
+
+  **Section 1: Format Translation & Parsing (Lines 99-199)**
+  - Line 103: Enable Format Translator toggle
+  - Lines 113-143: Sub-options frame with 4 format types
+    - Python Function Format (tool_name(arg='value'))
+    - Markdown Emphasis Format (**tool_name**)
+    - Gemma Tools Format (Gemma-specific)
+    - Simple Function Format
+  - Lines 145-149: Normalize Parameters toggle
+  - Lines 151-184: JSON Auto-Repair settings
+    - Enable toggle
+    - Aggressiveness: low/medium/high
+    - Validation: permissive/strict
+  - Lines 186-199: Schema Validation settings
+    - Enable toggle
+    - Mode: permissive/strict
+
+  **Section 2: Tool Intelligence (Lines 201-360)**
+  - Line 208: Enable Tool Orchestrator toggle
+  - Lines 218-223: Risk Assessment toggle
+  - Lines 225-255: Confirmation Gates (5 risk levels)
+    - SAFE: none/implicit/explicit/mandatory
+    - LOW: none/implicit/explicit/mandatory
+    - MEDIUM: none/implicit/explicit/mandatory
+    - HIGH: none/implicit/explicit/mandatory
+    - CRITICAL: none/implicit/explicit/mandatory
+  - Lines 257-262: Parallel Execution toggle
+  - Lines 264-269: Rollback on Failure toggle
+  - Lines 271-287: Operation History Size input
+  - Lines 289-360: Intelligent Routing
+    - Enable toggle
+    - Confidence Threshold (0.0-1.0)
+    - Multi-Tool Detection toggle
+
+  **Section 3: Resource Management (Lines 362-517)**
+  - Lines 369-393: Resource Profile dropdown
+    - minimal: 2GB+ RAM, 2+ cores, 1 thread, 3072 tokens
+    - balanced: 4GB+ RAM, 4+ cores, half cores, 5120 tokens
+    - aggressive: 8GB+ RAM, 6+ cores, most cores, 8192 tokens
+    - maximum: 16GB+ RAM, 8+ cores, all cores, 16384 tokens
+  - Lines 395-409: Auto-Detect Hardware toggle
+  - Lines 411-450: Custom Overrides
+    - CPU Threads override
+    - Max Tokens override
+    - Memory Limit (MB) override
+  - Lines 452-517: Time Slicing
+    - Enable toggle
+    - Tokens per Slice
+    - Sleep (ms)
+    - Total Budget (seconds)
+
+  **Section 4: Context & RAG Optimization (Lines 519-709)**
+  - Lines 526-602: Context Scorer
+    - Enable toggle
+    - Memory Threshold (%)
+    - History Buffer Size
+    - Cache Enabled toggle
+    - Scoring Weights (4 sliders):
+      - Semantic Coherence (0.35)
+      - Information Density (0.25)
+      - Context Relevance (0.20)
+      - Token Efficiency (0.20)
+  - Lines 604-709: Pre-RAG Optimizer
+    - Enable toggle
+    - 5 Optimization Types (all toggleable):
+      - Context Compression
+      - Semantic Chunking
+      - Query Enhancement
+      - Relevance Filtering
+      - Prompt Optimization
+    - Compression Ratio Target (0.0-1.0)
+    - Cache TTL (seconds)
+
+  **Section 5: Quality & Verification (Lines 711-793)**
+  - Lines 718-755: Verification Engine
+    - Enable toggle
+    - Strictness: low/medium/high
+    - Auto-Fix Minor Issues toggle
+    - Run Verification Tests toggle
+  - Lines 757-793: Quality Assurance
+    - Enable toggle
+    - Quality Threshold (0.0-1.0)
+    - Auto-Recovery toggle
+
+  **Settings Management:**
+  - Lines 795-807: create_button_bar() - Save/Reload buttons
+  - Lines 809-826: Toggle methods for conditional UI display
+  - Lines 828-845: load_settings() - Load from advanced_settings.json
+  - Lines 847-934: get_default_settings() - Safe defaults
+  - Lines 936-1029: save_settings() - Collect all UI values and save
+  - Lines 1031-1047: reload_settings() - Refresh UI from file
+  - Lines 1049-1057: reset_to_defaults() - Reset all to defaults
+
+  ### 2. Settings Tab Nested Structure
+  **File:** `Data/tabs/custom_code_tab/sub_tabs/settings_tab.py`
+  **Lines:** 27-86 (UPDATED)
+
+  **Nested Notebook:**
+  - Lines 27-48: create_ui() - Creates notebook with 2 sub-sub-tabs
+  - Lines 34-36: Create ttk.Notebook for nesting
+  - Lines 38-41: Basic Settings sub-sub-tab
+  - Lines 43-46: Advanced Settings sub-sub-tab
+  - Lines 50-79: create_basic_settings() - Original settings moved here
+  - Lines 81-86: create_advanced_settings() - Imports and creates AdvancedSettingsTab
+
+  **Structure:**
+  ```
+  Custom Code Tab
+  └── Settings Sub-Tab
+      ├── ⚙️ Basic (original settings)
+      │   ├── Working Directory
+      │   ├── Tool Execution
+      │   ├── Chat Behavior
+      │   ├── Project Settings
+      │   └── Advanced Features
+      └── 🔧 Advanced (NEW!)
+          ├── 🔄 Format Translation & Parsing
+          ├── 🎯 Tool Intelligence
+          ├── ⚡ Resource Management
+          ├── 🧠 Context & RAG Optimization
+          └── ✅ Quality & Verification
+  ```
+
+  ### 3. Settings Files
+  **File:** `Data/tabs/custom_code_tab/custom_code_settings.json` (UPDATED)
+  **Purpose:** Basic backend configuration
+
+  **Settings:**
+  ```json
+  {
+    "working_directory": "/home/commander/Desktop/Trainer/The_SandBox",
+    "auto_update_working_dir": false,
+    "confirm_high_risk_tools": true,
+    "confirm_critical_tools": true,
+    "tool_timeout": 30,
+    "log_tool_execution": true,
+    "auto_mount_model": false,
+    "auto_save_history": true,
+    "history_retention_days": 0,
+    "max_message_length": 0,
+    "default_project_dir": "/home/commander/Projects",
+    "auto_load_last_project": false,
+    "enable_debug_logging": false,
+    "show_tool_call_details": true,
+    "enable_experimental": false
+  }
+  ```
+
+  **File:** `Data/tabs/custom_code_tab/advanced_settings.json` (NEW)
+  **Purpose:** Advanced feature configuration (50+ settings)
+
+  **Default Structure:**
+  ```json
+  {
+    "format_translation": {
+      "enabled": true,
+      "formats": {
+        "python_function": true,
+        "markdown_emphasis": true,
+        "gemma_tools": true,
+        "simple_function": true
+      },
+      "normalize_parameters": true
+    },
+    "json_repair": {
+      "enabled": true,
+      "aggressiveness": "medium",
+      "validation": "strict"
+    },
+    "schema_validation": {
+      "enabled": true,
+      "mode": "permissive"
+    },
+    "tool_orchestrator": {
+      "enabled": false,
+      "risk_assessment": true,
+      "confirmation_gates": {
+        "safe": "none",
+        "low": "implicit",
+        "medium": "explicit",
+        "high": "explicit",
+        "critical": "mandatory"
+      },
+      "parallel_execution": true,
+      "rollback_enabled": true,
+      "operation_history_size": 100
+    },
+    "intelligent_routing": {
+      "enabled": false,
+      "confidence_threshold": 0.7,
+      "multi_tool_detection": true
+    },
+    "resource_management": {
+      "profile": "balanced",
+      "custom_overrides": {
+        "num_threads": null,
+        "max_tokens": null,
+        "memory_limit_mb": null
+      },
+      "auto_detect": true
+    },
+    "time_slicing": {
+      "enabled": false,
+      "tokens_per_slice": 32,
+      "sleep_ms": 30,
+      "total_budget_seconds": 300
+    },
+    "context_scoring": {
+      "enabled": false,
+      "memory_threshold_percent": 85,
+      "history_buffer_size": 1000,
+      "cache_enabled": true,
+      "weights": {
+        "semantic_coherence": 0.35,
+        "information_density": 0.25,
+        "context_relevance": 0.20,
+        "token_efficiency": 0.20
+      }
+    },
+    "pre_rag_optimizer": {
+      "enabled": false,
+      "optimizations": {
+        "context_compression": true,
+        "semantic_chunking": true,
+        "query_enhancement": true,
+        "relevance_filtering": true,
+        "prompt_optimization": true
+      },
+      "compression_ratio_target": 0.7,
+      "cache_ttl_seconds": 1800
+    },
+    "verification": {
+      "enabled": false,
+      "strictness": "medium",
+      "auto_fix": true,
+      "run_tests": false
+    },
+    "quality_assurance": {
+      "enabled": false,
+      "threshold": 0.8,
+      "auto_recovery": true
+    }
+  }
+  ```
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ## LEGACY OPENCODE V1.2 COMPONENTS (v1.9b - DOCUMENTED)
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  **Location:** `Data/tabs/custom_code_tab/site-packages/opencode/`
+  **Total Components:** 20+ advanced systems ready for integration
+
+  ### Available Systems
+
+  **Format Translators & Parsers:**
+  1. FormatTranslator (format_translator.py - 18KB)
+     - Python function call translation
+     - Markdown emphasis format
+     - Gemma tools format
+     - Parameter normalization
+     - JSON format validation
+
+  2. JSON Fixer (json_fixer.py - 20KB)
+     - Smart JSON parsing
+     - Partial JSON recovery
+     - Streaming JSON support
+     - Error recovery strategies
+
+  3. Tool Schema Validators (tool_schema_validator.py - 8KB)
+     - Schema validation before execution
+     - Strict vs permissive modes
+
+  **Tool Orchestration & Intelligence:**
+  4. AdvancedToolOrchestrator (tool_orchestrator.py - 45KB)
+     - 5 risk levels (SAFE, LOW, MEDIUM, HIGH, CRITICAL)
+     - 4 confirmation gates (NONE, IMPLICIT, EXPLICIT, MANDATORY)
+     - Tool chaining with dependency detection
+     - Parallel execution support
+     - Rollback strategies
+     - Resource management integration
+     - Operation history tracking
+
+  5. Router (router.py - 25KB)
+     - Intent classification
+     - Tool recommendation
+     - Multi-tool workflow detection
+     - Context-aware routing
+
+  **RAG & Context Optimization:**
+  6. ContextScorer (context_scorer.py - 35KB)
+     - C3R-L methodology
+     - Hardware detection (CPU/GPU memory)
+     - Adaptive weight calculation
+     - Pattern matching (JSON, duplicates)
+     - Memory threshold monitoring (85%)
+     - Context history buffer (1000 items)
+     - Model response cache
+
+  7. PreRAGOptimizer (pre_rag_optimizer.py - 28KB)
+     - 5 optimization types:
+       - Context compression
+       - Semantic chunking
+       - Query enhancement
+       - Relevance filtering
+       - Prompt optimization
+     - Content type support (CODE, DOCS, CONVERSATION, SYSTEM, QUERY)
+     - Pattern libraries (code, conversation)
+     - Importance indicators (high/medium/low)
+     - LRU cache (256 items, 30-min TTL)
+     - Scoring weights (semantic, density, relevance, efficiency)
+
+  8. RAG Feedback Engine (rag_feedback_engine.py - 23KB)
+     - Feedback loop for continuous improvement
+
+  **Resource & Performance:**
+  9. Runtime Profiles (runtime_profiles.py - 10KB)
+     - 4 resource levels:
+       - MINIMAL (25%): 1 thread, 3072 tokens, 20% memory
+       - BALANCED (50%): Half cores, 5120 tokens, 40% memory
+       - AGGRESSIVE (75%): Most cores, 8192 tokens, 60% memory
+       - MAXIMUM (100%): All cores, 16384 tokens, 80% memory
+     - Hardware detection (CPU cores, RAM)
+
+  10. TimeSlicedGenerator (time_slicer.py - 8KB)
+      - Slice-based token generation
+      - Sleep between slices
+      - Time budget management
+
+  11. Quant Manager (quant_manager.py - 7KB)
+      - Dynamic quantization management
+
+  **Quality & Verification:**
+  12. Verification Engine (verification_engine.py - 16KB)
+      - Syntax verification
+      - Logic validation
+      - Format checking
+      - Test execution
+
+  13. Quality Systems (3 files, 57KB total)
+      - Master quality system
+      - Quality integration
+      - Quality recovery engine
+
+  **Additional Systems:**
+  - Adaptive Workflow Engine (23KB)
+  - Agentic Project System (36KB)
+  - Session Manager (23KB)
+  - Complexity Analyzer (14KB)
+  - Model Optimizer (24KB)
+  - Performance Benchmark (36KB)
+  - Hardening Manager (19KB)
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ## INTEGRATION STATUS (v1.9b)
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ### ✅ COMPLETED
+  - Tool execution system (schemas + executor + chat integration)
+  - 50+ advanced settings UI with nested tabs
+  - Settings persistence (custom_code_settings.json, advanced_settings.json)
+  - Working directory management with GUI
+  - Tool enable/disable interface
+  - Backend configuration system
+  - Change Dir button in chat interface
+  - Auto-mount model setting
+  - Show tool call details setting
+
+  ### ⏳ READY FOR INTEGRATION (Settings UI Built)
+  - Format Translator (settings UI: ✅ | wiring: ⏳)
+  - JSON Fixer (settings UI: ✅ | wiring: ⏳)
+  - Schema Validator (settings UI: ✅ | wiring: ⏳)
+  - Tool Orchestrator (settings UI: ✅ | wiring: ⏳)
+  - Intelligent Router (settings UI: ✅ | wiring: ⏳)
+  - Runtime Profiles (settings UI: ✅ | wiring: ⏳)
+  - Time Slicer (settings UI: ✅ | wiring: ⏳)
+  - Context Scorer (settings UI: ✅ | wiring: ⏳)
+  - Pre-RAG Optimizer (settings UI: ✅ | wiring: ⏳)
+  - Verification Engine (settings UI: ✅ | wiring: ⏳)
+  - Quality Assurance (settings UI: ✅ | wiring: ⏳)
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ## USAGE GUIDE (v1.9b)
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ### Tool Execution
+  1. Navigate to Custom Code → Tools tab
+  2. Enable desired tools (default: SAFE/LOW/MEDIUM enabled, CRITICAL disabled)
+  3. Click "💾 Save Settings"
+  4. Go to Chat tab
+  5. Select and mount an Ollama model with function calling support
+  6. Send messages - model will use enabled tools automatically
+  7. Tool results appear in chat with ✓/✗ indicators
+
+  ### Working Directory
+  1. Go to Custom Code → Chat tab
+  2. Click "📂 Change Dir" button (left of Mount)
+  3. Select directory in file picker
+  4. Confirms with popup and system message
+  5. All tool executions use new directory
+
+  ### Basic Settings
+  1. Go to Custom Code → Settings → ⚙️ Basic
+  2. Configure:
+     - Working directory
+     - Tool execution preferences
+     - Chat behavior (auto-mount, history)
+     - Project settings
+     - Advanced features (debug, tool details)
+  3. Click "💾 Save Custom Code Settings"
+
+  ### Advanced Settings
+  1. Go to Custom Code → Settings → 🔧 Advanced
+  2. Configure 5 sections:
+     - 🔄 Format Translation & Parsing
+     - 🎯 Tool Intelligence
+     - ⚡ Resource Management
+     - 🧠 Context & RAG Optimization
+     - ✅ Quality & Verification
+  3. Click "💾 Save Advanced Settings"
+  4. Settings persist across restarts
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ## FUTURE INTEGRATION PLAN (v1.9b+)
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  ### Phase 1: Essential Parsers & Translators (Immediate Value)
+  **Priority:** HIGH | **Complexity:** LOW | **Impact:** HIGH
+
+  **Components to Wire:**
+  1. FormatTranslator (format_translator.py)
+     - Integration point: chat_interface_tab.py, after model response
+     - Action: Parse response through FormatTranslator.translate()
+     - Benefit: Handle multiple model output formats automatically
+
+  2. JSON Fixer (json_fixer.py)
+     - Integration point: handle_tool_calls(), before JSON.loads()
+     - Action: Use smart_json_parse() for tool arguments
+     - Benefit: Repair broken JSON from models
+
+  3. Schema Validator (tool_schema_validator.py)
+     - Integration point: Before tool execution in handle_tool_calls()
+     - Action: Validate tool_call against schema
+     - Benefit: Prevent invalid tool executions
+
+  **Implementation Steps:**
+  1. Import modules in chat_interface_tab.py
+  2. Initialize in __init__() based on advanced_settings
+  3. Apply in response pipeline:
+     - Response → FormatTranslator → JSON Fixer → Schema Validator → Tool Executor
+  4. Add error handling and user feedback
+  5. Test with various model outputs
+
+  **Estimated Time:** 2-3 hours
+  **Files to Modify:** chat_interface_tab.py (~50 lines)
+
+  ---
+
+  ### Phase 2: Tool Intelligence (High Impact)
+  **Priority:** HIGH | **Complexity:** MEDIUM | **Impact:** HIGH
+
+  **Components to Wire:**
+  1. AdvancedToolOrchestrator (tool_orchestrator.py)
+     - Integration point: Replace direct tool execution in handle_tool_calls()
+     - Action: Pass tool_calls to orchestrator, handle confirmation gates
+     - Benefit: Risk assessment, chaining, parallel execution, rollback
+
+  2. Router (router.py)
+     - Integration point: Pre-process user message before API call
+     - Action: Analyze intent, recommend tools
+     - Benefit: Smart tool selection, multi-tool workflows
+
+  **Implementation Steps:**
+  1. Create orchestrator instance in chat_interface_tab.__init__()
+  2. Replace tool_executor.execute_tool_sync() with orchestrator.execute_chain()
+  3. Implement confirmation gate UI (popup dialogs)
+  4. Add operation history display
+  5. Handle rollback scenarios
+  6. Integrate router for intent detection
+  7. Display router recommendations in UI
+
+  **Estimated Time:** 6-8 hours
+  **Files to Modify:**
+  - chat_interface_tab.py (~150 lines)
+  - Add confirmation_dialog.py (new file, ~100 lines)
+
+  ---
+
+  ### Phase 3: Resource Management (Performance)
+  **Priority:** MEDIUM | **Complexity:** MEDIUM | **Impact:** MEDIUM
+
+  **Components to Wire:**
+  1. Runtime Profiles (runtime_profiles.py)
+     - Integration point: Tool executor initialization
+     - Action: Apply resource constraints to tool execution
+     - Benefit: Optimized performance for hardware
+
+  2. TimeSlicedGenerator (time_slicer.py)
+     - Integration point: Wrap generate_response() calls
+     - Action: Slice generation into chunks with sleep
+     - Benefit: Responsive UI during long generations
+
+  **Implementation Steps:**
+  1. Import ResourceProfileManager in tool_executor.py
+  2. Apply profile constraints (threads, memory, tokens)
+  3. Wrap API calls with TimeSlicedGenerator
+  4. Add progress indicators in chat
+  5. Handle timeout scenarios
+  6. Auto-detect hardware and recommend profile
+
+  **Estimated Time:** 4-6 hours
+  **Files to Modify:**
+  - tool_executor.py (~80 lines)
+  - chat_interface_tab.py (~60 lines)
+
+  ---
+
+  ### Phase 4: Context & RAG Optimization (Advanced)
+  **Priority:** MEDIUM | **Complexity:** HIGH | **Impact:** MEDIUM-HIGH
+
+  **Components to Wire:**
+  1. ContextScorer (context_scorer.py)
+     - Integration point: Before sending message to API
+     - Action: Score and optimize context, compress if needed
+     - Benefit: Better RAG performance, reduced tokens
+
+  2. PreRAGOptimizer (pre_rag_optimizer.py)
+     - Integration point: Process chat_history before API call
+     - Action: Apply 5 optimization types
+     - Benefit: Improved context quality, faster retrieval
+
+  3. RAG Feedback Engine (rag_feedback_engine.py)
+     - Integration point: After receiving response
+     - Action: Collect feedback, adjust weights
+     - Benefit: Continuous improvement
+
+  **Implementation Steps:**
+  1. Initialize scorer and optimizer in __init__()
+  2. Pre-process chat_history through optimizer
+  3. Score context before API call
+  4. Apply compression if memory threshold exceeded
+  5. Cache optimized contexts
+  6. Collect feedback after each response
+  7. Adjust scoring weights dynamically
+  8. Display optimization stats in UI
+
+  **Estimated Time:** 8-10 hours
+  **Files to Modify:**
+  - chat_interface_tab.py (~200 lines)
+  - Add context_display.py (new file, ~150 lines)
+
+  ---
+
+  ### Phase 5: Quality & Verification (Optional)
+  **Priority:** LOW | **Complexity:** MEDIUM | **Impact:** MEDIUM
+
+  **Components to Wire:**
+  1. Verification Engine (verification_engine.py)
+     - Integration point: After tool execution, before displaying results
+     - Action: Verify tool output quality
+     - Benefit: Catch errors before user sees them
+
+  2. Quality Systems (quality_integration.py, etc.)
+     - Integration point: Wrap entire chat flow
+     - Action: Multi-layer quality checks
+     - Benefit: Enhanced reliability
+
+  **Implementation Steps:**
+  1. Initialize verification engine
+  2. Verify tool outputs before display
+  3. Auto-fix minor issues if enabled
+  4. Run verification tests if enabled
+  5. Integrate quality systems
+  6. Display quality scores
+  7. Enable auto-recovery
+
+  **Estimated Time:** 6-8 hours
+  **Files to Modify:**
+  - chat_interface_tab.py (~120 lines)
+  - Add quality_display.py (new file, ~100 lines)
+
+  ---
+
+  ### Total Integration Estimate
+  **Time:** 26-35 hours across 5 phases
+  **New Files:** 3-4 additional helper modules
+  **Modified Files:** Primarily chat_interface_tab.py (~560 new lines total)
+  **Testing:** +10 hours for comprehensive testing
+
+  ### Recommended Approach
+  1. Implement phases incrementally (1 → 2 → 3 → 4 → 5)
+  2. Test thoroughly after each phase
+  3. Gather user feedback before next phase
+  4. Phases 1-3 provide majority of value
+  5. Phases 4-5 are advanced features for power users
+
+  ═══════════════════════════════════════════════════════════════════════
+
+  End of Blueprint v1.9b - Custom Code Advanced Settings
+  Last Updated: 2025-10-11
+  Status: Tool Execution ✅ | Advanced Settings ✅ | Integration Plan ✅

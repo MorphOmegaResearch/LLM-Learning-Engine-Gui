@@ -1,0 +1,284 @@
+================================================================================
+                    OPENCODE VERSION MANAGEMENT SYSTEM BLUEPRINT
+================================================================================
+                           Generated: 2025-09-26 00:32 UTC
+                           Updated:   2025-09-26 (v1.2 addendum)
+                           Status: FULLY OPERATIONAL
+================================================================================
+
+OVERVIEW:
+---------
+A complete version management system for OpenCode AI assistant with:
+- Desktop launcher integration
+- Per-version isolation and testing
+- Automatic rollback on failures
+- Stable version promotion system
+- Debug logging and crash recovery
+
+FILE TREE STRUCTURE:
+===================
+
+/home/commander/Desktop/BackupOpencode/
+├── 📁 Root Directory - Main project workspace
+│
+├── 🚀 ENTRY POINTS
+│   ├── Launcher                           # Base launcher script (PRIMARY)
+│   │   ├── Handles --version, --test, --no-prompt flags
+│   │   ├── Routes to stable/specified versions
+│   │   ├── Auto-return to STABLE on test exit/failure
+│   │   ├── Per-version crash logging
+│   │   └── Debug output for troubleshooting
+│   │
+│   └── desktop/
+│       └── OpenCode.desktop               # Desktop launcher file
+│           ├── Exec: /home/commander/Desktop/BackupOpencode/Launcher
+│           ├── Path: /home/commander/Desktop/BackupOpencode
+│           └── Launches STABLE version by default
+│
+├── 📋 CONFIGURATION
+│   ├── config.yaml                        # Global configuration
+│   ├── config/
+│   │   └── config.yaml                    # Alternative config location
+│   └── test.yaml                          # Test configuration
+│
+├── 📦 CORE CODE (Live/Working Tree)
+│   └── site-packages/
+│       └── opencode/
+│           ├── __init__.py                # Package initialization
+│           ├── cli.py                     # Command-line interface
+│           ├── interactive.py             # TUI and version commands (FIXED)
+│           │   ├── /version new - Creates new versions
+│           │   ├── /version list - Lists/selects versions
+│           │   ├── /version save - Sets stable version
+│           │   ├── /version end - Returns to stable
+│           │   └── Uses os.execv for proper process replacement
+│           │
+│           └── version_manager.py         # Version management logic (FIXED)
+│               ├── create_version() - Creates per-version directories
+│               ├── validate_version() - Validates version completeness
+│               ├── list_versions_with_status() - Status checking
+│               └── Per-version Launcher template generation
+│
+├── 🗂️ VERSION ISOLATION SYSTEM
+│   └── versions/
+│       ├── STABLE                         # Pointer file → current stable version
+│       ├── ACTIVE_TEST                    # Pointer file → current test version
+│       │
+│       ├── v1.1/                          # STABLE version (current default)
+│       │   ├── Launcher*                  # Per-version launcher script
+│       │   ├── site-packages/             # Isolated code tree
+│       │   │   └── opencode/
+│       │   │       ├── interactive.py     # Version-specific TUI
+│       │   │       └── version_manager.py # Version-specific manager
+│       │   ├── config.yaml                # Version-specific config
+│       │   ├── config/                    # Alternative config structure
+│       │   ├── logs/                      # Version-specific logs
+│       │   ├── crash_log.txt              # Per-version crash logging
+│       │   └── manifest.json              # Validation status & metadata
+│       │       ├── "valid": true/false
+│       │       ├── "errors": [...]
+│       │       ├── "source_label": "..."
+│       │       └── "timestamp": epoch
+│       │
+│       ├── v1.11/                         # Test version (manually fixed)
+│       │   ├── Launcher*                  # Working per-version launcher
+│       │   ├── site-packages/             # Complete code isolation
+│       │   ├── config.yaml
+│       │   ├── logs/
+│       │   ├── crash_log.txt
+│       │   └── manifest.json
+│       │
+│       ├── v1.13/                         # Broken version (no Launcher)
+│       │   ├── ❌ Missing: Launcher       # Created before fix
+│       │   ├── site-packages/
+│       │   ├── config.yaml
+│       │   ├── logs/
+│       │   └── manifest.json              # Shows valid:true but wrong
+│       │
+│       └── v1.15/                         # WORKING version (post-fix)
+│           ├── Launcher*                  # ✅ Auto-created by fixed system
+│           ├── site-packages/             # Complete isolation
+│           ├── config.yaml
+│           ├── logs/
+│           ├── crash_log.txt
+│           └── manifest.json              # Properly validated
+│
+├── 📊 LOGGING & DEBUGGING
+│   ├── crash_log.txt                      # Base crash log (fallback)
+│   ├── .opencode_input_history            # Command history
+│   └── logs/                              # Base logging directory
+│       └── opencode_debug.log             # Debug output
+│
+├── 📚 DOCUMENTATION
+│   ├── BACKUP_MANIFEST.md                 # System backup information
+│   ├── BLUEPRINT.txt                      # Original system design
+│   ├── PORTABLE_COMPLETE.md               # Portability documentation
+│   ├── QUALITY_RECOVERY_IMPLEMENTATION.md # Recovery system docs
+│   ├── SETTINGS_IMPLEMENTATION_PLAN.md    # Settings implementation
+│   └── SETTINGS_USAGE_GUIDE.md            # User guide for settings
+│
+├── 🔧 DEVELOPMENT & TOOLS
+│   ├── models/                            # AI model storage
+│   ├── portable/                          # Portable installation
+│   ├── local/                             # Local configurations
+│   ├── pythonsets.tar.gz                  # Python package archive
+│   └── INFORMATION/                       # Additional information
+│
+└── 🗃️ LEGACY & ARCHIVES
+    ├── instant project context/           # Project context data
+    ├── opencode-data/                     # Legacy data storage
+    └── site-packages/                     # Legacy package location
+
+================================================================================
+                              OPERATIONAL FLOW
+================================================================================
+
+🚀 STARTUP SEQUENCE:
+Desktop → OpenCode.desktop → Base Launcher → reads versions/STABLE → launches v1.1
+
+🔄 VERSION MANAGEMENT COMMANDS:
+┌─────────────────┬──────────────────────────────────────────────────────────┐
+│ Command         │ Action                                                   │
+├─────────────────┼──────────────────────────────────────────────────────────┤
+│ /version new    │ Creates new version from STABLE with per-version Launcher│
+│ /version list   │ Shows all versions with validation status                │
+│ /version v#     │ Launches specific version in test mode                   │
+│ /version save # │ Sets version as new STABLE                               │
+│ /version end    │ Returns to STABLE from test session                     │
+└─────────────────┴──────────────────────────────────────────────────────────┘
+
+🔧 VERSION CREATION PROCESS:
+1. /version new from=stable
+2. create_version() copies site-packages, config from STABLE
+3. Generates per-version Launcher with correct paths/environment
+4. validate_version() checks completeness and writes manifest.json
+5. Version becomes selectable if validation passes
+
+🧪 VERSION TESTING PROCESS:
+1. /version v1.15
+2. interactive.py uses os.execv to replace process
+3. Per-version Launcher sets OPENCODE_VERSION=v1.15 environment
+4. TUI shows "Version: v1.15 (test)"
+5. Auto-return to STABLE on quit/crash via exec (no infinite loops)
+
+🛡️ SAFETY MECHANISMS:
+- Per-version crash logs: versions/v#/crash_log.txt
+- Manifest validation prevents launching broken versions
+- Auto-rollback to STABLE on test failures
+- Process replacement (exec) prevents resource leaks
+- Debug output for troubleshooting execution paths
+
+================================================================================
+                               KEY FIXES APPLIED
+================================================================================
+
+❌ PROBLEMS SOLVED:
+1. ✅ Infinite process spawning → Fixed with exec in relaunch_stable()
+2. ✅ Missing per-version Launchers → Re-added to create_version()
+3. ✅ Syntax errors in interactive.py → Fixed unterminated strings
+4. ✅ subprocess.Popen blocking → Changed to os.execv for replacement
+5. ✅ Silent Launcher creation failures → Added error reporting
+6. ✅ Wrong working directory in desktop → Fixed Path in .desktop
+7. ✅ Validation not checking Launchers → Added Launcher validation
+8. ✅ "Press Enter..." prompts → Fixed --no-prompt flag handling
+
+🏆 CURRENT STATUS: FULLY OPERATIONAL
+- Desktop launch: ✅ Working
+- Version creation: ✅ Working (/version new)
+- Version switching: ✅ Working (/version v#)
+- Auto-return: ✅ Working (no prompts)
+- Crash recovery: ✅ Working
+- Debug logging: ✅ Working
+
+================================================================================
+                                 USAGE GUIDE
+================================================================================
+
+🚀 BASIC WORKFLOW:
+1. Launch from desktop (starts STABLE version)
+2. Create new version: /version new from=stable
+3. Test new version: /version v1.16 (launches test session)
+4. Work in test environment, then quit
+5. Automatically returns to STABLE
+6. Promote if satisfied: /version save v1.16
+
+🔍 DEBUGGING:
+- Check crash logs: versions/v#/crash_log.txt
+- Verify validation: Check manifest.json files
+- Monitor processes: ps aux | grep opencode (should show single process)
+- Debug output: Launcher shows parsing and execution details
+
+⚠️ IMPORTANT NOTES:
+- Always use /version new from=stable for reliability
+- STABLE pointer determines desktop default
+- Test sessions automatically return to STABLE
+- Per-version Launchers enable proper isolation
+- Broken versions show as [invalid] in lists
+
+================================================================================
+                       ADDENDUM — v1.2 CODING WORKFLOW
+================================================================================
+
+OVERVIEW
+- Adds experiment-based coding workflow under versions/v1.2.
+- Provides /coding commands to create, select, and operate within isolated experiment folders.
+- Integrates smart-mode confirmations for time budgets and tool chains.
+
+DIRECTORY LAYOUT (v1.2)
+- versions/v1.2/experiments/
+  - exp_YYYYMMDD_HHMMSS_name/
+    - code/           # Scripts live here; /coding run executes from here
+    - output/         # User output area; tool writes safe here
+    - README.md       # Experiment metadata
+  - .state.json       # Atomic active experiment pointer
+
+COMMANDS
+- /coding new [name]              # Create experiment (creates code/, output/, README.md, code/hello.txt)
+- /coding list                    # List experiments; marks active
+- /coding open <name>             # Set active experiment (confirmation)
+- /coding where|status            # Show active experiment (path/name)
+- /coding gen <file.py> [text]    # Create/overwrite a script in code/ (confirmation)
+- /coding run <file.py>           # Execute script via python inside code/ (confirmation)
+
+BEHAVIOR & SAFETY
+- Active experiment working dir: tools default to active experiment path.
+- Name sanitization: [A-Za-z0-9_-] (filenames in gen allow .).
+- .state.json updates: atomic write (tmp + replace) to prevent corruption.
+- Confirmations via confirmation_gate:
+  - /coding open: LOW risk — change active pointer
+  - /coding gen:  MEDIUM risk — create/overwrite file
+  - /coding run:  LOW risk — execute script within experiment
+- Smart mode confirmations:
+  - /mode thinktime: confirmation before applying time budget
+  - Tool chains: risk-based confirmation before execution in smart mode
+- Headless/non-TTY: LOW risk auto-confirms via confirmation_gate; no hangs.
+
+QUICKSTART (v1.2)
+1) /coding new demo1
+2) /coding gen hello.py "print('hello from experiment')"
+3) /coding run hello.py
+4) /coding where
+
+LLM-DRIVEN WORK (SMART MODE)
+- /mode smart
+- Ask: “Create a simple TUI app that does <X>.”
+- Review tool-chain confirmation summary (risk/time); approve to proceed.
+- Generated files appear under active experiment’s code/. Use /coding run to execute.
+
+TROUBLESHOOTING
+- If /coding responds but does nothing, ensure:
+  - Handler present: hasattr(InteractiveMode,'handle_coding_command') == True
+  - OPENCODE_VERSION=v1.2 in environment (per-version Launcher ensures this)
+  - PYTHONPATH points to versions/v1.2/site-packages (Launcher sets this)
+- Check versions/v1.2/crash_log.txt for tracebacks.
+
+VALIDATION CHECKS
+- Compile: python3 -m py_compile versions/v1.2/site-packages/opencode/interactive.py
+- State file: cat versions/v1.2/experiments/.state.json (active_experiment updated)
+- Filesystem:
+  - ls versions/v1.2/experiments/demo1/code/
+  - cat versions/v1.2/experiments/demo1/code/hello.py
+
+================================================================================
+                                END OF BLUEPRINT
+================================================================================

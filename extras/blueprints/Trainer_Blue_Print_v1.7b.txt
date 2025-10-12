@@ -1,0 +1,96 @@
+system blueprint:
+
+  ---
+
+  🏗️ OpenCode Trainer System - Complete Blueprint
+
+  Version: 1.7b (Script Manager Refactor)
+  Date: 2025-10-07
+  Status: Feature Complete
+
+  ---
+
+  📋 Table of Contents
+
+   1. System Overview
+   2. Architecture Diagram
+   3. Centralized Debug & Logging System
+   4. Application Launch Mechanism (Wrapper Script)
+   5. Component Specifications
+   6. Data Flow & State
+   7. Appendix A: Changelog
+
+  ---
+
+  1. System Overview
+
+  Purpose
+  Train small language models to use OpenCode tools correctly through fine-tuning. The system features a modular GUI, a reusable training engine, and a comprehensive live-debugging system.
+
+  Key Features (v1.7b)
+   - ✅ **Refactored Script Manager:** The Training Tab -> Script Manager is now a self-contained sub-tab system for managing Training Scripts, Prompts, and Schemas independently.
+   - ✅ Robust Application Launch: Utilizes a wrapper script for conditional terminal display and early error capture.
+   - ✅ Centralized Logging with a live Debug Tab and historical log viewer.
+   - ✅ Sequential Script Execution: The Runner can now queue and run multiple training scripts in sequence.
+   - ✅ Enhanced Profile Management: Profiles now save all relevant settings from Runner, Model Selection, and evaluation preferences.
+   - ✅ Comprehensive Model Management: Dedicated "Models Tab" for unified listing, detailed info, renaming, and deletion of all model types.
+   - ✅ Modular GUI & Advanced Tab Management: Dynamic loading of GUI tabs, interactive tab reordering, and a "Tab Manager" for creating/editing custom tabs.
+   - ✅ Standalone Tool Trainer: A command-line utility for generating training data, managing Ollama models, and performing live validation.
+   - ✅ Robustness Enhancements: Graceful handling of `transformers` library compatibility for Early Stopping and CPU training mode fallback.
+
+  ---
+
+  2. Architecture Diagram
+
+  (No change from v1.7a)
+
+  ---
+
+  3. Centralized Debug & Logging System
+
+  (No change from v1.7a)
+
+  ---
+
+  4. Application Launch Mechanism (Wrapper Script)
+
+  (No change from v1.7a)
+
+  ---
+
+  5. Component Specifications
+
+  (Sections 5.1 to 5.10 remain the same as v1.7a)
+
+  5.11. `tabs/training_tab/category_manager_panel.py` (Script Manager Panel)
+   - **Sub-Tab System:** The panel is now a self-contained manager with three internal tabs: "Training Scripts", "Prompts", and "Schemas".
+   - **Training Scripts Tab:** Features a file viewer/editor for scripts and JSONL files, with buttons for creating, deleting, and renaming them. The content shown is driven by selections in the main right-side panel of the Training Tab.
+   - **Prompts Tab:** Features an editor and CRUD (Create, Read, Update, Delete) buttons for managing system prompts. It is driven by the right-side "Prompts" selection list.
+   - **Schemas Tab:** Features an editor and CRUD buttons for managing tool schemas, driven by the right-side "Schemas" selection list.
+
+  (Sections 5.12 to 5.15 remain the same as v1.7a)
+
+  ---
+
+  6. Data Flow & State
+
+  (No change from v1.7a)
+
+  ---
+
+  7. Appendix A: Changelog
+
+  **v1.7b (2025-10-07): Script Manager Refactor**
+  - REFACTORED: The "Script Manager" sub-tab in the Training Tab is now a self-contained manager with its own internal tabs for "Training Scripts", "Prompts", and "Schemas".
+  - ENHANCED: The new Script Manager provides dedicated UI for viewing, editing, and managing each type of asset, decoupling it from the main right-side selection panel for creation and management tasks.
+
+  **v1.7a (2025-10-07): UI/UX Polish & Synchronization**
+  - ENHANCED: Model Selection dropdown in Training tab now only shows trainable models (PyTorch & trained).
+  - ENHANCED: Model Selection info panel now displays a richer overview, including architecture details and training stats.
+  - FIXED: "Send to Training" button now correctly updates the Runner's target model.
+  - ENHANCED: Profiles now save and load evaluation preferences (toggles and prompt/schema names).
+  - ENHANCED: Summary panel now displays the status of evaluation prompt/schema usage.
+  - ENHANCED: Models tab evaluation panel now defaults to the prompt/schema selections from the Training tab.
+  - ENHANCED: Help Menu in Settings tab has been updated with the latest descriptions.
+
+  (Previous changelog entries remain the same)
