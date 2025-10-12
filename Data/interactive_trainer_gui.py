@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Interactive Training Launcher - Full GUI
 Visual graphical interface for selecting training datasets

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Core Training Engine - Shared library for category-specific training
 """

@@ -1,3 +1,4 @@
+# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Models Tab - Model information, notes, and statistics
 Isolated module for models-related functionality

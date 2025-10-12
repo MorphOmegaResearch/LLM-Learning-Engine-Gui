@@ -1,3 +1,4 @@
+# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Mode Selector Sub-Tab - Smart/Fast/Think mode selection
 Controls model behavior and resource allocation for different use cases

@@ -1,3 +1,4 @@
+# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Tools Tab - Tool management and configuration
 Manages which OpenCode tools are enabled for chat interactions

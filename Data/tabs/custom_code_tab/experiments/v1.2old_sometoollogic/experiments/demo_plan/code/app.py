@@ -1,3 +1,4 @@
+# [SYSTEM: LEGACY_TUI | STATUS: ARCHIVE | DO NOT EXECUTE]
 from argparse import ArgumentParser
 import os
 import json

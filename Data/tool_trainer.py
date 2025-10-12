@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 OpenCode Tool Training System
 Trains small LLMs (3B-4B params) to use OpenCode tools correctly

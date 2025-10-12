@@ -1,3 +1,4 @@
+# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Summary Panel - Training summary preview
 """

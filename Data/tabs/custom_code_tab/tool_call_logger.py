@@ -1,3 +1,4 @@
+# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Tool Call Logger - Simple logging module for tool call training data
 No external dependencies beyond standard library

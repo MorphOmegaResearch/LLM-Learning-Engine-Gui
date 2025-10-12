@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Central configuration for Trainer
 Defines all paths and settings

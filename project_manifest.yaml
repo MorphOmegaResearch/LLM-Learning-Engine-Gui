@@ -1,0 +1,123 @@
+# ===================================================================
+# OpenCode Trainer - Project Manifest
+# ===================================================================
+project_name: "OpenCode Trainer"
+repo_id: "TravelingMerchant-glitch/LLM-Learning-Engine-Gui"
+system_mode: "GUI"
+active_version: "1.9f"
+build_date: "2025-10-12"
+entry_point: "Data/interactive_trainer_gui.py"
+description: >
+  A Tkinter-based GUI system for fine-tuning, evaluating, and managing
+  small LLMs using OpenCode integration. Legacy TUI systems are preserved
+  under Artifacts/ for documentation only.
+
+legacy_systems:
+  - "Data/tabs/custom_code_tab/Artifacts/VERSION_SYSTEM_BLUEPRINT.txt"
+  - "Data/tabs/custom_code_tab/Artifacts/*"
+  - "Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/"
+  - "Legacy version_manager.py modules (archived)"
+  - "CLI/TUI /version command subsystem"
+
+components:
+  gui:
+    - "Data/tabs/models_tab/"
+    - "Data/tabs/training_tab/"
+    - "Data/tabs/custom_code_tab/"
+    - "Data/training_engine.py"
+    - "Data/evaluation_engine.py"
+  core:
+    - "Data/config.py"
+    - "Data/interactive_trainer_gui.py"
+    - "Data/tool_trainer.py"
+    - "Data/training_data_generator.py"
+  tracking:
+    - "Data/tabs/custom_code_tab/lineage_tracker.py"
+    - "Data/tabs/custom_code_tab/tool_call_logger.py"
+    - "Data/tabs/custom_code_tab/chat_history_manager.py"
+  extras:
+    - "extras/blueprints/"
+    - "extras/Plans/"
+  docs:
+    - "README.md"
+    - "GITHUB_UPLOAD_GUIDE.md"
+    - "setup.sh"
+    - "requirements.txt"
+
+architecture:
+  tabs:
+    models: "Model management, skills, stats, lineage display"
+    training: "Training configuration, dataset selection, execution"
+    custom_code: "Chat interface, evaluation, mode system, advanced settings"
+
+  mode_system:
+    standard: "No advanced systems (baseline)"
+    fast: "3 systems enabled"
+    smart: "12 systems enabled"
+    think: "30 systems enabled (all features)"
+
+  advanced_systems:
+    total: 37
+    settings: 252
+    categories:
+      - "Parsing & Translation"
+      - "Tool Intelligence"
+      - "Context & RAG"
+      - "Quality & Verification"
+      - "Workflow & Project"
+      - "Model & Resource"
+      - "Security & Policy"
+      - "External Integrations"
+
+runtime_validation:
+  version_check: true
+  gui_mode_required: true
+  legacy_execution_block: true
+  offline_mode_default: true
+
+data_locations:
+  models: "Models/"
+  exports: "exports/"
+  training_data: "Training_Data-Sets/"
+  tool_logs: "Training_Data-Sets/Tools/"
+  lineage: "Training_Data-Sets/Lineage/"
+  chat_history: "Data/tabs/custom_code_tab/chat_history/"
+  test_suites: "Training_Data-Sets/Test/"
+
+ai_integration:
+  context_file: "ai_context.md"
+  manifest_format: "yaml"
+  auto_update_on_commit: false
+  ai_self_read: true
+
+development:
+  branches:
+    main: "Stable releases"
+    dev: "Active development"
+    feature: "Feature branches (feature/name)"
+    hotfix: "Critical fixes (hotfix/issue)"
+
+  phases:
+    phase_1: "Tool profile unification"
+    phase_2: "Enhanced evaluation metrics"
+    phase_3: "Model gamification & evolution"
+
+dependencies:
+  required:
+    - "torch>=2.0.0"
+    - "transformers>=4.35.0"
+    - "datasets>=2.14.0"
+    - "peft>=0.7.0"
+    - "trl>=0.7.0"
+  optional:
+    - "unsloth (GPU acceleration)"
+    - "opencode>=1.2.0"
+  system:
+    - "Ollama (for inference)"
+    - "Python 3.10+"
+    - "tkinter (usually pre-installed)"
+
+license: "TBD (MIT suggested)"
+maintainer: "TravelingMerchant-glitch"
+created: "2025-10-12"
+last_updated: "2025-10-13"

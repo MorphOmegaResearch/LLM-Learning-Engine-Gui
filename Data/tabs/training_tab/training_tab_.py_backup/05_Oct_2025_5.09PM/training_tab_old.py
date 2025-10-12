@@ -1,3 +1,4 @@
+# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Training Tab - Dataset selection and training configuration
 Isolated module for training-related functionality

@@ -1,3 +1,4 @@
+# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Lineage Tracker - Track model training lineage and parent-child relationships
 Simple module with no external dependencies beyond standard library

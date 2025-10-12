@@ -1,3 +1,4 @@
+# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Settings Sub-Tab - Backend configuration for Custom Code features
 Controls working directory, tool execution, chat behavior, and project settings

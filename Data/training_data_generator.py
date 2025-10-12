@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Training Data Generator for OpenCode Tools
 Generates comprehensive training data for all tool scenarios

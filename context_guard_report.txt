@@ -1,0 +1,90 @@
+======================================================================
+Context Guard Tagger - COMPLETED
+======================================================================
+
+Legacy Files Tagged (ARCHIVE): 41
+----------------------------------------------------------------------
+  🔒 Data/tabs/custom_code_tab/Artifacts/fix-tool-parsing.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/experiments/demo2/code/app.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/experiments/demo3/code/hello.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/experiments/demo_plan/code/app.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/__init__.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/__main__.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/adaptive_workflow_engine.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/agentic_project_system.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/atomic_writer.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/auto_policy.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/cli.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/command_policy.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/complexity_analyzer.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/config.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/confirmation_gates.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/context_scorer.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/hardening_manager.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/instant_hook_engine.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/interactive.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/main.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/master_quality_system.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/model_optimizer.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/model_selector.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/mvco_engine.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/ollama_client.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/performance_benchmark_system.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/pre_rag_optimizer.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/project_store.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/quality_integration.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/quality_recovery_engine.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/quant_manager.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/rag_feedback_engine.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/router.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/runtime_profiles.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/session_manager.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/time_slicer.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/tool_orchestrator.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/tools.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/verification_engine.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/version_manager.py
+  🔒 Data/tabs/custom_code_tab/experiments/v1.2old_sometoollogic/site-packages/opencode/workflow_optimizer.py
+
+Active Files Tagged (GUI v1.9f): 36
+----------------------------------------------------------------------
+  ✅ Data/config.py
+  ✅ Data/evaluation_engine.py
+  ✅ Data/interactive_trainer_gui.py
+  ✅ Data/tabs/custom_code_tab/chat_history_manager.py
+  ✅ Data/tabs/custom_code_tab/lineage_tracker.py
+  ✅ Data/tabs/custom_code_tab/sub_tabs/__init__.py
+  ✅ Data/tabs/custom_code_tab/sub_tabs/advanced_settings_tab.py
+  ✅ Data/tabs/custom_code_tab/sub_tabs/chat_interface_tab.py
+  ✅ Data/tabs/custom_code_tab/sub_tabs/mode_selector_tab.py
+  ✅ Data/tabs/custom_code_tab/sub_tabs/settings_tab.py
+  ✅ Data/tabs/custom_code_tab/sub_tabs/tools_tab.py
+  ✅ Data/tabs/custom_code_tab/tool_call_logger.py
+  ✅ Data/tabs/custom_code_tab/tool_executor.py
+  ✅ Data/tabs/models_tab/__init__.py
+  ✅ Data/tabs/models_tab/models_tab.py
+  ✅ Data/tabs/training_tab/__init__.py
+  ✅ Data/tabs/training_tab/category_manager_panel.py
+  ✅ Data/tabs/training_tab/dataset_panel.py
+  ✅ Data/tabs/training_tab/model_selection_panel.py
+  ✅ Data/tabs/training_tab/profiles_panel.py
+  ✅ Data/tabs/training_tab/runner_panel.py
+  ✅ Data/tabs/training_tab/summary_panel.py
+  ✅ Data/tabs/training_tab/training_tab.py
+  ✅ Data/tabs/training_tab/training_tab_.py_backup/05_Oct_2025_5.09PM/__init__.py
+  ✅ Data/tabs/training_tab/training_tab_.py_backup/05_Oct_2025_5.09PM/category_manager_panel.py
+  ✅ Data/tabs/training_tab/training_tab_.py_backup/05_Oct_2025_5.09PM/config_panel.py
+  ✅ Data/tabs/training_tab/training_tab_.py_backup/05_Oct_2025_5.09PM/dataset_panel.py
+  ✅ Data/tabs/training_tab/training_tab_.py_backup/05_Oct_2025_5.09PM/profiles_panel.py
+  ✅ Data/tabs/training_tab/training_tab_.py_backup/05_Oct_2025_5.09PM/runner_panel.py
+  ✅ Data/tabs/training_tab/training_tab_.py_backup/05_Oct_2025_5.09PM/summary_panel.py
+  ✅ Data/tabs/training_tab/training_tab_.py_backup/05_Oct_2025_5.09PM/training_tab.py
+  ✅ Data/tabs/training_tab/training_tab_.py_backup/05_Oct_2025_5.09PM/training_tab_old.py
+  ✅ Data/tabs/training_tab/training_tab_old.py
+  ✅ Data/tool_trainer.py
+  ✅ Data/training_data_generator.py
+  ✅ Data/training_engine.py
+
+======================================================================
+Total Files Processed: 77
+======================================================================

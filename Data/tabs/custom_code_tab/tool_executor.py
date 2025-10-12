@@ -1,3 +1,4 @@
+# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Tool Executor - Executes OpenCode tools from model tool_calls
 Bridges Ollama function calling with OpenCode tool system

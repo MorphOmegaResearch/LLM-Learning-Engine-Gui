@@ -1,3 +1,4 @@
+# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Chat Interface Tab - Interactive chat with Ollama models
 Provides a simple chat interface to test and interact with models

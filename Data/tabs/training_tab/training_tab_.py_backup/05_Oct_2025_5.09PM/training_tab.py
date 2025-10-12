@@ -1,3 +1,4 @@
+# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Training Tab - Main coordinator for training-related functionality
 Modular design with separated panel components
