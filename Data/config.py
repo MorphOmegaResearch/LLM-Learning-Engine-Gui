@@ -666,28 +666,85 @@ def load_tool_schema(name: str) -> Dict:
 # -------------------------------
 def list_tool_profiles() -> List[str]:
     """Return names of Tool Profiles under Data/profiles/Tools."""
-    return sorted([p.stem for p in TOOL_PROFILES_DIR.glob("*.json")])
+    if not TOOL_PROFILES_DIR.exists():
+        return []
+    names = []
+    for p in sorted(TOOL_PROFILES_DIR.glob("*.json")):
+        try:
+            # Filter out non-JSON and stray files
+            if p.is_file() and p.suffix == ".json":
+                names.append(p.stem)
+        except Exception:
+            continue
+    return names
 
 def load_tool_profile(name: str = "Default") -> Dict[str, Any]:
-    """Load a Tool Profile by name."""
+    """Load a Tool Profile by name with soft validation and defaults."""
     path = TOOL_PROFILES_DIR / f"{name}.json"
     if not path.exists():
         raise FileNotFoundError(f"Tool Profile '{name}' not found at {path}")
-    with open(path, "r") as f:
-        return json.load(f)
+
+    # Default structure for missing sections
+    defaults = {
+        "tools": {"enabled_tools": {}, "risk_overrides": {}, "confirmation_policy": {}, "timeouts_sec": {}, "logging": {}},
+        "execution": {"working_directory": str((Path(__file__).parent.parent / "The_SandBox")), "auto_update_working_dir": True},
+        "chat": {"auto_mount_model": False, "auto_save_history": True, "history_retention_days": 30, "max_message_length": 8192},
+        "orchestrator": {"enable_orchestrator": False, "enable_parsers": True, "enable_translators": True},
+        "notes": ""
+    }
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Soft-validate: inject missing top-level keys
+        for key, default_value in defaults.items():
+            if key not in data:
+                data[key] = default_value
+            elif isinstance(default_value, dict) and isinstance(data[key], dict):
+                # Merge nested defaults
+                for subkey, subval in default_value.items():
+                    data[key].setdefault(subkey, subval)
+
+        return data
+    except (json.JSONDecodeError, ValueError) as e:
+        raise ValueError(f"Invalid JSON in Tool Profile '{name}': {e}")
 
 def save_tool_profile(name: str, profile: Dict[str, Any]) -> Path:
-    """Save a Tool Profile by name."""
+    """Save a Tool Profile by name with atomic write and backup."""
+    import os
     from datetime import datetime
     TOOL_PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+
     profile = dict(profile or {})
     profile.setdefault("profile_name", name)
     profile.setdefault("version", "1.0")
     profile["updated_at"] = datetime.now().isoformat()
+
     path = TOOL_PROFILES_DIR / f"{name}.json"
-    with open(path, "w") as f:
-        json.dump(profile, f, indent=2)
-    return path
+    tmp_path = path.with_suffix(".json.tmp")
+    bak_path = path.with_suffix(".json.bak")
+
+    # Atomic write: tmp → replace existing
+    try:
+        with open(tmp_path, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(profile, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+
+        # Backup existing file if present
+        if path.exists():
+            path.replace(bak_path)
+
+        # Atomic replace
+        tmp_path.replace(path)
+
+        return path
+    except Exception as e:
+        # Cleanup tmp on failure
+        if tmp_path.exists():
+            tmp_path.unlink()
+        raise RuntimeError(f"Failed to save Tool Profile '{name}': {e}")
 
 def _load_legacy_tool_flags() -> Dict[str, bool]:
     """
@@ -748,11 +805,37 @@ def migrate_tool_profile_from_legacy(name: str = "Default") -> Dict[str, Any]:
     """
     Create a unified Tool Profile from legacy files if a Tool Profile doesn't exist yet.
     Non-destructive: leaves legacy files as-is; callers may delete after verification.
+    Idempotent: won't re-migrate if migration marker is present.
     """
     from datetime import datetime
+
+    # Check if profile already exists with migration marker
+    try:
+        existing = load_tool_profile(name)
+        if existing.get("_migration_marker"):
+            # Already migrated; return as-is
+            return existing
+    except FileNotFoundError:
+        pass  # Doesn't exist yet; proceed with migration
+
     enabled = _load_legacy_tool_flags()
     legacy_settings = _load_legacy_custom_code_settings()
     flags = _load_settings_flags()
+
+    # Collect source file paths for audit trail
+    legacy_tool_path = Path(__file__).parent / "tabs" / "custom_code_tab" / "tool_settings.json"
+    legacy_settings_path = Path(__file__).parent / "tabs" / "custom_code_tab" / "custom_code_settings.json"
+    settings_path = DATA_DIR / "settings.json"
+
+    migration_marker = {
+        "migrated_from": {
+            "files": [
+                str(p) for p in [legacy_tool_path, legacy_settings_path, settings_path] if p.exists()
+            ],
+            "at": datetime.now().isoformat(),
+            "version": 1
+        }
+    }
 
     # Map legacy flat settings into unified sections
     working_directory = legacy_settings.get("working_directory") or str((Path(__file__).parent.parent / "The_SandBox"))
@@ -790,7 +873,8 @@ def migrate_tool_profile_from_legacy(name: str = "Default") -> Dict[str, Any]:
         "execution": execution,
         "chat": chat,
         "orchestrator": orchestrator,
-        "notes": "Auto-migrated from legacy settings"
+        "notes": "Auto-migrated from legacy settings",
+        "_migration_marker": migration_marker
     }
     save_tool_profile(name, profile)
     return profile
