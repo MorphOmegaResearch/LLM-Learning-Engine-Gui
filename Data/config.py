@@ -27,12 +27,13 @@ PROMPTBOX_DIR = TRAINING_DATA_DIR / "PromptBox"
 # Export directories
 EXPORTS_DIR = DATA_DIR / "exports"
 PROFILES_DIR = DATA_DIR / "profiles" # New: Profiles directory
+TOOL_PROFILES_DIR = PROFILES_DIR / "Tools"
 
 # Ensure all directories exist
 for dir_path in [MODELS_DIR, TRAINING_DATA_DIR, TOOLS_DATA_DIR,
                  APP_DEV_DATA_DIR, CODING_DATA_DIR, SEMANTIC_DATA_DIR,
                  PROMPTS_DIR, SCHEMAS_DIR, PROMPTBOX_DIR,
-                 EXPORTS_DIR, PROFILES_DIR]: # Added PROFILES_DIR
+                 EXPORTS_DIR, PROFILES_DIR, TOOL_PROFILES_DIR]: # Added TOOL_PROFILES_DIR
     dir_path.mkdir(parents=True, exist_ok=True)
 
 # Default training settings
@@ -658,6 +659,150 @@ def load_tool_schema(name: str) -> Dict:
         with open(cand, 'r') as f:
             return json.load(f)
     raise FileNotFoundError(f"Tool schema '{name}' not found in Semantic_States or Schemas directory.")
+
+
+# -------------------------------
+# Tool Profile (Unified) Support
+# -------------------------------
+def list_tool_profiles() -> List[str]:
+    """Return names of Tool Profiles under Data/profiles/Tools."""
+    return sorted([p.stem for p in TOOL_PROFILES_DIR.glob("*.json")])
+
+def load_tool_profile(name: str = "Default") -> Dict[str, Any]:
+    """Load a Tool Profile by name."""
+    path = TOOL_PROFILES_DIR / f"{name}.json"
+    if not path.exists():
+        raise FileNotFoundError(f"Tool Profile '{name}' not found at {path}")
+    with open(path, "r") as f:
+        return json.load(f)
+
+def save_tool_profile(name: str, profile: Dict[str, Any]) -> Path:
+    """Save a Tool Profile by name."""
+    from datetime import datetime
+    TOOL_PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+    profile = dict(profile or {})
+    profile.setdefault("profile_name", name)
+    profile.setdefault("version", "1.0")
+    profile["updated_at"] = datetime.now().isoformat()
+    path = TOOL_PROFILES_DIR / f"{name}.json"
+    with open(path, "w") as f:
+        json.dump(profile, f, indent=2)
+    return path
+
+def _load_legacy_tool_flags() -> Dict[str, bool]:
+    """
+    Read legacy enabled_tools from Tools tab's persistence.
+    Expected shape matches current tools_tab usage.
+    """
+    # Legacy location (relative to custom_code_tab)
+    legacy = Path(__file__).parent / "tabs" / "custom_code_tab" / "tool_settings.json"
+    if legacy.exists():
+        try:
+            with open(legacy, "r") as f:
+                data = json.load(f) or {}
+            return (data.get("enabled_tools") or {}) if isinstance(data, dict) else {}
+        except Exception:
+            return {}
+    return {}
+
+def _load_legacy_custom_code_settings() -> Dict[str, Any]:
+    """
+    Read legacy chat/execution settings used by Settings tab.
+    """
+    legacy = Path(__file__).parent / "tabs" / "custom_code_tab" / "custom_code_settings.json"
+    if legacy.exists():
+        try:
+            with open(legacy, "r") as f:
+                data = json.load(f) or {}
+            return data if isinstance(data, dict) else {}
+        except Exception:
+            return {}
+    return {}
+
+def _load_settings_flags() -> Dict[str, Any]:
+    """
+    Read a few orchestrator-related toggles from Data/settings.json with safe defaults.
+    """
+    path = DATA_DIR / "settings.json"
+    defaults = {
+        "enable_tool_orchestrator": False,
+        "enable_parsers": True,
+        "enable_translators": True
+    }
+    try:
+        if path.exists():
+            with open(path, "r") as f:
+                raw = json.load(f) or {}
+            # normalize expected keys if present
+            merged = {
+                "enable_tool_orchestrator": raw.get("enable_tool_orchestrator", defaults["enable_tool_orchestrator"]),
+                "enable_parsers": raw.get("enable_parsers", defaults["enable_parsers"]),
+                "enable_translators": raw.get("enable_translators", defaults["enable_translators"]),
+            }
+            return merged
+    except Exception:
+        pass
+    return defaults
+
+def migrate_tool_profile_from_legacy(name: str = "Default") -> Dict[str, Any]:
+    """
+    Create a unified Tool Profile from legacy files if a Tool Profile doesn't exist yet.
+    Non-destructive: leaves legacy files as-is; callers may delete after verification.
+    """
+    from datetime import datetime
+    enabled = _load_legacy_tool_flags()
+    legacy_settings = _load_legacy_custom_code_settings()
+    flags = _load_settings_flags()
+
+    # Map legacy flat settings into unified sections
+    working_directory = legacy_settings.get("working_directory") or str((Path(__file__).parent.parent / "The_SandBox"))
+    chat = {
+        "auto_mount_model": bool(legacy_settings.get("auto_mount_model", False)),
+        "auto_save_history": bool(legacy_settings.get("auto_save_history", True)),
+        "history_retention_days": int(legacy_settings.get("history_retention_days", 30)),
+        "max_message_length": int(legacy_settings.get("max_message_length", 8192))
+    }
+    execution = {
+        "working_directory": working_directory,
+        "auto_update_working_dir": bool(legacy_settings.get("auto_update_working_dir", True)),
+        "default_project_dir": legacy_settings.get("default_project_dir") or working_directory
+    }
+    orchestrator = {
+        "enable_orchestrator": bool(flags.get("enable_tool_orchestrator", False)),
+        "enable_parsers": bool(flags.get("enable_parsers", True)),
+        "enable_translators": bool(flags.get("enable_translators", True))
+    }
+    profile = {
+        "profile_name": name,
+        "version": "1.0",
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat(),
+        "tools": {
+            "enabled_tools": enabled,
+            "risk_overrides": {},
+            "confirmation_policy": {
+                "default_minimum_risk_to_confirm": "medium",
+                "per_tool_minimum_risk_to_confirm": {}
+            },
+            "timeouts_sec": {},
+            "logging": { "tool_calls": True, "verbose": False }
+        },
+        "execution": execution,
+        "chat": chat,
+        "orchestrator": orchestrator,
+        "notes": "Auto-migrated from legacy settings"
+    }
+    save_tool_profile(name, profile)
+    return profile
+
+def get_unified_tool_profile(name: str = "Default", *, migrate: bool = True) -> Dict[str, Any]:
+    """Load a Tool Profile, optionally migrating from legacy sources on first use."""
+    try:
+        return load_tool_profile(name)
+    except FileNotFoundError:
+        if migrate:
+            return migrate_tool_profile_from_legacy(name)
+        raise
 
 
 # --- Profile Management Functions ---

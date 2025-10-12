@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tool Profile",
+  "type": "object",
+  "required": ["profile_name", "version", "tools", "execution", "chat", "orchestrator"],
+  "properties": {
+    "profile_name": { "type": "string" },
+    "version": { "type": "string", "pattern": "^1\\.[0-9]+$" },
+    "created_at": { "type": "string" },
+    "updated_at": { "type": "string" },
+
+    "tools": {
+      "type": "object",
+      "required": ["enabled_tools"],
+      "properties": {
+        "enabled_tools": {
+          "type": "object",
+          "additionalProperties": { "type": "boolean" },
+          "description": "Map of tool_name → enabled"
+        },
+        "risk_overrides": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "enum": ["none", "low", "medium", "high", "critical"]
+          }
+        },
+        "confirmation_policy": {
+          "type": "object",
+          "properties": {
+            "default_minimum_risk_to_confirm": {
+              "type": "string",
+              "enum": ["none", "low", "medium", "high", "critical"]
+            },
+            "per_tool_minimum_risk_to_confirm": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "enum": ["none", "low", "medium", "high", "critical"]
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "timeouts_sec": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 1 }
+        },
+        "logging": {
+          "type": "object",
+          "properties": {
+            "tool_calls": { "type": "boolean" },
+            "verbose": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "execution": {
+      "type": "object",
+      "required": ["working_directory"],
+      "properties": {
+        "working_directory": { "type": "string" },
+        "auto_update_working_dir": { "type": "boolean" },
+        "default_project_dir": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+
+    "chat": {
+      "type": "object",
+      "properties": {
+        "auto_mount_model": { "type": "boolean" },
+        "auto_save_history": { "type": "boolean" },
+        "history_retention_days": { "type": "integer", "minimum": 0 },
+        "max_message_length": { "type": "integer", "minimum": 256 }
+      },
+      "additionalProperties": false
+    },
+
+    "orchestrator": {
+      "type": "object",
+      "properties": {
+        "enable_orchestrator": { "type": "boolean" },
+        "enable_parsers": { "type": "boolean" },
+        "enable_translators": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+
+    "notes": { "type": "string" }
+  },
+  "additionalProperties": false
+}
