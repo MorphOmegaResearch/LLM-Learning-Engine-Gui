@@ -1966,3 +1966,278 @@ if __name__ == "__main__":
         print(f"Latest model: {latest.name}")
     else:
         print("No trained models found")
+
+
+# === Model Profiles (atomic IO) ===
+from pathlib import Path
+import os, json, shutil
+from datetime import datetime
+
+MODEL_PROFILES_DIR = Path("Data/profiles/Models")
+MODEL_PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+
+DEFAULT_MODEL_PROFILE = {
+    "parameter_size_b": 0.0,
+    "class_level": "novice",
+    "skills": {},
+    "stats": {},
+    "badges": []
+}
+
+def _normalize_model_profile_defaults(mp: dict) -> dict:
+    out = dict(DEFAULT_MODEL_PROFILE)
+    out.update(mp or {})
+    # ensure required sub-objects exist
+    out.setdefault("skills", {})
+    out.setdefault("stats", {})
+    out.setdefault("badges", [])
+    return out
+
+def list_model_profiles():
+    """Safe enumeration of model profiles (.json; no dotfiles)."""
+    return sorted(
+        [p.stem for p in MODEL_PROFILES_DIR.glob("*.json") if not p.name.startswith(".")]
+    )
+
+def _profile_path(name: str) -> Path:
+    safe = name.strip().replace(os.sep, "_")
+    return MODEL_PROFILES_DIR / f"{safe}.json"
+
+def load_model_profile(name: str) -> dict:
+    """Load; if .json missing but .bak exists, auto-restore; inject defaults."""
+    p = _profile_path(name)
+    if not p.exists():
+        bak = p.with_suffix(".json.bak")
+        if bak.exists():
+            shutil.copy2(bak, p)
+    with open(p, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return _normalize_model_profile_defaults(data)
+
+def save_model_profile(name: str, data: dict) -> Path:
+    """Atomic write with backup + dir fsync guard (Windows-safe)."""
+    final_path = _profile_path(name)
+    tmp_path = final_path.with_suffix(".json.tmp")
+    bak_path = final_path.with_suffix(".json.bak")
+
+    data = _normalize_model_profile_defaults(data)
+
+    try:
+        validate_model_profile(data)
+    except Exception as e:
+        # Fail fast: don't persist invalid structure
+        raise
+
+    # rotate backup if present
+    if final_path.exists():
+        shutil.copy2(final_path, bak_path)
+
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_path, final_path)
+
+    # directory fsync (Linux/Unix only)
+    if hasattr(os, "O_DIRECTORY"):
+        dir_fd = os.open(str(MODEL_PROFILES_DIR), os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(dir_fd)
+        finally:
+            os.close(dir_fd)
+
+    return final_path
+
+# === Types Catalog & Schema Validation ===
+from pathlib import Path as _Path
+import json as _json
+
+TYPE_CATALOG_PATH = _Path("Data/type_catalog.json")
+TYPE_CATALOG_SCHEMA_PATH = _Path("Data/Schemas/type_catalog.schema.json")
+MODEL_PROFILE_SCHEMA_PATH = _Path("Data/Schemas/model_profile.schema.json")
+
+def _read_json(_p: _Path):
+    with open(_p, "r", encoding="utf-8") as f:
+        return _json.load(f)
+
+def _maybe_validate(instance: dict, schema_path: _Path, *, what: str):
+    """
+    Best-effort JSON Schema validation. If 'jsonschema' isn't installed,
+    we skip with a soft note. Keeps runtime flexible while enabling CI gate later.
+    """
+    try:
+        import jsonschema  # type: ignore
+    except Exception:
+        # Soft skip: validation is optional at runtime, will be enforced in CI.
+        return
+    try:
+        schema = _read_json(schema_path)
+        jsonschema.validate(instance=instance, schema=schema)
+    except Exception as e:
+        raise ValueError(f"{what} validation failed: {e}") from e
+
+def load_type_catalog() -> dict:
+    """
+    Load the authoritative Type Catalog and (optionally) validate against schema.
+    Returns the catalog dict: { 'types': [...], 'legend': {...} }.
+    """
+    catalog = _read_json(TYPE_CATALOG_PATH)
+    _maybe_validate(catalog, TYPE_CATALOG_SCHEMA_PATH, what="Type Catalog")
+    return catalog
+
+def list_types() -> list[str]:
+    """List available type ids from the catalog."""
+    cat = load_type_catalog()
+    return [t.get("id") for t in cat.get("types", []) if isinstance(t, dict) and t.get("id")]
+
+def get_type_by_id(type_id: str) -> dict | None:
+    """Fetch a type entry by id from the catalog."""
+    cat = load_type_catalog()
+    for t in cat.get("types", []):
+        if isinstance(t, dict) and t.get("id") == type_id:
+            return t
+    return None
+
+def get_training_plan_for_type(type_id: str) -> tuple[list[str], list[str]]:
+    """
+    Returns (recipes, evals) for the given type_id from the Type Catalog.
+    """
+    t = get_type_by_id(type_id)
+    if not t:
+        return ([], [])
+    recipes = list(t.get("default_training_recipes", []))
+    evals = list(t.get("first_evals", []))
+    return (recipes, evals)
+
+def get_training_plan_for_model(trainee_name: str) -> tuple[list[str], list[str]]:
+    """
+    Loads Model Profile and returns (recipes, evals) based on assigned_type.
+    """
+    try:
+        mp = load_model_profile(trainee_name)
+    except Exception:
+        return ([], [])
+    assigned = mp.get("assigned_type")
+    if isinstance(assigned, list):
+        assigned = assigned[0] if assigned else None
+    if not assigned:
+        return ([], [])
+    return get_training_plan_for_type(str(assigned))
+
+def validate_model_profile(instance: dict):
+    """
+    Optional validation for Model Profiles. Call before or after normalization
+    in save_model_profile(). Raises ValueError if invalid (when jsonschema is present).
+    """
+    _maybe_validate(instance, MODEL_PROFILE_SCHEMA_PATH, what="Model Profile")
+
+# === Training Profiles (atomic IO) ===
+from pathlib import Path as _TPath
+import os as _os
+
+TRAINING_PROFILES_DIR = _TPath("Data/profiles/Training")
+TRAINING_PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+
+DEFAULT_TRAINING_PROFILE = {
+    "base_model": "",
+    "assigned_type": "",
+    "selected_scripts": [],
+    "selected_prompts": [],
+    "selected_schemas": [],
+    "runner_settings": {
+        "max_time_min": 20,
+        "max_runs": 1,
+        "delay_sec": 0,
+        "mixed_precision": True,
+        "save_checkpoints": False,
+        "enable_stat_saving": True,
+        "gradient_accum": 16,
+        "warmup_steps": 5,
+        "enable_baseline_skill_tests": True,
+        "auto_run_pre_eval": True,
+        "auto_run_post_eval": True,
+        "use_system_prompt": True,
+        "use_tool_schema": True,
+    },
+    "evals_plan": []
+}
+
+def _tp_path(name: str) -> _TPath:
+    safe = name.strip().replace(_os.sep, "_")
+    return TRAINING_PROFILES_DIR / f"{safe}.json"
+
+def _normalize_training_profile(tp: dict) -> dict:
+    out = dict(DEFAULT_TRAINING_PROFILE)
+    out.update(tp or {})
+    out.setdefault("selected_scripts", [])
+    out.setdefault("selected_prompts", [])
+    out.setdefault("selected_schemas", [])
+    out.setdefault("runner_settings", dict(DEFAULT_TRAINING_PROFILE["runner_settings"]))
+    out.setdefault("evals_plan", [])
+    return out
+
+def list_training_profiles() -> list:
+    return sorted([p.stem for p in TRAINING_PROFILES_DIR.glob("*.json") if not p.name.startswith(".")])
+
+def load_training_profile(name: str) -> dict:
+    p = _tp_path(name)
+    if not p.exists():
+        bak = p.with_suffix(".json.bak")
+        if bak.exists():
+            shutil.copy2(bak, p)
+    with open(p, "r", encoding="utf-8") as f:
+        data = _json.load(f)
+    return _normalize_training_profile(data)
+
+def save_training_profile(name: str, data: dict):
+    final_path = _tp_path(name)
+    tmp_path = final_path.with_suffix(".json.tmp")
+    bak_path = final_path.with_suffix(".json.bak")
+
+    data = _normalize_training_profile(data)
+
+    if final_path.exists():
+        shutil.copy2(final_path, bak_path)
+
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        _json.dump(data, f, ensure_ascii=False, indent=2)
+        f.flush()
+        _os.fsync(f.fileno())
+    _os.replace(tmp_path, final_path)
+
+    if hasattr(_os, "O_DIRECTORY"):
+        dfd = _os.open(str(TRAINING_PROFILES_DIR), _os.O_RDONLY | _os.O_DIRECTORY)
+        try:
+            _os.fsync(dfd)
+        finally:
+            _os.close(dfd)
+    return final_path
+
+def build_training_profile_from_type(trainee_name: str, base_model: str, type_id: str) -> dict:
+    """
+    Deterministic mapping from Type Catalog → Training Profile.
+    Uses default_training_recipes + first_evals.
+    """
+    recipes, evals = get_training_plan_for_type(type_id)
+    tp = {
+        "base_model": base_model,
+        "assigned_type": type_id,
+        "selected_scripts": list(recipes or []),
+        "evals_plan": list(evals or []),
+        "runner_settings": dict(DEFAULT_TRAINING_PROFILE["runner_settings"]),
+    }
+    return _normalize_training_profile(tp)
+
+def upsert_training_profile_for_model(trainee_name: str, base_model: str, type_id: str) -> dict:
+    tp = build_training_profile_from_type(trainee_name, base_model, type_id)
+    try:
+        existing = load_training_profile(trainee_name)
+        # merge "sticky" choices the user might have tweaked:
+        if existing.get("selected_prompts"):
+            tp["selected_prompts"] = existing["selected_prompts"]
+        if existing.get("selected_schemas"):
+            tp["selected_schemas"] = existing["selected_schemas"]
+    except Exception:
+        pass
+    save_training_profile(trainee_name, tp)
+    return tp

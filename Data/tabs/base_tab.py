@@ -6,7 +6,14 @@ Provides common interface and error handling
 import tkinter as tk
 from tkinter import ttk, messagebox
 from abc import ABC, abstractmethod
-from logger_util import log_message
+try:
+    from logger_util import log_message          # local import (legacy)
+except Exception:
+    try:
+        from Data.logger_util import log_message # package import
+    except Exception:
+        def log_message(*_a, **_kw):             # no-op fallback
+            pass
 
 
 class BaseTab(ABC):

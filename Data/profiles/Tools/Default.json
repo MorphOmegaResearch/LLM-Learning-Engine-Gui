@@ -1,0 +1,64 @@
+{
+  "profile_name": "Default",
+  "version": "1.0",
+  "created_at": "2025-10-13T06:42:56.200153",
+  "updated_at": "2025-10-13T06:42:56.200191",
+  "tools": {
+    "enabled_tools": {
+      "file_read": true,
+      "file_write": true,
+      "file_edit": true,
+      "file_copy": true,
+      "file_move": true,
+      "file_delete": true,
+      "file_create": true,
+      "file_fill": true,
+      "grep_search": true,
+      "file_search": true,
+      "directory_list": true,
+      "bash_execute": true,
+      "git_operations": true,
+      "system_info": true,
+      "change_directory": true,
+      "resource_request": true
+    },
+    "risk_overrides": {},
+    "confirmation_policy": {
+      "default_minimum_risk_to_confirm": "medium",
+      "per_tool_minimum_risk_to_confirm": {}
+    },
+    "timeouts_sec": {},
+    "logging": {
+      "tool_calls": true,
+      "verbose": false
+    }
+  },
+  "execution": {
+    "working_directory": "/home/commander/Desktop/Trainer/The_SandBox",
+    "auto_update_working_dir": false,
+    "default_project_dir": "/home/commander/Projects"
+  },
+  "chat": {
+    "auto_mount_model": false,
+    "auto_save_history": true,
+    "history_retention_days": 0,
+    "max_message_length": 0
+  },
+  "orchestrator": {
+    "enable_orchestrator": false,
+    "enable_parsers": true,
+    "enable_translators": true
+  },
+  "notes": "Auto-migrated from legacy settings",
+  "_migration_marker": {
+    "migrated_from": {
+      "files": [
+        "/home/commander/Desktop/Trainer/Data/tabs/custom_code_tab/tool_settings.json",
+        "/home/commander/Desktop/Trainer/Data/tabs/custom_code_tab/custom_code_settings.json",
+        "/home/commander/Desktop/Trainer/Data/settings.json"
+      ],
+      "at": "2025-10-13T06:42:56.200132",
+      "version": 1
+    }
+  }
+}

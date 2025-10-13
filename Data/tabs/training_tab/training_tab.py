@@ -9,7 +9,14 @@ from tkinter import ttk, messagebox
 import json
 import subprocess
 from pathlib import Path
-import logger_util
+try:
+    from logger_util import log_message          # local import (legacy)
+except Exception:
+    try:
+        from Data.logger_util import log_message # package import
+    except Exception:
+        def log_message(*_a, **_kw):             # no-op fallback
+            pass
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -28,6 +35,7 @@ from config import (
     SEMANTIC_DATA_DIR,
     PROMPTBOX_DIR,
 )
+from Data import config as cfg
 
 # Import panel modules
 from .runner_panel import RunnerPanel
@@ -1142,3 +1150,49 @@ class TrainingTab(BaseTab):
 
     def get_selected_schemas(self):
         return [k for k, v in self.schema_vars.items() if v.get()]
+
+    def apply_plan(self, plan_data=None, trainee_name=None):
+       try:
+           if not plan_data:
+               return
+
+           tp = plan_data or {}
+           selected_scripts = tp.get("selected_scripts", [])
+           selected_prompts = tp.get("selected_prompts", [])
+           selected_schemas = tp.get("selected_schemas", [])
+
+           # 1) Hydrate runners
+           if hasattr(self, "runner_panel"):
+               self.runner_panel.load_scripts(selected_scripts)
+
+           # 2) Hydrate prompts
+           if hasattr(self, "prompts_panel"):
+               self.prompts_panel.load_prompts(selected_prompts)
+
+           # 3) Hydrate schemas
+           if hasattr(self, "schemas_panel"):
+               self.schemas_panel.load_schemas(selected_schemas)
+
+           # 4) Runner settings
+           try:
+               if hasattr(self, "runner_panel"):
+                   self.runner_panel.load_settings(tp.get("runner_settings", {}))
+           except Exception:
+               pass
+
+           # 5) Store trainee name
+           self.active_trainee_name = trainee_name
+
+           # 6) Update preview
+           if hasattr(self, "update_preview"):
+               self.update_preview()
+
+           # 7) Log result
+           print(
+               f"[TrainingTab] Plan applied: {len(selected_scripts)} scripts, "
+               f"{len(selected_prompts)} prompts, {len(selected_schemas)} schemas "
+               f"(trainee={trainee_name or 'n/a'})"
+           )
+
+       except Exception as e:
+           print(f"[TrainingTab] Error in apply_plan: {e}")
