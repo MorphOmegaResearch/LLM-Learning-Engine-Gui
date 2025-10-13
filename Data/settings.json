@@ -1,50 +1,6 @@
 {
-  "default_epochs": 3,
-  "default_batch": 2,
-  "default_learning_rate": "2e-4",
-  "auto_refresh_models": true,
-  "show_debug": false,
-  "confirm_training": true,
-  "max_cpu_threads": 2,
-  "max_ram_percent": 50,
-  "max_seq_length": 256,
-  "gradient_accumulation": 16,
-  "runner_defaults": {
-    "max_time": 20,
-    "max_runs": 1,
-    "run_delay": 0,
-    "save_checkpoints": true,
-    "checkpoint_interval": 5,
-    "early_stop": false,
-    "early_stop_patience": 3,
-    "use_mixed_precision": true,
-    "gradient_accumulation": 16,
-    "warmup_steps": 5,
-    "max_cpu_threads": 2,
-    "max_ram_percent": 70,
-    "auto_restart": false,
-    "enable_baseline_tests": false,
-    "enable_stat_saving": true,
-    "num_epochs": 1,
-    "batch_size": 1,
-    "learning_rate": "2e-4"
-  },
-  "settings_tab_enabled": true,
-  "training_tab_enabled": true,
-  "models_tab_enabled": true,
-  "custom_code_tab_enabled": true,
-  "enable_tab_reordering": true,
-  "reorder_mode": "static",
-  "tab_order": [
-    "training_tab",
-    "models_tab",
-    "custom_code_tab",
-    "settings_tab"
-  ],
-  "regression_policy": {
-    "enabled": true,
-    "alert_drop_percent": 5.0,
-    "strict_block": false,
-    "auto_rollback": false
+  "tab_order": ["training_tab", "models_tab", "custom_code_tab", "settings_tab"],
+  "ui": {
+    "theme": "dark"
   }
 }

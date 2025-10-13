@@ -380,56 +380,80 @@ class TrainingGUI:
         logger_util.log_message("MAIN_GUI: Tab drag ended.")
 
     def load_tabs(self):
-        """Load all tab modules with error isolation, based on user settings."""
+        """Load all tab modules with error isolation and deterministic ordering."""
         # Always create the SettingsTab first to ensure its settings are available.
-        temp_settings_frame = ttk.Frame(self.root)
-        self.settings_tab = SettingsTab(temp_settings_frame, self.root, self.style, main_gui=self)
+        # This instance will be used to get settings and will be placed in the notebook.
+        settings_frame = ttk.Frame(self.notebook)
+        self.settings_tab = SettingsTab(settings_frame, self.root, self.style, main_gui=self)
         if not self.settings_tab.safe_create():
             logger_util.log_message("MAIN_GUI: ⚠️ Settings tab failed to load during initial setup.")
             settings = {}
         else:
             settings = self.settings_tab.settings
 
-        tab_order = settings.get('tab_order', ['settings_tab', 'training_tab', 'models_tab', 'custom_code_tab'])
-
         tab_definitions = {
-            'settings_tab': ('⚙️ Settings', SettingsTab, 'settings_tab'),
             'training_tab': ('⚙️ Training', TrainingTab, 'training_tab'),
             'models_tab': ('🧠 Models', ModelsTab, 'models_tab'),
             'custom_code_tab': ('🤖 Custom Code', CustomCodeTab, 'custom_code_tab'),
+            'settings_tab': ('⚙️ Settings', SettingsTab, 'settings_tab'),
         }
 
-        # Create all tab instances first
-        tab_instances = {}
-        for name, (text, tab_class, attr) in tab_definitions.items():
-            if settings.get(f"{name}_enabled", True):
-                frame = ttk.Frame(self.notebook)
-                if name == 'settings_tab':
-                    instance = SettingsTab(frame, self.root, self.style, main_gui=self)
-                else:
-                    instance = tab_class(frame, self.root, self.style)
+        available_tabs = [name for name in tab_definitions if settings.get(f"{name}_enabled", True)]
 
-                if not instance.safe_create():
-                    logger_util.log_message(f"MAIN_GUI: ⚠️ {text} tab failed to load.")
-                
+        DEFAULT_TAB_ORDER = ['training_tab', 'models_tab', 'custom_code_tab', 'settings_tab']
+
+        def normalize_tab_order(available_tabs: list[str]) -> list[str]:
+            # Start with our canonical order (minus missing)
+            ordered = [t for t in DEFAULT_TAB_ORDER if t in available_tabs]
+            # Insert any extra tabs (e.g., ChatInterface, Tools, etc.) before settings_tab
+            extras = [t for t in available_tabs if t not in ordered]
+            if 'settings_tab' in ordered:
+                idx = ordered.index('settings_tab')
+                ordered[idx:idx] = [t for t in extras if t != 'settings_tab']
+            else:
+                ordered.extend(extras)
+                if 'settings_tab' in available_tabs:
+                    ordered.append('settings_tab')
+            # Always de-dupe
+            seen, deduped = set(), []
+            for t in ordered:
+                if t not in seen:
+                    seen.add(t)
+                    deduped.append(t)
+            return deduped
+
+        tab_order = normalize_tab_order(available_tabs)
+        settings['tab_order'] = tab_order # Update settings in memory
+
+        # Create all tab instances
+        tab_instances = {}
+        for name in tab_order: # Iterate in the final order
+            if name in available_tabs:
+                (text, tab_class, attr) = tab_definitions[name]
+                if name == 'settings_tab':
+                    # Use the already created settings_tab instance and its frame
+                    frame = settings_frame
+                    instance = self.settings_tab
+                else:
+                    frame = ttk.Frame(self.notebook)
+                    instance = tab_class(frame, self.root, self.style)
+                    if not instance.safe_create():
+                        logger_util.log_message(f"MAIN_GUI: ⚠️ {text} tab failed to load.")
+                        continue # Don't add failed tabs
+
                 tab_instances[name] = {'frame': frame, 'text': text, 'instance': instance}
                 setattr(self, attr, instance)
+                self.notebook.add(frame, text=text)
             else:
-                logger_util.log_message(f"MAIN_GUI: {text} tab is disabled by user settings.")
-                setattr(self, attr, None)
-        
+                logger_util.log_message(f"MAIN_GUI: {tab_definitions[name][0]} tab is disabled by user settings.")
+                setattr(self, tab_definitions[name][2], None)
+
         # Now that all instances are created, pass tab_instances to all tabs
         for name, meta in tab_instances.items():
             try:
                 meta['instance'].tab_instances = tab_instances
             except Exception:
                 pass
-
-        # Add tabs to notebook in the correct order
-        for name in tab_order:
-            if name in tab_instances:
-                tab = tab_instances[name]
-                self.notebook.add(tab['frame'], text=tab['text'])
 
     def run(self):
         """Start the GUI main loop"""

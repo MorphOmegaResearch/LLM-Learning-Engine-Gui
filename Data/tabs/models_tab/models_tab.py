@@ -63,6 +63,8 @@ class ModelsTab(BaseTab):
         self.current_model_for_stats = None
         self.current_model_info = None  # Store full model info dict
         self.tab_instances = getattr(self, 'tab_instances', None)
+        self.trainee_name_var = tk.StringVar()
+        self.base_model_var = tk.StringVar()
         # Adapters selection state
         self.adapters_select_mode = tk.BooleanVar(value=False)
         self.adapters_selection = {}  # path(str) -> BooleanVar
@@ -102,6 +104,35 @@ class ModelsTab(BaseTab):
         self.overview_tab_frame = ttk.Frame(self.model_info_notebook)
         self.model_info_notebook.add(self.overview_tab_frame, text="Overview")
         # Labels for parsed info will be created dynamically in display_model_info
+
+        # --- Types Tab (must be visible next to Overview) ---
+        try:
+            from tabs.models_tab.types_panel import TypesPanel
+            self.types_tab_frame = ttk.Frame(self.model_info_notebook)
+            self.model_info_notebook.add(self.types_tab_frame, text="Types")
+
+            # Shared state already created earlier:
+            #   self.trainee_name_var, self.base_model_var
+            self.panel_types = TypesPanel(
+                self.types_tab_frame,
+                trainee_name_var=self.trainee_name_var,
+                base_model_var=self.base_model_var,
+            )
+            # If TypesPanel packs itself, do nothing; otherwise:
+            try:
+                if hasattr(self.panel_types, "pack"):
+                    self.panel_types.pack(fill=tk.X, padx=10, pady=10)
+            except Exception:
+                pass
+
+            # Bind the event bridge (safe even if Training tab misses apply_plan)
+            try:
+                self.panel_types.bind("<<TypePlanApplied>>", self._on_type_plan_applied)
+            except Exception:
+                pass
+        except Exception as _e:
+            # Keep UI resilient if TypesPanel import fails
+            print("[ModelsTab] TypesPanel unavailable:", _e)
 
         # Adapters Tab (New)
         self.adapters_tab_frame = ttk.Frame(self.model_info_notebook)
@@ -228,6 +259,37 @@ class ModelsTab(BaseTab):
                     break
 
         print("✓ Models tab refreshed")
+
+    def _on_type_plan_applied(self, event=None):
+        """
+        Event handler for when a Type is applied in the TypesPanel.
+        This should trigger an update in the TrainingTab.
+        """
+        if not event:
+            return
+
+        # The event should carry the model name and the applied type
+        details = getattr(event, 'details', {})
+        model_name = details.get('model_name')
+        model_type = details.get('model_type')
+
+        if not model_name or not model_type:
+            print("[ModelsTab] Incomplete TypePlanApplied event received.")
+            return
+
+        print(f"[ModelsTab] TypePlanApplied event: model='{model_name}', type='{model_type}'")
+
+        # Find the TrainingTab instance and call its method to apply the plan
+        try:
+            training_tab_instance = self.get_training_tab()
+            if training_tab_instance and hasattr(training_tab_instance, 'apply_type_plan'):
+                # Schedule the call on the main thread
+                self.root.after(100, lambda: training_tab_instance.apply_type_plan(model_name, model_type))
+                print("[ModelsTab] Relayed TypePlan to TrainingTab.")
+            else:
+                print("[ModelsTab] TrainingTab or apply_type_plan method not found.")
+        except Exception as e:
+            print(f"[ModelsTab] Error relaying TypePlan to TrainingTab: {e}")
 
     def populate_model_list(self):
         """Populates the scrollable frame with buttons for each model (all types)."""

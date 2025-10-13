@@ -1,0 +1,29 @@
+{
+  "base_model": "Qwen2.5-0.5b-Instruct",
+  "assigned_type": "coder",
+  "selected_scripts": [
+    "recipes/coder/lora_code_instruct.json",
+    "recipes/coder/unit_test_aug.json"
+  ],
+  "selected_prompts": [],
+  "selected_schemas": [],
+  "runner_settings": {
+    "max_time_min": 20,
+    "max_runs": 1,
+    "delay_sec": 0,
+    "mixed_precision": true,
+    "save_checkpoints": false,
+    "enable_stat_saving": true,
+    "gradient_accum": 16,
+    "warmup_steps": 5,
+    "enable_baseline_skill_tests": true,
+    "auto_run_pre_eval": true,
+    "auto_run_post_eval": true,
+    "use_system_prompt": true,
+    "use_tool_schema": true
+  },
+  "evals_plan": [
+    "evals/coder/smoke",
+    "evals/coder/regression"
+  ]
+}
