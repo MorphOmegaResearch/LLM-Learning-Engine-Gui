@@ -118,16 +118,19 @@ class ModelsTab(BaseTab):
                 trainee_name_var=self.trainee_name_var,
                 base_model_var=self.base_model_var,
             )
+            print("[DEBUG] ModelsTab: TypesPanel instantiated")
             self.panel_types.set_context_getters(
                 get_trainee=lambda: getattr(self, "current_model_for_stats", None),
                 get_base_model=lambda: getattr(self, "current_model_info", {}).get("name")
             )
+            print("[DEBUG] ModelsTab: set_context_getters called")
             # If TypesPanel packs itself, do nothing; otherwise:
             try:
                 if hasattr(self.panel_types, "pack"):
-                    self.panel_types.pack(fill=tk.X, padx=10, pady=10)
-            except Exception:
-                pass
+                    print("[DEBUG] ModelsTab: Packing TypesPanel")
+                    self.panel_types.pack(fill=tk.BOTH, expand=True, padx=10, pady=10) # Changed tk.X to tk.BOTH and added expand=True
+            except Exception as e:
+                print(f"[DEBUG] ModelsTab: Error packing TypesPanel: {e}")
 
             # Bind the event bridge (safe even if Training tab misses apply_plan)
             try:
@@ -265,35 +268,41 @@ class ModelsTab(BaseTab):
         print("✓ Models tab refreshed")
 
     def _on_type_plan_applied(self, event=None):
-        """
-        Event handler for when a Type is applied in the TypesPanel.
-        This should trigger an update in the TrainingTab.
-        """
-        if not event:
+        import json
+        variant_id = None
+        base_model = None
+        type_id = None
+
+        # tk>=8.6 can surface event.data; else we set .details above
+        if event is not None:
+            try:
+                if hasattr(event, "data") and event.data:
+                    d = json.loads(event.data)
+                    variant_id = d.get("variant_id")
+                    base_model = d.get("base_model")
+                    type_id = d.get("type_id")
+            except Exception:
+                pass
+            if not variant_id and hasattr(event, "details"):
+                d = getattr(event, "details", {}) or {}
+                variant_id = d.get("variant_id")
+                base_model = d.get("base_model")
+                type_id = d.get("type_id")
+
+        if not variant_id:
+            print("[ModelsTab] TypePlanApplied missing variant_id; ignoring.")
             return
 
-        # The event should carry the model name and the applied type
-        details = getattr(event, 'details', {})
-        model_name = details.get('model_name')
-        model_type = details.get('model_type')
-
-        if not model_name or not model_type:
-            print("[ModelsTab] Incomplete TypePlanApplied event received.")
-            return
-
-        print(f"[ModelsTab] TypePlanApplied event: model='{model_name}', type='{model_type}'")
-
-        # Find the TrainingTab instance and call its method to apply the plan
+        # Relay to TrainingTab on the UI thread
         try:
-            training_tab_instance = self.get_training_tab()
-            if training_tab_instance and hasattr(training_tab_instance, 'apply_type_plan'):
-                # Schedule the call on the main thread
-                self.root.after(100, lambda: training_tab_instance.apply_type_plan(model_name, model_type))
-                print("[ModelsTab] Relayed TypePlan to TrainingTab.")
+            tt = self.get_training_tab()
+            if tt and hasattr(tt, "apply_plan"):
+                self.root.after(50, lambda: tt.apply_plan(variant_id=variant_id))
+                print(f"[ModelsTab] Relayed TypePlan to TrainingTab (variant={variant_id}).")
             else:
-                print("[ModelsTab] TrainingTab or apply_type_plan method not found.")
+                print("[ModelsTab] TrainingTab.apply_plan not found.")
         except Exception as e:
-            print(f"[ModelsTab] Error relaying TypePlan to TrainingTab: {e}")
+            print("[ModelsTab] Error relaying TypePlan:", e)
 
     def populate_model_list(self):
         """Populates the scrollable frame with buttons for each model (all types)."""
@@ -2625,6 +2634,20 @@ class ModelsTab(BaseTab):
         model_name = model_info["name"]
         model_type = model_info["type"]
 
+        # Emit event for other panels to react to model selection
+        try:
+            import json
+            payload = json.dumps({
+                "model_name": model_name,
+                "model_type": model_type,
+                "is_ollama": False,
+            })
+            if hasattr(self, 'panel_types') and self.panel_types:
+                self.panel_types.event_generate("<<ModelSelected>>", data=payload, when="tail")
+        except Exception:
+            pass
+
+
         # --- Populate Overview Tab ---
         # Clear previous content
         for widget in self.overview_tab_frame.winfo_children():
@@ -3534,6 +3557,20 @@ class ModelsTab(BaseTab):
         model_name = model_info["name"]
         raw_info = get_ollama_model_info(model_name)
         parsed_info = parse_ollama_model_info(raw_info)
+
+        # Emit event for other panels to react to model selection
+        try:
+            import json
+            payload = json.dumps({
+                "model_name": model_name,
+                "model_type": model_info.get("type", "ollama"),
+                "is_ollama": True,
+            })
+            if hasattr(self, 'panel_types') and self.panel_types:
+                self.panel_types.event_generate("<<ModelSelected>>", data=payload, when="tail")
+        except Exception:
+            pass
+
 
         # Update Raw Info Tab
         self.raw_model_info_text.config(state=tk.NORMAL)
