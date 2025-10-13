@@ -84,6 +84,18 @@ class TypesPanel(ttk.Frame):
         self._get_trainee = get_trainee or (lambda: None)
         self._get_base_model = get_base_model or (lambda: None)
 
+    def _prefill_variant_name(self, base_model: str, type_id: str):
+        try:
+            from Data import config
+            # prefer derive_variant_name if present
+            if hasattr(config, "derive_variant_name"):
+                vid = config.derive_variant_name(base_model, type_id)
+            else:
+                vid = f"{(base_model or '').replace(' ', '_').replace('-Instruct','')}_{type_id}"
+            self.name_var.set(vid) # Using self.name_var as per current implementation
+        except Exception:
+            pass
+
     def _on_model_selected(self, event=None):
         if not event or not hasattr(event, "data") or not event.data:
             return
@@ -97,7 +109,7 @@ class TypesPanel(ttk.Frame):
                 self.base_model_var.set(model_name) # For now, base model is the selected model
                 # Re-render details to update variant name suggestion
                 if self._current_type_id:
-                    self._render_details(self._current_type_id)
+                    self._prefill_variant_name(self.base_model_var.get(), self._current_type_id)
         except Exception as e:
             print(f"[TypesPanel] Error handling ModelSelected event: {e}")
 
@@ -109,6 +121,7 @@ class TypesPanel(ttk.Frame):
         tid = self.lst.get(sel[0])
         self.selected_type.set(tid)
         self._current_type_id = tid
+        self._prefill_variant_name(self.base_model_var.get(), tid) # Call prefill helper
         self._render_details(tid)
 
     def _render_details(self, type_id: str):

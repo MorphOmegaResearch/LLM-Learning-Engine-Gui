@@ -79,6 +79,19 @@ def get_latest_model_dir():
     return max(model_dirs, key=lambda d: d.stat().st_mtime)
 
 
+# --- WO-6a: variant naming helper ---------------------------------
+def derive_variant_name(base_model: str, type_id: str) -> str:
+    """
+    Deterministic variant id from base + type.
+    Example: 'Qwen2.5-0.5b-Instruct' + 'researcher' -> 'Qwen2.5-0.5b_researcher'
+    """
+    base = (base_model or "").strip().replace(" ", "_")
+    # Trim common suffix to keep ids shorter
+    base = base.replace("-Instruct", "")
+    return f"{base}_{(type_id or '').strip()}".replace("__", "_")
+# -------------------------------------------------------------------
+
+
 import subprocess # New import for get_ollama_models
 
 def get_ollama_models() -> List[str]:
@@ -1993,11 +2006,33 @@ def _normalize_model_profile_defaults(mp: dict) -> dict:
     out.setdefault("badges", [])
     return out
 
-def list_model_profiles():
-    """Safe enumeration of model profiles (.json; no dotfiles)."""
-    return sorted(
-        [p.stem for p in MODEL_PROFILES_DIR.glob("*.json") if not p.name.startswith(".")]
-    )
+
+# --- WO-6b: list saved model profiles (variants) --------------------
+from pathlib import Path
+
+def list_model_profiles() -> list[dict]:
+    """
+    Return a list of {variant_id, base_model, assigned_type, path}
+    discovered under MODEL_PROFILES_DIR. Missing keys default to ''.
+    """
+    out = []
+    mp_dir = Path(MODEL_PROFILES_DIR)  # already defined in this file
+    if not mp_dir.exists():
+        return out
+    for p in mp_dir.glob("*.json"):
+        try:
+            data = _read_json(str(p)) or {}
+            out.append({
+                "variant_id": data.get("trainee_name") or data.get("variant_id") or p.stem,
+                "base_model": data.get("base_model", ""),
+                "assigned_type": data.get("assigned_type") or data.get("type_id", ""),
+                "path": str(p),
+            })
+        except Exception:
+            pass
+    return out
+
+
 
 def _profile_path(name: str) -> Path:
     safe = name.strip().replace(os.sep, "_")

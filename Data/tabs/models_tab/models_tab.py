@@ -239,6 +239,22 @@ class ModelsTab(BaseTab):
         oll_scrollbar.grid(row=3, column=1, sticky=tk.NS)
         oll_canvas.bind("<Configure>", lambda e: oll_canvas.itemconfig(self.ollama_canvas_window_id, width=e.width))
 
+        # --- WO-6b: Collections panel ---------------------------------------
+        self.collections_section = ttk.LabelFrame(model_list_frame, text="Collections")
+        self.collections_section.grid(row=4, column=0, columnspan=2, sticky=tk.NSEW, padx=4, pady=6) # Adjusted row and columnspan
+        self.collections_section.columnconfigure(0, weight=1) # Allow listbox to expand
+
+        # simple listbox for now
+        self.collections_list = tk.Listbox(self.collections_section, height=8, exportselection=False)
+        self.collections_list.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+
+        # optional: little refresh button
+        self.collections_refresh_btn = ttk.Button(self.collections_section, text="Refresh", command=self.refresh_collections_panel)
+        self.collections_refresh_btn.pack(anchor="e", padx=6, pady=(0,6))
+
+        self.collections_list.bind("<<ListboxSelect>>", self._on_collection_pick)
+        # --------------------------------------------------------------------
+
         # Enable mousewheel scrolling for Ollama models list
         self.bind_mousewheel_to_canvas(oll_canvas)
 
@@ -247,6 +263,7 @@ class ModelsTab(BaseTab):
         self.ollama_ui = {}
 
         self.populate_model_list()
+        self.refresh_collections_panel() # Call after UI is built
 
     def refresh_models_tab(self):
         """Refresh the models tab - reloads all models and updates display."""
@@ -2637,13 +2654,9 @@ class ModelsTab(BaseTab):
         # Emit event for other panels to react to model selection
         try:
             import json
-            payload = json.dumps({
-                "model_name": model_name,
-                "model_type": model_type,
-                "is_ollama": False,
-            })
             if hasattr(self, 'panel_types') and self.panel_types:
                 self.panel_types.event_generate("<<ModelSelected>>", data=payload, when="tail")
+            self.refresh_collections_panel() # Refresh collections after a type plan is applied
         except Exception:
             pass
 
@@ -2881,6 +2894,36 @@ class ModelsTab(BaseTab):
             self.ollama_expanded[base_name] = not expanded
         except Exception:
             pass
+
+    def refresh_collections_panel(self):
+        """Reload list from config.list_model_profiles() and show 'Base ▸ Variant (type)'."""
+        try:
+            from Data import config as C
+            items = C.list_model_profiles() or []
+            self._collections_cache = items
+            self.collections_list.delete(0, tk.END)
+            # group visually as "Base ▸ Variant   [type]"
+            for it in items:
+                label = f"{it.get('base_model','?')} ▸ {it.get('variant_id','?')}   [{it.get('assigned_type','')}]"
+                self.collections_list.insert(tk.END, label)
+        except Exception as e:
+            print("[ModelsTab] refresh_collections_panel error:", e)
+
+    def _on_collection_pick(self, _evt=None):
+        """When a variant is picked, apply its training profile in Training tab."""
+        try:
+            sel = self.collections_list.curselection()
+            if not sel: return
+            idx = sel[0]
+            it = (self._collections_cache or [])[idx]
+            variant = it.get("variant_id")
+            # Relay to TrainingTab
+            tt = self.get_training_tab()
+            if tt and hasattr(tt, "apply_plan"):
+                self.root.after(50, lambda: tt.apply_plan(variant_id=variant))
+                print(f"[ModelsTab] Applied collection variant to Training: {variant}")
+        except Exception as e:
+            print("[ModelsTab] _on_collection_pick error:", e)
 
     def _populate_adapters_tab(self, base_model_info):
         """Scans for and displays all adapters trained from the given base model."""
