@@ -764,12 +764,14 @@ def save_tool_profile(name: str, profile: Dict[str, Any]) -> Path:
         # Atomic replace
         tmp_path.replace(path)
 
-        # H2 FIX: Directory fsync for durability
-        dir_fd = os.open(str(TOOL_PROFILES_DIR), os.O_DIRECTORY)
-        try:
-            os.fsync(dir_fd)
-        finally:
-            os.close(dir_fd)
+        # H2 FIX: Directory fsync for durability (Linux-only; guard for Windows)
+        if hasattr(os, "O_DIRECTORY"):
+            dir_fd = os.open(str(TOOL_PROFILES_DIR), os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(dir_fd)
+            finally:
+                os.close(dir_fd)
+        # On platforms without O_DIRECTORY (e.g., Windows), skip; atomic replace is sufficient.
 
         return path
     except Exception as e:
