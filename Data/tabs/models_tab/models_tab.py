@@ -68,7 +68,11 @@ class ModelsTab(BaseTab):
         self.adapters_selection = {}  # path(str) -> BooleanVar
         self.adapters_estimate_btn = None
         self.adapters_levelup_btn = None
-        
+
+        # Shared state for OverviewPanel
+        self.trainee_name_var = tk.StringVar()
+        self.base_model_var = tk.StringVar()
+
         # Levels expand/collapse state in model list
         self.levels_expanded = {}
         self.levels_ui = {}
@@ -101,7 +105,14 @@ class ModelsTab(BaseTab):
         # Overview Tab
         self.overview_tab_frame = ttk.Frame(self.model_info_notebook)
         self.model_info_notebook.add(self.overview_tab_frame, text="Overview")
-        # Labels for parsed info will be created dynamically in display_model_info
+
+        # Instantiate OverviewPanel (not packed yet - will be shown when needed)
+        from tabs.models_tab.overview_panel import OverviewPanel
+        self.panel_overview = OverviewPanel(
+            self.overview_tab_frame,
+            trainee_name_var=self.trainee_name_var,
+            base_model_var=self.base_model_var
+        )
 
         # Adapters Tab (New)
         self.adapters_tab_frame = ttk.Frame(self.model_info_notebook)
@@ -228,6 +239,33 @@ class ModelsTab(BaseTab):
                     break
 
         print("✓ Models tab refreshed")
+
+    def _refresh_overview(self, model_name: str, base_model: str | None = None):
+        """
+        Update shared state and refresh the OverviewPanel (Assigned Type / Class).
+        Recreates the OverviewPanel to ensure clean state.
+        """
+        base = base_model or model_name
+        try:
+            self.trainee_name_var.set(model_name)
+            self.base_model_var.set(base)
+        except Exception:
+            pass
+        try:
+            # Clear all children (including old OverviewPanel if it exists)
+            for widget in self.overview_tab_frame.winfo_children():
+                widget.destroy()
+            # Recreate and pack the OverviewPanel
+            from tabs.models_tab.overview_panel import OverviewPanel
+            self.panel_overview = OverviewPanel(
+                self.overview_tab_frame,
+                trainee_name_var=self.trainee_name_var,
+                base_model_var=self.base_model_var
+            )
+            self.panel_overview.pack(fill=tk.X, padx=10, pady=10)
+            self.panel_overview._refresh_from_profile()
+        except Exception:
+            pass
 
     def populate_model_list(self):
         """Populates the scrollable frame with buttons for each model (all types)."""
@@ -2560,61 +2598,8 @@ class ModelsTab(BaseTab):
         model_type = model_info["type"]
 
         # --- Populate Overview Tab ---
-        # Clear previous content
-        for widget in self.overview_tab_frame.winfo_children():
-            widget.destroy()
-
-        # Load config.json if available
-        model_config = {}
-        config_file = Path(model_info["path"]) / "config.json"
-        if config_file.exists():
-            try:
-                with open(config_file) as f:
-                    model_config = json.load(f)
-            except: pass
-
-        info_frame = ttk.LabelFrame(self.overview_tab_frame, text="Base Model Information", style='TLabelframe')
-        info_frame.pack(fill=tk.X, padx=10, pady=10)
-        info_frame.columnconfigure(1, weight=1)
-
-        # Display base model info
-        row = 0
-        ttk.Label(info_frame, text="Name:", font=("Arial", 10, "bold"), style='Config.TLabel').grid(row=row, column=0, sticky=tk.W, padx=10, pady=5)
-        name_frame = ttk.Frame(info_frame)
-        name_frame.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
-        ttk.Label(name_frame, text=model_name, font=("Arial", 10), style='Config.TLabel', foreground='#61dafb').pack(side=tk.LEFT)
-        ttk.Button(name_frame, text="📎", command=self._copy_name_to_clipboard, style='Select.TButton', width=2).pack(side=tk.LEFT, padx=5)
-        row += 1
-        ttk.Label(info_frame, text="Type:", font=("Arial", 10, "bold"), style='Config.TLabel').grid(row=row, column=0, sticky=tk.W, padx=10, pady=5)
-        ttk.Label(info_frame, text=("Trained" if model_type == 'trained' else "Base (PyTorch)"), font=("Arial", 10), style='Config.TLabel').grid(row=row, column=1, sticky=tk.W, padx=5, pady=5); row += 1
-        if model_info.get('path'):
-            ttk.Label(info_frame, text="Path:", font=("Arial", 10, "bold"), style='Config.TLabel').grid(row=row, column=0, sticky=tk.W, padx=10, pady=5)
-            ttk.Label(info_frame, text=str(model_info['path']), font=("Arial", 9), style='Config.TLabel').grid(row=row, column=1, sticky=tk.W, padx=5, pady=5); row += 1
-        if model_info.get('size'):
-            ttk.Label(info_frame, text="Size:", font=("Arial", 10, "bold"), style='Config.TLabel').grid(row=row, column=0, sticky=tk.W, padx=10, pady=5)
-            ttk.Label(info_frame, text=str(model_info['size']), font=("Arial", 10), style='Config.TLabel').grid(row=row, column=1, sticky=tk.W, padx=5, pady=5); row += 1
-
-        # Architecture details from config.json
-        if model_config:
-            arch_rows = []
-            if model_config.get('model_type'):
-                arch_rows.append(("Architecture", model_config['model_type']))
-            if model_config.get('num_hidden_layers') is not None:
-                arch_rows.append(("Layers", model_config['num_hidden_layers']))
-            if model_config.get('hidden_size') is not None:
-                arch_rows.append(("Hidden Size", model_config['hidden_size']))
-            if model_config.get('num_attention_heads') is not None:
-                arch_rows.append(("Attention Heads", model_config['num_attention_heads']))
-            if model_config.get('intermediate_size') is not None:
-                arch_rows.append(("Intermediate Size", model_config['intermediate_size']))
-            if model_config.get('max_position_embeddings') is not None:
-                arch_rows.append(("Max Seq Length", model_config['max_position_embeddings']))
-            if model_config.get('vocab_size') is not None:
-                arch_rows.append(("Vocab Size", f"{model_config['vocab_size']:,}"))
-            for k,v in arch_rows:
-                ttk.Label(info_frame, text=f"{k}:", font=("Arial", 10, "bold"), style='Config.TLabel').grid(row=row, column=0, sticky=tk.W, padx=10, pady=2)
-                ttk.Label(info_frame, text=str(v), font=("Arial", 10), style='Config.TLabel').grid(row=row, column=1, sticky=tk.W, padx=5, pady=2)
-                row += 1
+        # Call helper to update shared state and refresh OverviewPanel
+        self._refresh_overview(model_name, model_name)
 
         # Behavior indicators (Compliance/Creativity/Coherence)
         try:
