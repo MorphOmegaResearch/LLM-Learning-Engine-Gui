@@ -60,6 +60,10 @@ class TypesPanel(ttk.Frame):
             self.lst.selection_set(0)
             self._render_details(self.type_ids[0])
 
+    def set_context_getters(self, get_trainee=None, get_base_model=None):
+        self._get_trainee = get_trainee or (lambda: None)
+        self._get_base_model = get_base_model or (lambda: None)
+
     # --- internals
     def _on_select(self, _evt=None):
         sel = self.lst.curselection()
@@ -82,30 +86,31 @@ class TypesPanel(ttk.Frame):
         self.txt_details.insert(END, f"First Evals:\n • {evals}\n")
 
     def _apply_plan(self):
-        name = (self.trainee_name_var.get() or "").strip()
-        base = (self.base_model_var.get() or "").strip()
-        tid = self.selected_type.get()
-        if not name or not base or not tid:
-            self._status("Select trainee name, base model, and type first.")
+        from tkinter import messagebox
+        trainee_name = (self._get_trainee() or self.trainee_name_var.get() or "").strip()
+        base_model = (self._get_base_model() or self.base_model_var.get() or "").strip()
+        type_id = self.selected_type.get()
+        if not trainee_name or not base_model or not type_id:
+            messagebox.showinfo("Types", "Select trainee name, base model, and type first.")
             return
         # Load-or-create + persist model profile
         mp = {}
         try:
-            mp = config.load_model_profile(name)
+            mp = config.load_model_profile(trainee_name)
         except Exception:
-            mp = {"trainee_name": name, "base_model": base, "assigned_type": tid}
+            mp = {"trainee_name": trainee_name, "base_model": base_model, "assigned_type": type_id}
         mp.update({
-            "trainee_name": name,
-            "base_model": base,
-            "assigned_type": tid
+            "trainee_name": trainee_name,
+            "base_model": base_model,
+            "assigned_type": type_id
         })
         # Save (atomic/.bak/dir-fsync guarded)
-        config.save_model_profile(name, mp)
-        self._status(f"Applied Type Plan: {tid} → profile '{name}' saved.")
+        config.save_model_profile(trainee_name, mp)
+        self._status(f"Applied Type Plan: {type_id} → profile '{trainee_name}' saved.")
 
         # Create/update Training Profile
         try:
-            config.upsert_training_profile_for_model(name, base, tid)
+            config.upsert_training_profile_for_model(trainee_name, base_model, type_id)
         except Exception as e:
             print("[Types] training profile upsert failed:", e)
 

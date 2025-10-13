@@ -118,6 +118,10 @@ class ModelsTab(BaseTab):
                 trainee_name_var=self.trainee_name_var,
                 base_model_var=self.base_model_var,
             )
+            self.panel_types.set_context_getters(
+                get_trainee=lambda: getattr(self, "current_model_for_stats", None),
+                get_base_model=lambda: getattr(self, "current_model_info", {}).get("name")
+            )
             # If TypesPanel packs itself, do nothing; otherwise:
             try:
                 if hasattr(self.panel_types, "pack"):
