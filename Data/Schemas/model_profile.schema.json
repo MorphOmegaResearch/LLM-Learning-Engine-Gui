@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Model Profile Schema",
+  "type": "object",
+  "properties": {
+    "trainee_name": {"type": "string"},
+    "base_model": {"type": "string"},
+    "parameter_size_b": {"type": "number"},
+    "assigned_type": {
+      "oneOf": [
+        {"type": "string"},
+        {"type": "array", "items": {"type": "string"}}
+      ]
+    },
+    "class_level": {"type": "string", "enum": ["novice","adept","expert","master"]},
+    "skills": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {"xp": {"type": "number"}, "level": {"type": "number"}},
+        "required": ["xp","level"],
+        "additionalProperties": false
+      }
+    },
+    "stats": {"type": "object", "additionalProperties": true},
+    "badges": {"type": "array", "items": {"type": "string"}},
+    "artifact_rank": {"type": "string"},
+    "lineage": {"type": "array", "items": {"type": "object"}}
+  },
+  "required": ["trainee_name","base_model","assigned_type"],
+  "additionalProperties": true
+}

@@ -1966,3 +1966,78 @@ if __name__ == "__main__":
         print(f"Latest model: {latest.name}")
     else:
         print("No trained models found")
+
+
+# === Model Profiles (atomic IO) ===
+from pathlib import Path
+import os, json, shutil
+from datetime import datetime
+
+MODEL_PROFILES_DIR = Path("Data/profiles/Models")
+MODEL_PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+
+DEFAULT_MODEL_PROFILE = {
+    "parameter_size_b": 0.0,
+    "class_level": "novice",
+    "skills": {},
+    "stats": {},
+    "badges": []
+}
+
+def _normalize_model_profile_defaults(mp: dict) -> dict:
+    out = dict(DEFAULT_MODEL_PROFILE)
+    out.update(mp or {})
+    # ensure required sub-objects exist
+    out.setdefault("skills", {})
+    out.setdefault("stats", {})
+    out.setdefault("badges", [])
+    return out
+
+def list_model_profiles():
+    """Safe enumeration of model profiles (.json; no dotfiles)."""
+    return sorted(
+        [p.stem for p in MODEL_PROFILES_DIR.glob("*.json") if not p.name.startswith(".")]
+    )
+
+def _profile_path(name: str) -> Path:
+    safe = name.strip().replace(os.sep, "_")
+    return MODEL_PROFILES_DIR / f"{safe}.json"
+
+def load_model_profile(name: str) -> dict:
+    """Load; if .json missing but .bak exists, auto-restore; inject defaults."""
+    p = _profile_path(name)
+    if not p.exists():
+        bak = p.with_suffix(".json.bak")
+        if bak.exists():
+            shutil.copy2(bak, p)
+    with open(p, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return _normalize_model_profile_defaults(data)
+
+def save_model_profile(name: str, data: dict) -> Path:
+    """Atomic write with backup + dir fsync guard (Windows-safe)."""
+    final_path = _profile_path(name)
+    tmp_path = final_path.with_suffix(".json.tmp")
+    bak_path = final_path.with_suffix(".json.bak")
+
+    data = _normalize_model_profile_defaults(data)
+
+    # rotate backup if present
+    if final_path.exists():
+        shutil.copy2(final_path, bak_path)
+
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp_path, final_path)
+
+    # directory fsync (Linux/Unix only)
+    if hasattr(os, "O_DIRECTORY"):
+        dir_fd = os.open(str(MODEL_PROFILES_DIR), os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(dir_fd)
+        finally:
+            os.close(dir_fd)
+
+    return final_path

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Type Catalog Schema",
+  "type": "object",
+  "properties": {
+    "types": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "display_name", "class_color"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9_\-]+$"},
+          "display_name": {"type": "string"},
+          "class_color": {"type": "string"}, 
+          "skills_tree": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "default_training_recipes": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "first_evals": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "hybrid_unlocks": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "legend": {
+      "type": "object",
+      "properties": {
+        "single_type_master": {"type": "string"},
+        "hybrid_type_master": {"type": "string"},
+        "artifact_rank": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["types", "legend"],
+  "additionalProperties": false
+}

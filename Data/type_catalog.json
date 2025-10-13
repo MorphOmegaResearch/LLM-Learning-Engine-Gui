@@ -1,0 +1,32 @@
+{
+  "types": [
+    {
+      "id": "coder",
+      "display_name": "Coder",
+      "class_color": "purple",
+      "skills_tree": ["syntax", "debugging", "architecture", "tests"],
+      "default_training_recipes": [
+        "recipes/coder/lora_code_instruct.json",
+        "recipes/coder/unit_test_aug.json"
+      ],
+      "first_evals": ["evals/coder/smoke", "evals/coder/regression"],
+      "hybrid_unlocks": {"with": ["researcher"], "min_level": "expert"}
+    },
+    {
+      "id": "researcher",
+      "display_name": "Researcher",
+      "class_color": "blue",
+      "skills_tree": ["search", "synthesis", "citation", "verification"],
+      "default_training_recipes": [
+        "recipes/researcher/lora_rag_instruct.json"
+      ],
+      "first_evals": ["evals/researcher/smoke"],
+      "hybrid_unlocks": {"with": ["coder"], "min_level": "expert"}
+    }
+  ],
+  "legend": {
+    "single_type_master": "purple",
+    "hybrid_type_master": "deep_orange",
+    "artifact_rank": "red"
+  }
+}
