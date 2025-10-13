@@ -2098,6 +2098,32 @@ def get_type_by_id(type_id: str) -> dict | None:
             return t
     return None
 
+def get_training_plan_for_type(type_id: str) -> tuple[list[str], list[str]]:
+    """
+    Returns (recipes, evals) for the given type_id from the Type Catalog.
+    """
+    t = get_type_by_id(type_id)
+    if not t:
+        return ([], [])
+    recipes = list(t.get("default_training_recipes", []))
+    evals = list(t.get("first_evals", []))
+    return (recipes, evals)
+
+def get_training_plan_for_model(trainee_name: str) -> tuple[list[str], list[str]]:
+    """
+    Loads Model Profile and returns (recipes, evals) based on assigned_type.
+    """
+    try:
+        mp = load_model_profile(trainee_name)
+    except Exception:
+        return ([], [])
+    assigned = mp.get("assigned_type")
+    if isinstance(assigned, list):
+        assigned = assigned[0] if assigned else None
+    if not assigned:
+        return ([], [])
+    return get_training_plan_for_type(str(assigned))
+
 def validate_model_profile(instance: dict):
     """
     Optional validation for Model Profiles. Call before or after normalization

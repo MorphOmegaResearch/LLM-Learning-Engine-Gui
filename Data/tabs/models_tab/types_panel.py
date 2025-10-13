@@ -103,6 +103,12 @@ class TypesPanel(ttk.Frame):
         config.save_model_profile(name, mp)
         self._status(f"Applied Type Plan: {tid} → profile '{name}' saved.")
 
+        # Emit event for ModelsTab to forward to Training tab
+        try:
+            self.event_generate("<<TypePlanApplied>>", when="tail")
+        except Exception:
+            pass
+
     def _open_profile_file(self):
         # Non-blocking: just say where it is; OS integration can be added later.
         from pathlib import Path

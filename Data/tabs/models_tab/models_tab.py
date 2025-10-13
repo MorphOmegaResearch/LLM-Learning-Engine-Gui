@@ -106,13 +106,14 @@ class ModelsTab(BaseTab):
         self.overview_tab_frame = ttk.Frame(self.model_info_notebook)
         self.model_info_notebook.add(self.overview_tab_frame, text="Overview")
 
-        # Instantiate OverviewPanel (not packed yet - will be shown when needed)
+        # Instantiate and pack OverviewPanel (persistent, will be refreshed as needed)
         from tabs.models_tab.overview_panel import OverviewPanel
         self.panel_overview = OverviewPanel(
             self.overview_tab_frame,
             trainee_name_var=self.trainee_name_var,
             base_model_var=self.base_model_var
         )
+        self.panel_overview.pack(fill=tk.X, padx=10, pady=10)
 
         # Adapters Tab (New)
         self.adapters_tab_frame = ttk.Frame(self.model_info_notebook)
@@ -221,6 +222,13 @@ class ModelsTab(BaseTab):
 
         self.populate_model_list()
 
+        # Bind TypePlanApplied event if TypesPanel exists (for future WO)
+        try:
+            if hasattr(self, 'panel_types'):
+                self.panel_types.bind("<<TypePlanApplied>>", self._on_type_plan_applied)
+        except Exception:
+            pass
+
     def refresh_models_tab(self):
         """Refresh the models tab - reloads all models and updates display."""
         # Refresh model lists
@@ -243,7 +251,7 @@ class ModelsTab(BaseTab):
     def _refresh_overview(self, model_name: str, base_model: str | None = None):
         """
         Update shared state and refresh the OverviewPanel (Assigned Type / Class).
-        Recreates the OverviewPanel to ensure clean state.
+        Uses persistent panel - no destroy/recreate.
         """
         base = base_model or model_name
         try:
@@ -252,20 +260,47 @@ class ModelsTab(BaseTab):
         except Exception:
             pass
         try:
-            # Clear all children (including old OverviewPanel if it exists)
-            for widget in self.overview_tab_frame.winfo_children():
-                widget.destroy()
-            # Recreate and pack the OverviewPanel
-            from tabs.models_tab.overview_panel import OverviewPanel
-            self.panel_overview = OverviewPanel(
-                self.overview_tab_frame,
-                trainee_name_var=self.trainee_name_var,
-                base_model_var=self.base_model_var
-            )
-            self.panel_overview.pack(fill=tk.X, padx=10, pady=10)
+            # Let the existing panel re-render itself
             self.panel_overview._refresh_from_profile()
         except Exception:
             pass
+
+    def _on_type_plan_applied(self, _evt=None):
+        """
+        Handle <<TypePlanApplied>> event from TypesPanel.
+        Forward training plan to Training tab if available.
+        """
+        name = (self.trainee_name_var.get() or "").strip()
+        if not name:
+            return
+        try:
+            from config import get_training_plan_for_model
+            recipes, evals = get_training_plan_for_model(name)
+        except Exception:
+            recipes, evals = [], []
+
+        # Try to forward to a training panel if present
+        applied = False
+        for attr in ("training_tab", "panel_training", "tab_training"):
+            panel = getattr(self, attr, None)
+            if panel and hasattr(panel, "apply_plan"):
+                try:
+                    panel.apply_plan(recipes, evals)
+                    applied = True
+                    break
+                except Exception:
+                    pass
+
+        if not applied:
+            # Non-blocking info; manual override remains
+            try:
+                from tkinter import messagebox
+                messagebox.showinfo(
+                    "Types",
+                    f"Type Plan prepared for '{name}'. Open Training tab to review recipes/evals."
+                )
+            except Exception:
+                print("[Types] Plan prepared; Training tab may need manual refresh.", recipes, evals)
 
     def populate_model_list(self):
         """Populates the scrollable frame with buttons for each model (all types)."""
@@ -3461,62 +3496,25 @@ class ModelsTab(BaseTab):
         self.raw_model_info_text.config(state=tk.DISABLED)
 
         # Update Overview Tab
-        # Clear previous overview content
+        # Clear any old widgets (except the persistent OverviewPanel)
         for widget in self.overview_tab_frame.winfo_children():
-            widget.destroy()
+            if widget != self.panel_overview:
+                widget.destroy()
 
-        # Model Rename Section at the top
-        rename_frame = ttk.LabelFrame(self.overview_tab_frame, text="🏷️ Rename Model", style='TLabelframe')
-        rename_frame.grid(row=0, column=0, columnspan=2, sticky=tk.EW, padx=5, pady=10)
-        rename_frame.columnconfigure(1, weight=1)
+        # Use OverviewPanel for Ollama models (with base_model detection if available)
+        base_model_name = None
+        # Try to detect base model from lineage (check before calling _refresh_overview)
+        try:
+            from lineage_tracker import get_tracker
+            tracker = get_tracker()
+            if tracker.has_lineage(model_name):
+                lineage_record = tracker.get_lineage_record(model_name)
+                base_model_name = lineage_record.get('base_model')
+        except Exception:
+            pass
 
-        ttk.Label(rename_frame, text="Current Name:", font=("Arial", 10, "bold"), style='Config.TLabel').grid(row=0, column=0, sticky=tk.W, padx=5, pady=5)
-        name_frame = ttk.Frame(rename_frame)
-        name_frame.grid(row=0, column=1, sticky=tk.W, padx=5, pady=5)
-        ttk.Label(name_frame, text=model_name, font=("Arial", 10), style='Config.TLabel', foreground='#61dafb').pack(side=tk.LEFT)
-        ttk.Button(name_frame, text="📎", command=self._copy_name_to_clipboard, style='Select.TButton', width=2).pack(side=tk.LEFT, padx=5)
-
-        ttk.Label(rename_frame, text="New Name:", font=("Arial", 10, "bold"), style='Config.TLabel').grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
-
-        self.rename_entry_var = tk.StringVar()
-        rename_entry = ttk.Entry(rename_frame, textvariable=self.rename_entry_var, width=40)
-        rename_entry.grid(row=1, column=1, sticky=tk.EW, padx=5, pady=5)
-
-        # Validation label
-        self.rename_validation_label = ttk.Label(rename_frame, text="", font=("Arial", 9), style='Config.TLabel')
-        self.rename_validation_label.grid(row=2, column=0, columnspan=2, sticky=tk.W, padx=5, pady=2)
-
-        # Buttons
-        button_frame = ttk.Frame(rename_frame)
-        button_frame.grid(row=3, column=0, columnspan=2, pady=5)
-
-        ttk.Button(button_frame, text="✓ Validate Name", command=self.validate_model_name, style='Action.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="🔄 Rename Model", command=self.rename_model, style='Action.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="🗑️ Delete Model", command=self.delete_model, style='Action.TButton').pack(side=tk.LEFT, padx=5)
-
-        # Info text
-        info_text = "HuggingFace naming rules:\n• Alphanumeric chars, '-', '_', '.' only\n• Cannot start/end with '-' or '.'\n• Max 96 characters\n• No colons (:) or slashes (/)\n\nNote: Ollama will add ':latest' tag automatically.\nThis is normal - it will be stripped during training."
-        ttk.Label(rename_frame, text=info_text, font=("Arial", 8), style='Config.TLabel', foreground='#888888').grid(
-            row=4, column=0, columnspan=2, sticky=tk.W, padx=5, pady=5)
-
-        # Separator
-        ttk.Separator(self.overview_tab_frame, orient='horizontal').grid(row=1, column=0, columnspan=2, sticky=tk.EW, padx=5, pady=10)
-
-        # Training Capability Notice
-        cap_frame = ttk.LabelFrame(self.overview_tab_frame, text="Capability", style='TLabelframe')
-        cap_frame.grid(row=2, column=0, columnspan=2, sticky=tk.EW, padx=5, pady=5)
-        ttk.Label(cap_frame, text="Training Capability:", font=("Arial", 10, "bold"), style='Config.TLabel').grid(row=0, column=0, sticky=tk.W, padx=10, pady=5)
-        ttk.Label(cap_frame, text="Inference-only (GGUF via Ollama) — not trainable here. Evaluations supported.", font=("Arial", 10), style='Config.TLabel').grid(row=0, column=1, sticky=tk.W, padx=10, pady=5)
-
-        # Bump subsequent content rows
-        next_row_base = 3
-
-        # Model Info
-        row_num = next_row_base
-        for key, value in parsed_info.items():
-            ttk.Label(self.overview_tab_frame, text=f"{key.replace('_', ' ').title()}:", font=("Arial", 10, "bold"), style='Config.TLabel').grid(row=row_num, column=0, sticky=tk.W, padx=5, pady=2)
-            ttk.Label(self.overview_tab_frame, text=value, font=("Arial", 10), style='Config.TLabel').grid(row=row_num, column=1, sticky=tk.W, padx=5, pady=2)
-            row_num += 1
+        # Call helper to show OverviewPanel
+        self._refresh_overview(model_name, base_model_name)
 
         # Lineage - Try LineageTracker first, then fall back to old method
         lineage_record = None
@@ -3567,7 +3565,7 @@ class ModelsTab(BaseTab):
         # Display lineage information (from either source)
         if lineage_record or found:
             lin = ttk.LabelFrame(self.overview_tab_frame, text="🧬 Model Lineage", style='TLabelframe')
-            lin.grid(row=row_num, column=0, columnspan=2, sticky=tk.EW, padx=5, pady=6)
+            lin.pack(fill=tk.X, padx=10, pady=10)
 
             if lineage_record:
                 # Display from LineageTracker
