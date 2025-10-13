@@ -9,7 +9,7 @@
         "type": "object",
         "required": ["id", "display_name", "class_color"],
         "properties": {
-          "id": {"type": "string", "pattern": "^[a-z0-9_\-]+$"},
+          "id": {"type": "string", "pattern": "^[a-z0-9_-]+$"},
           "display_name": {"type": "string"},
           "class_color": {"type": "string"}, 
           "skills_tree": {

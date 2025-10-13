@@ -2022,6 +2022,12 @@ def save_model_profile(name: str, data: dict) -> Path:
 
     data = _normalize_model_profile_defaults(data)
 
+    try:
+        validate_model_profile(data)
+    except Exception as e:
+        # Fail fast: don't persist invalid structure
+        raise
+
     # rotate backup if present
     if final_path.exists():
         shutil.copy2(final_path, bak_path)
@@ -2041,3 +2047,60 @@ def save_model_profile(name: str, data: dict) -> Path:
             os.close(dir_fd)
 
     return final_path
+
+# === Types Catalog & Schema Validation ===
+from pathlib import Path as _Path
+import json as _json
+
+TYPE_CATALOG_PATH = _Path("Data/type_catalog.json")
+TYPE_CATALOG_SCHEMA_PATH = _Path("Data/Schemas/type_catalog.schema.json")
+MODEL_PROFILE_SCHEMA_PATH = _Path("Data/Schemas/model_profile.schema.json")
+
+def _read_json(_p: _Path):
+    with open(_p, "r", encoding="utf-8") as f:
+        return _json.load(f)
+
+def _maybe_validate(instance: dict, schema_path: _Path, *, what: str):
+    """
+    Best-effort JSON Schema validation. If 'jsonschema' isn't installed,
+    we skip with a soft note. Keeps runtime flexible while enabling CI gate later.
+    """
+    try:
+        import jsonschema  # type: ignore
+    except Exception:
+        # Soft skip: validation is optional at runtime, will be enforced in CI.
+        return
+    try:
+        schema = _read_json(schema_path)
+        jsonschema.validate(instance=instance, schema=schema)
+    except Exception as e:
+        raise ValueError(f"{what} validation failed: {e}") from e
+
+def load_type_catalog() -> dict:
+    """
+    Load the authoritative Type Catalog and (optionally) validate against schema.
+    Returns the catalog dict: { 'types': [...], 'legend': {...} }.
+    """
+    catalog = _read_json(TYPE_CATALOG_PATH)
+    _maybe_validate(catalog, TYPE_CATALOG_SCHEMA_PATH, what="Type Catalog")
+    return catalog
+
+def list_types() -> list[str]:
+    """List available type ids from the catalog."""
+    cat = load_type_catalog()
+    return [t.get("id") for t in cat.get("types", []) if isinstance(t, dict) and t.get("id")]
+
+def get_type_by_id(type_id: str) -> dict | None:
+    """Fetch a type entry by id from the catalog."""
+    cat = load_type_catalog()
+    for t in cat.get("types", []):
+        if isinstance(t, dict) and t.get("id") == type_id:
+            return t
+    return None
+
+def validate_model_profile(instance: dict):
+    """
+    Optional validation for Model Profiles. Call before or after normalization
+    in save_model_profile(). Raises ValueError if invalid (when jsonschema is present).
+    """
+    _maybe_validate(instance, MODEL_PROFILE_SCHEMA_PATH, what="Model Profile")
