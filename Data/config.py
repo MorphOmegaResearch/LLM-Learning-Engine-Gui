@@ -29,11 +29,14 @@ EXPORTS_DIR = DATA_DIR / "exports"
 PROFILES_DIR = DATA_DIR / "profiles" # New: Profiles directory
 TOOL_PROFILES_DIR = PROFILES_DIR / "Tools"
 
+# L8 FIX: Sandbox directory for tool execution
+THE_SANDBOX_DIR = TRAINER_ROOT / "The_SandBox"
+
 # Ensure all directories exist
 for dir_path in [MODELS_DIR, TRAINING_DATA_DIR, TOOLS_DATA_DIR,
                  APP_DEV_DATA_DIR, CODING_DATA_DIR, SEMANTIC_DATA_DIR,
                  PROMPTS_DIR, SCHEMAS_DIR, PROMPTBOX_DIR,
-                 EXPORTS_DIR, PROFILES_DIR, TOOL_PROFILES_DIR]: # Added TOOL_PROFILES_DIR
+                 EXPORTS_DIR, PROFILES_DIR, TOOL_PROFILES_DIR, THE_SANDBOX_DIR]: # L8: Added THE_SANDBOX_DIR
     dir_path.mkdir(parents=True, exist_ok=True)
 
 # Default training settings
@@ -671,8 +674,8 @@ def list_tool_profiles() -> List[str]:
     names = []
     for p in sorted(TOOL_PROFILES_DIR.glob("*.json")):
         try:
-            # Filter out non-JSON and stray files
-            if p.is_file() and p.suffix == ".json":
+            # L7 FIX: Filter out dotfiles, .bak, .tmp, and non-JSON files
+            if p.is_file() and p.suffix == ".json" and not p.stem.startswith("."):
                 names.append(p.stem)
         except Exception:
             continue
@@ -680,7 +683,14 @@ def list_tool_profiles() -> List[str]:
 
 def load_tool_profile(name: str = "Default") -> Dict[str, Any]:
     """Load a Tool Profile by name with soft validation and defaults."""
+    import shutil
     path = TOOL_PROFILES_DIR / f"{name}.json"
+    bak_path = path.with_suffix(".json.bak")
+
+    # M4 FIX: Auto-recovery from .bak if .json missing
+    if not path.exists() and bak_path.exists():
+        shutil.copy2(bak_path, path)
+
     if not path.exists():
         raise FileNotFoundError(f"Tool Profile '{name}' not found at {path}")
 
@@ -721,6 +731,21 @@ def save_tool_profile(name: str, profile: Dict[str, Any]) -> Path:
     profile.setdefault("version", "1.0")
     profile["updated_at"] = datetime.now().isoformat()
 
+    # M5 FIX: Normalize defaults before save (same structure as load)
+    defaults = {
+        "tools": {"enabled_tools": {}, "risk_overrides": {}, "confirmation_policy": {}, "timeouts_sec": {}, "logging": {}},
+        "execution": {"working_directory": str((Path(__file__).parent.parent / "The_SandBox")), "auto_update_working_dir": True},
+        "chat": {"auto_mount_model": False, "auto_save_history": True, "history_retention_days": 30, "max_message_length": 8192},
+        "orchestrator": {"enable_orchestrator": False, "enable_parsers": True, "enable_translators": True},
+        "notes": ""
+    }
+    for key, default_value in defaults.items():
+        if key not in profile:
+            profile[key] = default_value
+        elif isinstance(default_value, dict) and isinstance(profile[key], dict):
+            for subkey, subval in default_value.items():
+                profile[key].setdefault(subkey, subval)
+
     path = TOOL_PROFILES_DIR / f"{name}.json"
     tmp_path = path.with_suffix(".json.tmp")
     bak_path = path.with_suffix(".json.bak")
@@ -738,6 +763,13 @@ def save_tool_profile(name: str, profile: Dict[str, Any]) -> Path:
 
         # Atomic replace
         tmp_path.replace(path)
+
+        # H2 FIX: Directory fsync for durability
+        dir_fd = os.open(str(TOOL_PROFILES_DIR), os.O_DIRECTORY)
+        try:
+            os.fsync(dir_fd)
+        finally:
+            os.close(dir_fd)
 
         return path
     except Exception as e:
@@ -805,18 +837,22 @@ def migrate_tool_profile_from_legacy(name: str = "Default") -> Dict[str, Any]:
     """
     Create a unified Tool Profile from legacy files if a Tool Profile doesn't exist yet.
     Non-destructive: leaves legacy files as-is; callers may delete after verification.
-    Idempotent: won't re-migrate if migration marker is present.
+    Idempotent: won't re-migrate if migration marker is present OR if profile already exists.
     """
     from datetime import datetime
 
-    # Check if profile already exists with migration marker
+    # H1 FIX: If profile exists at all, do NOT overwrite; only add marker if missing
     try:
         existing = load_tool_profile(name)
-        if existing.get("_migration_marker"):
-            # Already migrated; return as-is
-            return existing
+        # Profile exists; ensure it has a marker, then return
+        if not existing.get("_migration_marker"):
+            existing["_migration_marker"] = {
+                "migrated_from": {"files": [], "at": datetime.now().isoformat(), "version": 1}
+            }
+            save_tool_profile(name, existing)
+        return existing
     except FileNotFoundError:
-        pass  # Doesn't exist yet; proceed with migration
+        pass  # Doesn't exist yet; proceed with first-time migration
 
     enabled = _load_legacy_tool_flags()
     legacy_settings = _load_legacy_custom_code_settings()
