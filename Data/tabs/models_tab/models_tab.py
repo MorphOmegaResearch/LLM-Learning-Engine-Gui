@@ -115,6 +115,17 @@ class ModelsTab(BaseTab):
         )
         self.panel_overview.pack(fill=tk.X, padx=10, pady=10)
 
+        # --- Types Tab ---
+        self.types_tab_frame = ttk.Frame(self.model_info_notebook)
+        self.model_info_notebook.add(self.types_tab_frame, text="Types")
+        from tabs.models_tab.types_panel import TypesPanel
+        self.panel_types = TypesPanel(
+            self.types_tab_frame,
+            trainee_name_var=self.trainee_name_var,
+            base_model_var=self.base_model_var
+        )
+        self.panel_types.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
         # Adapters Tab (New)
         self.adapters_tab_frame = ttk.Frame(self.model_info_notebook)
         self.model_info_notebook.add(self.adapters_tab_frame, text="🎯 Adapters")
