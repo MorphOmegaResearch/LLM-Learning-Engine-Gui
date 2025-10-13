@@ -103,6 +103,12 @@ class TypesPanel(ttk.Frame):
         config.save_model_profile(name, mp)
         self._status(f"Applied Type Plan: {tid} → profile '{name}' saved.")
 
+        # Create/update Training Profile
+        try:
+            config.upsert_training_profile_for_model(name, base, tid)
+        except Exception as e:
+            print("[Types] training profile upsert failed:", e)
+
         # Emit event for ModelsTab to forward to Training tab
         try:
             self.event_generate("<<TypePlanApplied>>", when="tail")

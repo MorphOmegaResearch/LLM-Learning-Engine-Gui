@@ -296,7 +296,7 @@ class ModelsTab(BaseTab):
             panel = getattr(self, attr, None)
             if panel and hasattr(panel, "apply_plan"):
                 try:
-                    panel.apply_plan(recipes, evals)
+                    panel.apply_plan(recipes, evals, trainee_name=name)
                     applied = True
                     break
                 except Exception:

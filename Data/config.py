@@ -2130,3 +2130,114 @@ def validate_model_profile(instance: dict):
     in save_model_profile(). Raises ValueError if invalid (when jsonschema is present).
     """
     _maybe_validate(instance, MODEL_PROFILE_SCHEMA_PATH, what="Model Profile")
+
+# === Training Profiles (atomic IO) ===
+from pathlib import Path as _TPath
+import os as _os
+
+TRAINING_PROFILES_DIR = _TPath("Data/profiles/Training")
+TRAINING_PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+
+DEFAULT_TRAINING_PROFILE = {
+    "base_model": "",
+    "assigned_type": "",
+    "selected_scripts": [],
+    "selected_prompts": [],
+    "selected_schemas": [],
+    "runner_settings": {
+        "max_time_min": 20,
+        "max_runs": 1,
+        "delay_sec": 0,
+        "mixed_precision": True,
+        "save_checkpoints": False,
+        "enable_stat_saving": True,
+        "gradient_accum": 16,
+        "warmup_steps": 5,
+        "enable_baseline_skill_tests": True,
+        "auto_run_pre_eval": True,
+        "auto_run_post_eval": True,
+        "use_system_prompt": True,
+        "use_tool_schema": True,
+    },
+    "evals_plan": []
+}
+
+def _tp_path(name: str) -> _TPath:
+    safe = name.strip().replace(_os.sep, "_")
+    return TRAINING_PROFILES_DIR / f"{safe}.json"
+
+def _normalize_training_profile(tp: dict) -> dict:
+    out = dict(DEFAULT_TRAINING_PROFILE)
+    out.update(tp or {})
+    out.setdefault("selected_scripts", [])
+    out.setdefault("selected_prompts", [])
+    out.setdefault("selected_schemas", [])
+    out.setdefault("runner_settings", dict(DEFAULT_TRAINING_PROFILE["runner_settings"]))
+    out.setdefault("evals_plan", [])
+    return out
+
+def list_training_profiles() -> list:
+    return sorted([p.stem for p in TRAINING_PROFILES_DIR.glob("*.json") if not p.name.startswith(".")])
+
+def load_training_profile(name: str) -> dict:
+    p = _tp_path(name)
+    if not p.exists():
+        bak = p.with_suffix(".json.bak")
+        if bak.exists():
+            shutil.copy2(bak, p)
+    with open(p, "r", encoding="utf-8") as f:
+        data = _json.load(f)
+    return _normalize_training_profile(data)
+
+def save_training_profile(name: str, data: dict):
+    final_path = _tp_path(name)
+    tmp_path = final_path.with_suffix(".json.tmp")
+    bak_path = final_path.with_suffix(".json.bak")
+
+    data = _normalize_training_profile(data)
+
+    if final_path.exists():
+        shutil.copy2(final_path, bak_path)
+
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        _json.dump(data, f, ensure_ascii=False, indent=2)
+        f.flush()
+        _os.fsync(f.fileno())
+    _os.replace(tmp_path, final_path)
+
+    if hasattr(_os, "O_DIRECTORY"):
+        dfd = _os.open(str(TRAINING_PROFILES_DIR), _os.O_RDONLY | _os.O_DIRECTORY)
+        try:
+            _os.fsync(dfd)
+        finally:
+            _os.close(dfd)
+    return final_path
+
+def build_training_profile_from_type(trainee_name: str, base_model: str, type_id: str) -> dict:
+    """
+    Deterministic mapping from Type Catalog → Training Profile.
+    Uses default_training_recipes + first_evals.
+    """
+    recipes, evals = get_training_plan_for_type(type_id)
+    tp = {
+        "base_model": base_model,
+        "assigned_type": type_id,
+        "selected_scripts": list(recipes or []),
+        "evals_plan": list(evals or []),
+        "runner_settings": dict(DEFAULT_TRAINING_PROFILE["runner_settings"]),
+    }
+    return _normalize_training_profile(tp)
+
+def upsert_training_profile_for_model(trainee_name: str, base_model: str, type_id: str) -> dict:
+    tp = build_training_profile_from_type(trainee_name, base_model, type_id)
+    try:
+        existing = load_training_profile(trainee_name)
+        # merge "sticky" choices the user might have tweaked:
+        if existing.get("selected_prompts"):
+            tp["selected_prompts"] = existing["selected_prompts"]
+        if existing.get("selected_schemas"):
+            tp["selected_schemas"] = existing["selected_schemas"]
+    except Exception:
+        pass
+    save_training_profile(trainee_name, tp)
+    return tp

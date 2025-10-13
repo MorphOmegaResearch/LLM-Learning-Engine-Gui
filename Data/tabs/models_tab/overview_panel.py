@@ -47,6 +47,8 @@ class OverviewPanel(ttk.Frame):
             self.lbl_type.config(text="Assigned Type: —")
             self.lbl_class.config(text="Class Level: —")
             return
-        tdisp = mp.get("assigned_type", "—")
-        self.lbl_type.config(text=f"Assigned Type: {tdisp}")
+        assigned = mp.get("assigned_type", "—")
+        if isinstance(assigned, list):
+            assigned = ", ".join(assigned) if assigned else "—"
+        self.lbl_type.config(text=f"Assigned Type: {assigned}")
         self.lbl_class.config(text=f"Class Level: {mp.get('class_level','novice')}")
