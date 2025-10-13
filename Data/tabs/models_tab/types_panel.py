@@ -1,7 +1,10 @@
 # Data/tabs/models_tab/types_panel.py
 from tkinter import ttk, StringVar, END, N, S, E, W
 import tkinter as tk
-from Data import config
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+import config
 
 class TypesPanel(ttk.Frame):
     """
