@@ -1,6 +1,32 @@
 {
-  "tab_order": ["training_tab", "models_tab", "custom_code_tab", "settings_tab"],
+  "tab_order": [
+    "training_tab",
+    "models_tab",
+    "custom_code_tab",
+    "settings_tab"
+  ],
   "ui": {
     "theme": "dark"
+  },
+  "default_epochs": 3,
+  "default_batch": 2,
+  "default_learning_rate": "2e-4",
+  "auto_refresh_models": true,
+  "show_debug": false,
+  "confirm_training": true,
+  "max_cpu_threads": 2,
+  "max_ram_percent": 70,
+  "max_seq_length": 256,
+  "gradient_accumulation": 16,
+  "training_tab_enabled": true,
+  "models_tab_enabled": true,
+  "settings_tab_enabled": true,
+  "custom_code_tab_enabled": true,
+  "reorder_mode": "static",
+  "regression_policy": {
+    "enabled": true,
+    "alert_drop_percent": 5.0,
+    "strict_block": false,
+    "auto_rollback": false
   }
 }

@@ -74,6 +74,19 @@ def main():
     # Ensure required stubs are present
     _stub_mistral_common()
 
+    # Add converter-relative paths so gguf module can be found without install
+    try:
+        conv_path = Path(args.converter).resolve()
+        conv_root = conv_path.parent
+        gguf_py = conv_root / 'gguf-py'
+        import sys as _sys
+        if str(conv_root) not in _sys.path:
+            _sys.path.insert(0, str(conv_root))
+        if gguf_py.exists() and str(gguf_py) not in _sys.path:
+            _sys.path.insert(0, str(gguf_py))
+    except Exception:
+        pass
+
     # convert_hf_to_gguf.py supported types
     converter_supported_quants = ["f32", "f16", "bf16", "q8_0", "tq1_0", "tq2_0", "auto"]
     outtype_for_converter = args.outtype if args.outtype in converter_supported_quants else "f16"

@@ -392,6 +392,30 @@ class TrainingEngine:
         self.tokenizer.save_pretrained(self.output_dir)
         log_message("ENGINE: ✓ Model saved.")
 
+        # WO-6d: Sidecar metadata mapping adapter → variant (best-effort)
+        try:
+            variant_id = os.getenv("TRAINING_VARIANT_ID") or self.output_dir.name
+            assigned_type = None
+            class_level = None
+            try:
+                import config as C
+                mp = C.load_model_profile(variant_id)
+                assigned_type = mp.get("assigned_type")
+                class_level = mp.get("class_level") or mp.get("class")
+            except Exception:
+                pass
+            sidecar = {
+                "variant_id": variant_id,
+                "base_model": self.model_name,
+                "assigned_type": assigned_type,
+                "class_level": class_level,
+                "timestamp": time.strftime("%Y-%m-%d_%H-%M-%S"),
+            }
+            with open(str(self.output_dir) + ".variant.json", "w", encoding="utf-8") as f:
+                json.dump(sidecar, f, indent=2)
+        except Exception:
+            pass
+
         if trainer_stats:
             log_message("ENGINE: 📈 Saving training statistics...")
             try:

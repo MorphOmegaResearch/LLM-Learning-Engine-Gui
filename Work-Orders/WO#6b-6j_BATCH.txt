@@ -1,0 +1,897 @@
+# 🧩 WORK ORDER(s): WO-6b → WO-6d
+
+**Project:** OpenCode Training Launcher
+**Purpose:** Finalize wiring, event relay, unified scrolling, and variant system.
+**Batch Scope:** Apply all fixes in one sweep.
+
+---
+
+## 🧭 STRUCTURE
+
+```
+WO-6b  — Wiring, event payloads, collections clarity
+WO-6c  — Unified right-panel scroll + dynamic expand/collapse
+WO-6d  — Variant lineage, badges/colors, stats linkage
+```
+
+---
+
+## ⚙️ WO-6b — WIRING AND COLLECTIONS FIXES
+
+### 1️⃣ Fix `<<ModelSelected>>` Payload Bug
+
+**File:** `Data/tabs/models_tab/models_tab.py`
+
+```python
+# In display_model_info_from_dict (around line 2634)
+try:
+    import json
+    payload = json.dumps({
+        "model_name": model_info["name"],
+        "model_type": model_info["type"],
+        "is_ollama": False,
+    })
+    self.event_generate("<<ModelSelected>>", data=payload, when="tail")
+except Exception as e:
+    print("[ModelsTab] event error:", e)
+```
+
+```python
+# In display_model_info (Ollama variant around line 3560)
+try:
+    import json
+    payload = json.dumps({
+        "model_name": model_name,
+        "model_type": model_info.get("type", "ollama"),
+        "is_ollama": True,
+    })
+    self.event_generate("<<ModelSelected>>", data=payload, when="tail")
+except Exception as e:
+    print("[ModelsTab] event error:", e)
+```
+
+✅ **Validation:** Selecting a base model updates Types tab immediately (Variant Name field autofills).
+
+---
+
+### 2️⃣ Remove Duplicate `list_model_profiles`
+
+**File:** `Data/config.py`
+
+```python
+# Remove or rename the old string-returning function at ~2039
+# Keep the structured dict-returning version above line 2035
+def list_model_profiles() -> list[dict]:
+    ...
+```
+
+✅ **Validation:**
+
+```bash
+python3 - <<'PY'
+from Data import config as C
+r = C.list_model_profiles()
+assert isinstance(r, list)
+assert all(isinstance(i, dict) for i in r)
+print("✅ list_model_profiles returns dicts OK")
+PY
+```
+
+---
+
+### 3️⃣ Add Class Level Display in Collections
+
+**File:** `Data/config.py`
+
+```python
+def get_variant_class(variant_id: str) -> str:
+    try:
+        mp = load_model_profile(variant_id) or {}
+        return mp.get("class_level") or mp.get("class") or "novice"
+    except Exception:
+        return "novice"
+```
+
+**File:** `Data/tabs/models_tab/models_tab.py`
+
+```python
+# In refresh_collections_panel, modify label builder
+label = f"{it.get('base_model','?')} ▸ {it.get('variant_id','?')}  [{it.get('assigned_type','')} | {C.get_variant_class(it.get('variant_id',''))}]"
+self.collections_list.insert(tk.END, label)
+```
+
+✅ **Validation:** Each variant in “Collections” shows `[type | class]`.
+
+---
+
+### 4️⃣ Fix Training Tab Relay
+
+**File:** `Data/tabs/training_tab/training_tab.py`
+
+```python
+def apply_plan(self, variant_id=None, **_):
+    tp = C.load_training_profile(variant_id)
+    if not tp: return
+    self.model_selection_panel.set_base_model(tp.get("base_model", ""))
+    self.active_trainee_name = variant_id
+    self._load_runner_settings(tp)
+    self._refresh_ui_from_plan(tp)
+```
+
+✅ **Validation:** Applying a plan populates model, scripts, settings.
+
+---
+
+### 5️⃣ Double-click Collection to Jump to Training
+
+**File:** `Data/tabs/models_tab/models_tab.py`
+
+```python
+self.collections_list.bind("<Double-Button-1>", self._on_collection_pick)
+...
+def _on_collection_pick(self, _evt=None):
+    ...
+    tt = self.get_training_tab()
+    if tt and hasattr(tt, "apply_plan"):
+        self.root.after(50, lambda: tt.apply_plan(variant_id=variant))
+        self.root.after(150, lambda: self.master.select_tab("Training"))
+```
+
+✅ **Validation:** Double-click variant in Collections jumps to Training.
+
+---
+
+## 🪟 WO-6c — SINGLE SCROLLBAR + DYNAMIC PANELS
+
+### 1️⃣ Wrap Right Column in Scroll Frame
+
+**File:** `Data/tabs/models_tab/models_tab.py`
+
+```python
+# Replace per-section canvases with unified right scroll layout
+
+right_canvas = tk.Canvas(main_frame, bg="#2b2b2b", highlightthickness=0)
+right_scroll = ttk.Scrollbar(main_frame, command=right_canvas.yview)
+self.right_frame = ttk.Frame(right_canvas)
+self.right_canvas_window_id = right_canvas.create_window((0, 0), window=self.right_frame, anchor="nw")
+
+right_canvas.configure(yscrollcommand=right_scroll.set)
+right_canvas.grid(row=0, column=1, sticky=tk.NSEW)
+right_scroll.grid(row=0, column=2, sticky=tk.NS)
+
+self.right_frame.bind("<Configure>", lambda e: right_canvas.configure(scrollregion=right_canvas.bbox("all")))
+```
+
+Then move:
+
+```python
+model_list_frame = ttk.Frame(self.right_frame)
+```
+
+All Base, Ollama, Collections sections now live inside this unified scrollable region.
+
+---
+
+### 2️⃣ Toggle Functions Update
+
+All `_toggle_*_group` now do:
+
+```python
+if self.section_expanded.get():
+    self.section_body.grid_remove()
+else:
+    self.section_body.grid()
+self._update_right_scrollregion()
+```
+
+Add helper:
+
+```python
+def _update_right_scrollregion(self):
+    self.root.after_idle(lambda: self.right_canvas.configure(scrollregion=self.right_canvas.bbox("all")))
+```
+
+✅ **Validation:** Expanding/collapsing sections resizes scroll area dynamically.
+
+---
+
+### 3️⃣ Mouse Wheel
+
+Replace individual bindings with:
+
+```python
+self.right_canvas.bind_all("<MouseWheel>", lambda e: self.right_canvas.yview_scroll(-1*(e.delta//120), "units"))
+```
+
+✅ **Validation:** Single scrollbar scrolls entire right column.
+
+---
+
+## 🧬 WO-6d — VARIANT LINEAGE, BADGES, COLORS, SKILLS
+
+### 1️⃣ Extend Model Profile Defaults
+
+**File:** `Data/config.py`
+
+```python
+def _normalize_model_profile_defaults(out):
+    out.setdefault("assigned_type", "")
+    out.setdefault("class_level", "novice")
+    out.setdefault("badges", [])
+    out.setdefault("color", "")
+    return out
+```
+
+✅ **Validation:** New profiles include these fields.
+
+---
+
+### 2️⃣ Adapter → Variant Mapping
+
+**File:** `Data/training_engine.py`
+
+```python
+def _write_adapter_metadata(adapter_path, variant_id, base_model, type_id, class_level):
+    meta = {
+        "variant_id": variant_id,
+        "base_model": base_model,
+        "assigned_type": type_id,
+        "class_level": class_level,
+        "timestamp": time.strftime("%Y-%m-%d_%H-%M-%S"),
+    }
+    with open(adapter_path + ".variant.json", "w", encoding="utf-8") as f:
+        json.dump(meta, f, indent=2)
+```
+
+Call this after writing an adapter.
+
+✅ **Validation:** Each adapter export writes a `.variant.json` file.
+
+---
+
+### 3️⃣ Refresh Skills/Stats on Variant Selection
+
+**File:** `Data/tabs/models_tab/models_tab.py`
+
+```python
+# At end of _on_collection_pick
+if hasattr(self, "refresh_variant_stats"):
+    self.refresh_variant_stats(variant)
+```
+
+✅ **Validation:** Selecting variant updates skills/stats panels.
+
+---
+
+### 4️⃣ GGUF / Ollama Badge Prep
+
+**File:** `Data/config.py`
+
+```python
+def get_variant_badge_color(variant_id):
+    mp = load_model_profile(variant_id) or {}
+    return mp.get("badges", []), mp.get("color", "")
+```
+
+Later (future phase): UI rendering of badges/colors.
+
+---
+
+## 🧪 Smoke Test: End-to-End Variant Roundtrip
+
+```bash
+python3 - <<'PY'
+from Data import config as C
+base = "Qwen2.5-0.5b-Instruct"
+for v,t in [("Qwen2.5-0.5b_coder","coder"),("Qwen2.5-0.5b_researcher","researcher")]:
+    C.save_model_profile(v, {"trainee_name": v, "base_model": base, "assigned_type": t, "class_level": "novice"})
+r = C.list_model_profiles()
+assert any(i["variant_id"]==v for i in r)
+print("✅ End-to-End Variant Profiles OK")
+PY
+```
+
+---
+
+## ✅ COMMIT SEQUENCE
+
+```bash
+git add Data/config.py Data/tabs/models_tab/models_tab.py Data/tabs/models_tab/types_panel.py Data/tabs/training_tab/training_tab.py Data/training_engine.py
+git commit -m "WO-6b–6d: Fix wiring, unify scroll layout, add variant lineage/badges/colors"
+git push origin feature/wo6b-types-collections-refresh
+```
+
+---
+
+## 🧩 Debug Options
+
+Add one-time verbose flag in `Data/config.py`:
+
+```python
+DEBUG_VARIANTS = True
+def dbg(msg): 
+    if DEBUG_VARIANTS: print("[DBG]", msg)
+```
+
+Sprinkle:
+
+```python
+dbg(f"Loaded variant {variant_id}")
+```
+
+In `refresh_collections_panel`, `apply_plan`, etc.
+This keeps test output readable for quick iteration.
+
+-------------------------------------------------------------
+-------------------------------------------------------------
+---
+
+# WO-6e — Variant-Aware Model Selection & Runner Wiring
+
+**Goal:** When a variant is applied/selected, the Training tab reflects:
+
+* base model (Model Selection),
+* scripts/prompts/schemas (right pane),
+* runner settings (Runner panel).
+
+### Files to touch
+
+* `Data/tabs/training_tab/training_tab.py`
+* `Data/tabs/training_tab/model_selection_panel.py` (add setter if missing)
+* `Data/tabs/models_tab/models_tab.py` (ensure relay points call `apply_plan`)
+
+### Edits
+
+1. **TrainingTab: solidify `apply_plan` hydration**
+
+```python
+# Data/tabs/training_tab/training_tab.py
+
+from Data import config as C  # ensure present at top
+
+def apply_plan(self, variant_id: str | None = None, training_profile: dict | None = None):
+    try:
+        tp = training_profile or (C.load_training_profile(variant_id) or {})
+        if not tp:
+            print("[TrainingTab] apply_plan: no profile")
+            return
+
+        # 1) Model Selection
+        base = tp.get("base_model", "")
+        if hasattr(self, "model_selection_panel") and hasattr(self.model_selection_panel, "set_base_model"):
+            self.model_selection_panel.set_base_model(base)
+
+        # 2) Scripts
+        scripts = tp.get("selected_scripts", [])
+        if hasattr(self, "runner_panel") and hasattr(self.runner_panel, "load_scripts"):
+            self.runner_panel.load_scripts(scripts)
+
+        # 3) Prompts & Schemas
+        if hasattr(self, "load_prompts"):
+            self.load_prompts(tp.get("selected_prompts", []))
+        if hasattr(self, "load_schemas"):
+            self.load_schemas(tp.get("selected_schemas", []))
+
+        # 4) Runner settings
+        if hasattr(self, "runner_panel") and hasattr(self.runner_panel, "load_settings"):
+            self.runner_panel.load_settings(tp.get("runner_settings", {}))
+
+        # 5) Profiles dropdown
+        self.active_trainee_name = variant_id or tp.get("trainee_name")
+        if hasattr(self, "profiles_panel") and hasattr(self.profiles_panel, "select_profile"):
+            self.profiles_panel.select_profile(self.active_trainee_name)
+
+        # 6) Refresh preview if present
+        if hasattr(self, "update_preview"):
+            self.update_preview()
+
+        print(f"[TrainingTab] Plan applied for {self.active_trainee_name}")
+    except Exception as e:
+        print("[TrainingTab] Error in apply_plan:", e)
+```
+
+2. **Model Selection panel: provide a setter**
+
+```python
+# Data/tabs/training_tab/model_selection_panel.py
+# Add only if it doesn't exist.
+def set_base_model(self, model_name: str):
+    try:
+        self.base_model_var.set(model_name)
+        if hasattr(self, "on_base_model_changed"):
+            self.on_base_model_changed()  # trigger info refresh if you have this hook
+    except Exception as e:
+        print("[ModelSelection] set_base_model error:", e)
+```
+
+3. **Relay points (already mostly done but ensure both paths call)**
+
+* In `ModelsTab._on_collection_pick` and in the Types “Apply Type Plan” relay, call:
+
+```python
+tt = self.get_training_tab()
+if tt and hasattr(tt, "apply_plan"):
+    self.root.after(50, lambda: tt.apply_plan(variant_id=variant_id))  # or relayed variant
+```
+
+### Quick validation
+
+```bash
+python3 - <<'PY'
+from Data import config as C
+# prepare a synthetic training profile
+vid = "Qwen2.5-0.5b_coder"
+C.save_model_profile(vid, {"trainee_name": vid, "base_model": "Qwen2.5-0.5b-Instruct", "assigned_type": "coder"})
+try:
+    C.upsert_training_profile_for_model(vid, "Qwen2.5-0.5b-Instruct", "coder")
+except TypeError:
+    C.upsert_training_profile_for_model(vid)
+print("✅ WO-6e preflight OK")
+PY
+```
+
+**Commit**
+
+```bash
+git add Data/tabs/training_tab/training_tab.py Data/tabs/training_tab/model_selection_panel.py
+git commit -m "WO-6e: Variant-aware Training hydration (ModelSelection, scripts, runner)"
+```
+
+---
+
+# WO-6f — Collections 2.0 (Group, Manage, Search)
+
+**Goal:** Collections list becomes actually useful: grouped, searchable, and manageable (rename/duplicate/delete).
+
+### Files to touch
+
+* `Data/config.py`
+* `Data/tabs/models_tab/models_tab.py`
+
+### Config helpers
+
+```python
+# Data/config.py
+import shutil, os
+from pathlib import Path
+
+def _mp_path(variant_id:str) -> Path:
+    return Path(MODEL_PROFILES_DIR) / f"{variant_id}.json"
+
+def _tp_path(variant_id:str) -> Path:
+    return Path(TRAINING_PROFILES_DIR) / f"{variant_id}.json"
+
+def rename_variant(old:str, new:str):
+    # rename model & training profiles together
+    for getter in (_mp_path, _tp_path):
+        p_old, p_new = getter(old), getter(new)
+        if p_old.exists():
+            p_new.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(p_old, p_new)
+
+def duplicate_variant(src:str, dst:str):
+    for getter in (_mp_path, _tp_path):
+        p_src, p_dst = getter(src), getter(dst)
+        if p_src.exists():
+            p_dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(p_src, p_dst)
+
+def delete_variant(variant_id:str):
+    for getter in (_mp_path, _tp_path):
+        p = getter(variant_id)
+        if p.exists():
+            p.unlink()
+```
+
+### Collections UI: grouping, search, context menu
+
+```python
+# Data/tabs/models_tab/models_tab.py (inside create_ui, where collections are made)
+# Add a small search entry above the listbox:
+self.collections_search_var = tk.StringVar()
+search_row = ttk.Frame(self.collections_section)
+search_row.pack(fill=tk.X, padx=6, pady=(4,0))
+ttk.Label(search_row, text="Filter:").pack(side=tk.LEFT)
+ttk.Entry(search_row, textvariable=self.collections_search_var, width=22)\
+    .pack(side=tk.LEFT, padx=(6,0))
+self.collections_search_var.trace_add("write", lambda *_: self.refresh_collections_panel())
+
+# Right-click context menu:
+self.collections_menu = tk.Menu(self, tearoff=0)
+self.collections_menu.add_command(label="Open in Training", command=lambda: self._on_collection_pick(None))
+self.collections_menu.add_separator()
+self.collections_menu.add_command(label="Rename…", command=self._collections_rename)
+self.collections_menu.add_command(label="Duplicate…", command=self._collections_duplicate)
+self.collections_menu.add_command(label="Delete", command=self._collections_delete)
+
+def _collections_popup(evt):
+    try:
+        self.collections_list.selection_clear(0, tk.END)
+        idx = self.collections_list.nearest(evt.y)
+        self.collections_list.selection_set(idx)
+        self.collections_menu.tk_popup(evt.x_root, evt.y_root)
+    finally:
+        self.collections_menu.grab_release()
+self.collections_list.bind("<Button-3>", _collections_popup)
+```
+
+**Label with grouping + class**
+
+```python
+# refresh_collections_panel()
+query = (self.collections_search_var.get() or "").strip().lower()
+grouped = {}
+for it in items:
+    if query and query not in (it.get("variant_id","") + it.get("base_model","") + it.get("assigned_type","")).lower():
+        continue
+    grouped.setdefault(it.get("base_model","?"), []).append(it)
+
+self.collections_list.delete(0, tk.END)
+self._collections_cache = []
+for base, rows in sorted(grouped.items()):
+    self.collections_list.insert(tk.END, f"— {base} —")
+    self._collections_cache.append({"header": True, "base": base})
+    for it in sorted(rows, key=lambda x: x.get("variant_id","")):
+        v = it.get("variant_id","?")
+        t = it.get("assigned_type","")
+        try:
+            from Data import config as C
+            cls = C.get_variant_class(v)
+        except Exception:
+            cls = "novice"
+        label = f"  • {v}  [{t} | {cls}]"
+        self.collections_list.insert(tk.END, label)
+        self._collections_cache.append(it)
+```
+
+**Handlers for rename/dup/delete**
+
+```python
+def _collections_get_selected_variant(self):
+    sel = self.collections_list.curselection()
+    if not sel: return None
+    it = (self._collections_cache or [])[sel[0]]
+    if it.get("header"): return None
+    return it.get("variant_id")
+
+def _collections_rename(self):
+    v = self._collections_get_selected_variant()
+    if not v: return
+    new = simpledialog.askstring("Rename Variant", f"New name for '{v}':", parent=self)
+    if not new: return
+    from Data import config as C
+    C.rename_variant(v, new)
+    self.refresh_collections_panel()
+
+def _collections_duplicate(self):
+    v = self._collections_get_selected_variant()
+    if not v: return
+    new = simpledialog.askstring("Duplicate Variant", f"Duplicate '{v}' to:", parent=self)
+    if not new: return
+    from Data import config as C
+    C.duplicate_variant(v, new)
+    self.refresh_collections_panel()
+
+def _collections_delete(self):
+    v = self._collections_get_selected_variant()
+    if not v: return
+    if messagebox.askyesno("Delete Variant", f"Delete '{v}' (model+training profile)?"):
+        from Data import config as C
+        C.delete_variant(v)
+        self.refresh_collections_panel()
+```
+
+### Validation
+
+* Create two variants (coder/researcher).
+* Filter by “code”.
+* Rename one, duplicate it, delete the duplicate.
+* Ensure Training opens via context menu or double-click.
+
+**Commit**
+
+```bash
+git add Data/config.py Data/tabs/models_tab/models_tab.py
+git commit -m "WO-6f: Collections 2.0 (group, search, rename/dup/delete, context menu)"
+```
+
+---
+
+# WO-6g — Stats/Skills Linkage to Variants
+
+**Goal:** When picking a variant, Models tab Stats/Skills load that variant’s latest results.
+
+### Files to touch
+
+* `Data/training_engine.py`
+* `Data/tabs/models_tab/models_tab.py`
+* (If needed) `Data/Stats/` directory writer/reader
+
+### Write sidecar stats keyed by variant
+
+```python
+# Data/training_engine.py
+import json, time, os
+from pathlib import Path
+
+def _write_variant_stats(variant_id:str, summary:dict):
+    Path("Data/Stats").mkdir(parents=True, exist_ok=True)
+    out = {
+        "variant_id": variant_id,
+        "summary": summary,
+        "ts": time.time()
+    }
+    with open(f"Data/Stats/{variant_id}.json", "w", encoding="utf-8") as f:
+        json.dump(out, f, indent=2)
+
+# Call _write_variant_stats at end of a run with your computed summary
+```
+
+### Reader + UI refresh
+
+```python
+# Data/tabs/models_tab/models_tab.py
+import json, glob, os
+
+def refresh_variant_stats(self, variant_id:str):
+    try:
+        p = f"Data/Stats/{variant_id}.json"
+        if not os.path.exists(p):
+            # clear panels if you have text widgets:
+            if hasattr(self, "stats_text"):
+                self.stats_text.config(state=tk.NORMAL); self.stats_text.delete(1.0, tk.END); self.stats_text.config(state=tk.DISABLED)
+            return
+        data = json.load(open(p, "r", encoding="utf-8"))
+        # Example simple text dump:
+        if hasattr(self, "stats_text"):
+            self.stats_text.config(state=tk.NORMAL)
+            self.stats_text.delete(1.0, tk.END)
+            self.stats_text.insert(tk.END, json.dumps(data.get("summary", {}), indent=2))
+            self.stats_text.config(state=tk.DISABLED)
+    except Exception as e:
+        print("[ModelsTab] refresh_variant_stats error:", e)
+
+# Ensure _on_collection_pick calls refresh_variant_stats(variant)
+```
+
+### Validation
+
+* Drop a dummy `Data/Stats/Qwen2.5-0.5b_coder.json` with `{summary:{…}}`
+* Pick that variant → stats panel shows summary.
+
+**Commit**
+
+```bash
+git add Data/training_engine.py Data/tabs/models_tab/models_tab.py
+git commit -m "WO-6g: Variant-linked Stats/Skills (write + read + UI refresh)"
+```
+
+---
+
+# WO-6h — Badges/Colors + GGUF Linkage (visual + metadata)
+
+**Goal:** Variants carry **badges** and a **color**, and their exported GGUF/Ollama counterparts are visually marked and linked back.
+
+### Files to touch
+
+* `Data/config.py`
+* `Data/training_engine.py` (export path)
+* `Data/tabs/models_tab/models_tab.py`
+
+### Config defaults + helpers (if not already)
+
+```python
+# Data/config.py
+def _normalize_model_profile_defaults(out):
+    out.setdefault("assigned_type", "")
+    out.setdefault("class_level", "novice")
+    out.setdefault("badges", [])
+    out.setdefault("color", "")
+    return out
+
+def get_variant_badge_color(variant_id:str):
+    mp = load_model_profile(variant_id) or {}
+    return (mp.get("badges", []) or []), (mp.get("color") or "")
+
+# Update save path if needed to persist badges/colors when Type Plan applies
+```
+
+### Write GGUF/adapter sidecar for linkage
+
+```python
+# Data/training_engine.py  (where GGUF or adapter files are produced)
+def _write_variant_sidecar(out_path:str, variant_id:str, base_model:str, type_id:str, class_level:str, badges:list[str], color:str):
+    meta = {
+        "variant_id": variant_id,
+        "base_model": base_model,
+        "assigned_type": type_id,
+        "class_level": class_level,
+        "badges": badges,
+        "color": color,
+        "ts": time.time()
+    }
+    with open(out_path + ".variant.json", "w", encoding="utf-8") as f:
+        json.dump(meta, f, indent=2)
+```
+
+Call this after export, passing values from the active training/profile.
+
+### Display markers in Collections (lightweight)
+
+* We’ll keep Listbox for now and prefix with emoji badges (e.g., `🏷️`, `🔧`, `🧪`) and a color dot if provided:
+
+```python
+# In refresh_collections_panel() while building label:
+badges, color = C.get_variant_badge_color(v)
+dot = "●" if color else ""
+label = f"  • {v}  [{t} | {cls}]  {dot} {' '.join(badges)}"
+```
+
+(If you later move to `ttk.Treeview`, we can tag rows with background color.)
+
+### Validation
+
+* Edit a model profile to include `"badges": ["RAG","LoRA"]`, `"color":"#5ac8fa"`.
+* Ensure Collections line shows `● RAG LoRA` after the bracket.
+
+**Commit**
+
+```bash
+git add Data/config.py Data/training_engine.py Data/tabs/models_tab/models_tab.py
+git commit -m "WO-6h: Variant badges/colors + GGUF/adapter sidecar linkage"
+```
+
+---
+
+# WO-6i — Event/Refresh Semantics & Apply Button Guardrails
+
+**Goal:**
+
+* Types panel only enables **Apply** after base model is selected.
+* Variant name auto-prefill updates on **model or type** change unless the user manually edited it (dirty flag).
+* Robust event emission across tabs.
+
+### Files to touch
+
+* `Data/tabs/models_tab/types_panel.py`
+* `Data/tabs/models_tab/models_tab.py`
+
+### TypesPanel guards
+
+```python
+# Data/tabs/models_tab/types_panel.py
+self._variant_dirty = False
+
+# When user types in "Variant Name" entry:
+self.name_entry.bind("<Key>", lambda _e: setattr(self, "_variant_dirty", True))
+
+def _prefill_variant_name(self, base_model:str, type_id:str):
+    if self._variant_dirty:  # do not overwrite manual edits
+        return
+    try:
+        from Data import config
+        if hasattr(config, "derive_variant_name"):
+            vid = config.derive_variant_name(base_model, type_id)
+        else:
+            vid = f"{(base_model or '').replace(' ','_').replace('-Instruct','')}_{type_id}"
+        self.name_var.set(vid)
+    except Exception:
+        pass
+
+# Disable Apply button if base model empty
+def _update_apply_state(self):
+    has_base = bool(self.base_model_var.get() or "").strip()
+    has_type = bool(self.selected_type.get() or "").strip()
+    state = (tk.NORMAL if (has_base and has_type) else tk.DISABLED)
+    if hasattr(self, "apply_btn"):
+        self.apply_btn.config(state=state)
+
+# Call _update_apply_state() wherever base/type changes
+```
+
+### ModelsTab event: make sure `<<ModelSelected>>` is always sent with payload
+
+(You already did; just ensure no undefined `payload` and send to `panel_types`)
+
+### Validation
+
+* Without selecting base model, Apply is disabled.
+* Select base → selecting a type auto-prefills variant unless edited.
+* Switching type or base updates the suggestion while clean.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/types_panel.py Data/tabs/models_tab/models_tab.py
+git commit -m "WO-6i: Event/refresh semantics; Apply button guardrails; variant dirty flag"
+```
+
+---
+
+# WO-6j — Persist UI State (expand/collapse + last picks)
+
+**Goal:** Remember right-pane expand/collapse states, last base model, and last variant across sessions.
+
+### Files to touch
+
+* `Data/settings.json` (data)
+* `Data/interactive_trainer_gui_NEW.py` (load/save on startup/shutdown)
+* `Data/tabs/models_tab/models_tab.py` (read/apply state)
+
+### Add helpers (settings IO)
+
+```python
+# Data/config.py (or a small settings util)
+import json, os
+SETTINGS_PATH = "Data/settings.json"
+
+def load_ui_state():
+    try:
+        data = json.load(open(SETTINGS_PATH, "r", encoding="utf-8"))
+        return data.get("ui_state", {})
+    except Exception:
+        return {}
+
+def save_ui_state(state:dict):
+    try:
+        data = json.load(open(SETTINGS_PATH, "r", encoding="utf-8")) if os.path.exists(SETTINGS_PATH) else {}
+        data["ui_state"] = state
+        json.dump(data, open(SETTINGS_PATH, "w", encoding="utf-8"), indent=2)
+    except Exception as e:
+        print("[Settings] save_ui_state error:", e)
+```
+
+### Apply on UI build / save on exit
+
+* In ModelsTab `create_ui()`, read `state = C.load_ui_state().get("models_tab", {})` and set:
+
+  * section expanded vars,
+  * rebuild selections,
+  * if `last_variant` exists, call `self._select_collection_by_name(...)` → relay to Training.
+
+* On exit (in `interactive_trainer_gui_NEW.py` before mainloop ends or window close handler), gather:
+
+  * expanded flags (base, ollama, collections),
+  * last chosen base model,
+  * last chosen variant,
+  * write via `save_ui_state({"models_tab": {...}})`.
+
+### Validation
+
+* Collapse/expand some sections; pick a variant; restart app; state restored.
+
+**Commit**
+
+```bash
+git add Data/config.py Data/interactive_trainer_gui_NEW.py Data/tabs/models_tab/models_tab.py Data/settings.json
+git commit -m "WO-6j: Persist UI state (expansion + last base/variant)"
+```
+
+---
+
+## Optional final smoke (batch)
+
+```bash
+python3 - <<'PY'
+from Data import config as C
+# Profiles present?
+profiles = C.list_model_profiles()
+print("Profiles:", [p.get("variant_id") for p in profiles])
+# Settings roundtrip
+state = {"models_tab":{"collections_expanded": True, "last_variant":"Qwen2.5-0.5b_coder"}}
+C.save_ui_state(state)
+r = C.load_ui_state()
+assert r.get("models_tab",{}).get("last_variant")=="Qwen2.5-0.5b_coder"
+print("✅ UI state roundtrip OK")
+PY
+```
+
+---------------------------------------------
+---------------------------------------------
+
+
+
+
+
+
+

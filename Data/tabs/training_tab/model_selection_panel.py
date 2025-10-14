@@ -242,3 +242,16 @@ class ModelSelectionPanel: # Renamed class
         return {
             "model_name": self.base_model_var.get() # Use the local base_model_var
         }
+
+    def set_base_model(self, model_name: str):
+        """Programmatically set the base model and refresh dependent displays."""
+        try:
+            if model_name:
+                self.base_model_var.set(model_name)
+                # Refresh info block
+                self.display_model_info()
+                # Update Runner panel label if available
+                if getattr(self, 'training_tab_instance', None) and hasattr(self.training_tab_instance, 'runner_panel'):
+                    self.training_tab_instance.runner_panel.update_training_model_display()
+        except Exception as e:
+            logger_util.log_message(f"MODEL_SELECT: set_base_model error: {e}")

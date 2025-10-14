@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
+# [SYSTEM: GUI | VERSION: 1.9f | STATUS: LEGACY]
+"""
+LEGACY LAUNCHER
+This file is kept for archival compatibility. Do not use for daily runs.
+Active launcher: Data/interactive_trainer_gui_NEW.py
+"""
 """
 Interactive Training Launcher - Full GUI
 Visual graphical interface for selecting training datasets

@@ -6,7 +6,7 @@ repo_id: "TravelingMerchant-glitch/LLM-Learning-Engine-Gui"
 system_mode: "GUI"
 active_version: "1.9f"
 build_date: "2025-10-12"
-entry_point: "Data/interactive_trainer_gui.py"
+entry_point: "Data/interactive_trainer_gui_NEW.py"
 description: >
   A Tkinter-based GUI system for fine-tuning, evaluating, and managing
   small LLMs using OpenCode integration. Legacy TUI systems are preserved

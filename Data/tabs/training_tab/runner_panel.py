@@ -59,6 +59,9 @@ class RunnerPanel:
         # Evaluation automation
         self.auto_eval_baseline_var = tk.BooleanVar(value=False)
         self.auto_eval_post_var = tk.BooleanVar(value=False)
+        # WO-6o: Type Plan overrides toggle
+        self.use_plan_overrides_var = tk.BooleanVar(value=True)
+        self._plan_settings = {}
             
         # Core Training Parameters (moved from ConfigPanel)
         self.num_epochs_var = tk.IntVar(value=3)
@@ -268,6 +271,17 @@ class RunnerPanel:
         self.stop_button.pack(fill=tk.X, padx=10, pady=5)
         ttk.Button(actions_section, text="🗑️ Clear Output", command=self.clear_runner_output, style='Select.TButton').pack(fill=tk.X, padx=10, pady=5)
 
+        # WO-6o: Type Plan overrides toggle
+        plan_section = ttk.LabelFrame(controls_frame, text="🧩 Type Plan Overrides", style='TLabelframe')
+        plan_section.grid(row=current_row, column=0, sticky=tk.EW, padx=5, pady=5); current_row += 1
+        def _on_toggle():
+            try:
+                if self.use_plan_overrides_var.get() and self._plan_settings:
+                    self.load_settings(self._plan_settings)
+            except Exception:
+                pass
+        ttk.Checkbutton(plan_section, text="Use Type Plan overrides", variable=self.use_plan_overrides_var, style='Category.TCheckbutton', command=_on_toggle).pack(padx=10, pady=6, anchor=tk.W)
+
         status_section = ttk.LabelFrame(controls_frame, text="📊 Status", style='TLabelframe')
         status_section.grid(row=current_row, column=0, sticky=tk.EW, padx=5, pady=10); current_row += 1
         self.runner_status_label = ttk.Label(status_section, text="⚪ Idle", style='Config.TLabel')
@@ -386,6 +400,43 @@ class RunnerPanel:
             self.baseline_status_label.config(text=f"Active baseline: {p.name}")
         else:
             self.baseline_status_label.config(text="Active baseline: None")
+
+    def _basename(self, p: str) -> str:
+        import os
+        return os.path.basename(p or "")
+
+    def load_scripts(self, script_paths: list[str]):
+        """
+        Tick script checkboxes by basename.
+        Expects self.script_vars: {category: {basename: tk.BooleanVar}}
+        """
+        try:
+            names = set(self._basename(p) for p in (script_paths or []))
+            for cat, varmap in getattr(self, "script_vars", {}).items():
+                for name, var in varmap.items():
+                    var.set(name in names)
+        except Exception:
+            pass
+
+    def load_settings(self, settings: dict):
+        """
+        Apply runner settings if the widget exposes .set(value).
+        """
+        try:
+            st = settings or {}
+            # Store plan settings for reapplication on toggle
+            self._plan_settings = dict(st)
+            if not self.use_plan_overrides_var.get():
+                return
+            for key, value in st.items():
+                w = getattr(self, key, None)
+                if hasattr(w, "set"):
+                    try:
+                        w.set(value)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
 
     def _view_active_baseline_summary(self):
         """Dump a concise summary of the active baseline (overall + per-skill) into runner output."""

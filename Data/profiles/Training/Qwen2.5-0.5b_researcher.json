@@ -1,9 +1,8 @@
 {
   "base_model": "Qwen2.5-0.5b-Instruct",
-  "assigned_type": "coder",
+  "assigned_type": "researcher",
   "selected_scripts": [
-    "recipes/coder/lora_code_instruct.json",
-    "recipes/coder/unit_test_aug.json"
+    "recipes/researcher/lora_rag_instruct.json"
   ],
   "selected_prompts": [],
   "selected_schemas": [],
@@ -23,7 +22,6 @@
     "use_tool_schema": true
   },
   "evals_plan": [
-    "evals/coder/smoke",
-    "evals/coder/regression"
+    "evals/researcher/smoke"
   ]
 }

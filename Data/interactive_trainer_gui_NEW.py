@@ -165,6 +165,13 @@ class TrainingGUI:
         )
         title_label.pack(pady=20)
 
+        # Show which launcher is active to avoid confusion (NEW)
+        try:
+            sub = ttk.Label(header, text="Launcher: NEW (v1.9f)", style='Config.TLabel')
+            sub.pack(pady=(0,6))
+        except Exception:
+            pass
+
         # Main content area - Notebook (tabs)
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)

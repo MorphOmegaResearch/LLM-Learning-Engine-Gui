@@ -28,6 +28,7 @@ PROMPTBOX_DIR = TRAINING_DATA_DIR / "PromptBox"
 EXPORTS_DIR = DATA_DIR / "exports"
 PROFILES_DIR = DATA_DIR / "profiles" # New: Profiles directory
 TOOL_PROFILES_DIR = PROFILES_DIR / "Tools"
+OLLAMA_ASSIGNMENTS_PATH = DATA_DIR / "ollama_assignments.json"
 
 # L8 FIX: Sandbox directory for tool execution
 THE_SANDBOX_DIR = TRAINER_ROOT / "The_SandBox"
@@ -2033,6 +2034,134 @@ def list_model_profiles() -> list[dict]:
     return out
 
 
+def get_variant_class(variant_id: str) -> str:
+    """Return the class level for a stored Model Profile variant, defaulting to 'novice'."""
+    try:
+        mp = load_model_profile(variant_id) or {}
+        # Accept legacy keys if present
+        return (mp.get("class_level") or mp.get("class") or "novice")
+    except Exception:
+        return "novice"
+
+
+# --- WO-6f: Variant management helpers (rename/duplicate/delete) ---
+import shutil as _shutil
+
+def _mp_path(variant_id: str) -> Path:
+    return Path(MODEL_PROFILES_DIR) / f"{variant_id}.json"
+
+def _tp_path(variant_id: str) -> Path:
+    return Path(TRAINING_PROFILES_DIR) / f"{variant_id}.json"
+
+def rename_variant(old: str, new: str):
+    for getter in (_mp_path, _tp_path):
+        p_old, p_new = getter(old), getter(new)
+        if p_old.exists():
+            p_new.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(p_old, p_new)
+
+def duplicate_variant(src: str, dst: str):
+    for getter in (_mp_path, _tp_path):
+        p_src, p_dst = getter(src), getter(dst)
+        if p_src.exists():
+            p_dst.parent.mkdir(parents=True, exist_ok=True)
+            _shutil.copy2(p_src, p_dst)
+
+def delete_variant(variant_id: str):
+    for getter in (_mp_path, _tp_path):
+        p = getter(variant_id)
+        if p.exists():
+            p.unlink()
+
+
+# WO-6m: Unified training profiles list (legacy + type)
+def list_legacy_training_profiles() -> list[dict]:
+    try:
+        return [{"id": p.stem, "kind": "legacy"} for p in PROFILES_DIR.glob("*.json") if p.name != "settings.json"]
+    except Exception:
+        return []
+
+def list_type_training_profiles() -> list[dict]:
+    try:
+        return [{"id": p.stem, "kind": "type"} for p in TRAINING_PROFILES_DIR.glob("*.json")]
+    except Exception:
+        return []
+
+def list_all_training_profiles() -> list[dict]:
+    return list_legacy_training_profiles() + list_type_training_profiles()
+
+
+# WO-6s: Variant visual properties
+def update_variant_visuals(variant_id: str, badges: list[str], color: str):
+    mp = load_model_profile(variant_id) or {}
+    mp["badges"] = list(badges or [])
+    mp["color"] = color or ""
+    save_model_profile(variant_id, mp)
+
+
+# WO-6z: Variant stats path helper
+def get_variant_stats_path(variant_id: str) -> str:
+    p = DATA_DIR / "Stats" / f"{variant_id}.json"
+    return str(p) if p.exists() else ""
+
+# --- Ollama assignments (variant -> list of ollama tags) ---
+def load_ollama_assignments() -> dict:
+    try:
+        if OLLAMA_ASSIGNMENTS_PATH.exists():
+            with open(OLLAMA_ASSIGNMENTS_PATH, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+def save_ollama_assignments(data: dict):
+    try:
+        with open(OLLAMA_ASSIGNMENTS_PATH, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print("[config] save_ollama_assignments error:", e)
+
+def add_ollama_assignment(variant_id: str, tag: str):
+    data = load_ollama_assignments()
+    lst = data.get(variant_id) or []
+    if tag not in lst:
+        lst.append(tag)
+    data[variant_id] = lst
+    save_ollama_assignments(data)
+
+def list_assigned_ollama_tags() -> set:
+    data = load_ollama_assignments() or {}
+    out = set()
+    for tags in data.values():
+        for t in (tags or []):
+            out.add(t)
+    return out
+
+
+# --- WO-6j: UI state persistence helpers ---
+SETTINGS_PATH = DATA_DIR / "settings.json"
+
+def load_ui_state() -> dict:
+    try:
+        with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("ui_state", {})
+    except Exception:
+        return {}
+
+def save_ui_state(state: dict):
+    try:
+        data = {}
+        if SETTINGS_PATH.exists():
+            with open(SETTINGS_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        data["ui_state"] = state
+        with open(SETTINGS_PATH, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print("[Settings] save_ui_state error:", e)
+
+
 
 def _profile_path(name: str) -> Path:
     safe = name.strip().replace(os.sep, "_")
@@ -2092,8 +2221,16 @@ TYPE_CATALOG_SCHEMA_PATH = _Path("Data/Schemas/type_catalog.schema.json")
 MODEL_PROFILE_SCHEMA_PATH = _Path("Data/Schemas/model_profile.schema.json")
 
 def _read_json(_p: _Path):
-    with open(_p, "r", encoding="utf-8") as f:
-        return _json.load(f)
+    """Robust JSON reader: returns {} on error and prints a concise warning."""
+    try:
+        with open(_p, "r", encoding="utf-8") as f:
+            return _json.load(f)
+    except Exception as e:
+        try:
+            print(f"[config] JSON read failed: {_p} — {e}")
+        except Exception:
+            pass
+        return {}
 
 def _maybe_validate(instance: dict, schema_path: _Path, *, what: str):
     """
@@ -2116,8 +2253,12 @@ def load_type_catalog() -> dict:
     Load the authoritative Type Catalog and (optionally) validate against schema.
     Returns the catalog dict: { 'types': [...], 'legend': {...} }.
     """
-    catalog = _read_json(TYPE_CATALOG_PATH)
-    _maybe_validate(catalog, TYPE_CATALOG_SCHEMA_PATH, what="Type Catalog")
+    catalog = _read_json(TYPE_CATALOG_PATH) or {}
+    try:
+        _maybe_validate(catalog, TYPE_CATALOG_SCHEMA_PATH, what="Type Catalog")
+    except Exception as e:
+        # Harden: validation errors shouldn't crash runtime; log only
+        print(f"[config] Type Catalog validation warning: {e}")
     return catalog
 
 def list_types() -> list[str]:

@@ -1,0 +1,1289 @@
+# WO-7a — “Reload Profiles” Buttons (no restart)
+
+**Goal**
+Manual refresh for Collections & Training Profile dropdown.
+
+**Files**
+
+* `Data/tabs/models_tab/models_tab.py`
+* `Data/tabs/training_tab/profiles_panel.py`
+
+**Edits**
+
+1. In ModelsTab header for Collections, add:
+
+```python
+ttk.Button(self.collections_toggle_frame, text="Reload",
+           command=self.refresh_collections_panel).pack(side=tk.RIGHT, padx=4)
+```
+
+2. In Training profiles header (owner of the dropdown), add:
+
+```python
+ttk.Button(header_frame, text="Reload",
+           command=self.refresh_profiles_dropdown).pack(side=tk.RIGHT, padx=4)
+```
+
+**Validate**
+
+* Click “Reload” in either place → lists refresh without relaunch.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/models_tab.py Data/tabs/training_tab/profiles_panel.py
+git commit -m "WO-7a: Reload buttons for Collections and Training Profiles"
+```
+
+---
+
+# WO-7b — TypesPanel Post-Apply UX + Training Relay
+
+**Goal**
+After Apply: keep suggested variant name synced, clear dirty state, relay to Training immediately, and refresh Collections.
+
+**Files**
+
+* `Data/tabs/models_tab/types_panel.py`
+* `Data/tabs/models_tab/models_tab.py`
+
+**Edits**
+In `types_panel.py` after successful save/upsert:
+
+```python
+# keep suggestion sane
+self._prefill_variant_name(self.base_model_var.get(), self._current_type_id)
+self._dirty = False  # if present
+
+# notify others
+import json
+payload = json.dumps({"variant_id": self.name_var.get()})
+self.event_generate("<<ProfilesChanged>>", data=payload, when="tail")
+self.event_generate("<<VariantApplied>>", data=payload, when="tail")
+```
+
+In `models_tab.py::create_ui()`:
+
+```python
+self.bind("<<ProfilesChanged>>", lambda e: self.refresh_collections_panel())
+self.bind("<<VariantApplied>>",  lambda e: self.refresh_collections_panel())
+```
+
+Also relay to Training on `<<VariantApplied>>`:
+
+```python
+def _on_variant_applied(self, event=None):
+    import json
+    vid = ""
+    try:
+        if event and getattr(event, "data", ""):
+            vid = json.loads(event.data).get("variant_id","")
+    except Exception:
+        pass
+    tt = self.get_training_tab()
+    if vid and tt and hasattr(tt, "apply_plan"):
+        self.root.after(50, lambda: tt.apply_plan(variant_id=vid))
+self.bind("<<VariantApplied>>", self._on_variant_applied)
+```
+
+**Validate**
+
+* Apply in Types → Training hydrates and Collections refreshes instantly.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/types_panel.py Data/tabs/models_tab/models_tab.py
+git commit -m "WO-7b: Types post-apply prefill, relay to Training, refresh Collections"
+```
+
+---
+
+# WO-7c — Collections Toggle Initial-State Consistency
+
+**Goal**
+Initial collapsed/expanded visuals match the arrow; toggle only flips state.
+
+**Files**
+
+* `Data/tabs/models_tab/models_tab.py`
+
+**Edits**
+On build:
+
+```python
+if self.collections_expanded.get():
+    self.collections_toggle_btn.config(text="▼")
+    self.collections_canvas.grid(row=6, column=0, sticky=tk.NSEW)
+    self.collections_scrollbar.grid(row=6, column=1, sticky=tk.NS)
+else:
+    self.collections_toggle_btn.config(text="▶")
+    # not gridded initially
+```
+
+In `_toggle_collections_group` just mirror this logic (no extra side-effects).
+
+**Validate**
+
+* Launch → visual matches arrow; toggling flips correctly.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/models_tab.py
+git commit -m "WO-7c: Collections toggle initial-state fixed"
+```
+
+---
+
+# WO-7d — Docs: Type→Variant Pipeline + Debug
+
+**Goal**
+Document workflow & quick debugging.
+
+**Files**
+
+* `start-here.md`
+
+**Edits**
+Add section “Type Training Quickstart”:
+
+* **Models ▸ Types**: select base, pick type, Apply → creates Model/Training profiles.
+* **Models ▸ Collections**: pick variant to rehydrate Training.
+* **Training**: runner/ prompts/ schemas / settings hydrate from profile.
+* **Debug**: `TRAINER_DEBUG=1` (and where logs are written).
+
+**Commit**
+
+```bash
+git add start-here.md
+git commit -m "WO-7d: Document Type→Variant workflow and debug tips"
+```
+
+---
+
+# WO-7e — Unified Sidebar Scroll (One Scrollbar for All Sections)
+
+**Goal**
+Replace per-section scrollbars with a single scrollbar controlling the sidebar stack (Available/Base, Ollama, Collections). Headers stay fixed; bodies expand/collapse and shift naturally.
+
+**Files**
+
+* `Data/tabs/models_tab/models_tab.py`
+
+**Edits**
+
+1. Create a unified scroll area in `create_ui()`:
+
+```python
+# Replace individual canvases with one master canvas
+sidebar = ttk.Frame(main_split_left)  # wherever current left stack is
+sidebar.grid(row=0, column=0, sticky=tk.NSEW)
+sidebar.columnconfigure(0, weight=1); sidebar.rowconfigure(0, weight=1)
+
+master_canvas = tk.Canvas(sidebar, bg="#2b2b2b", highlightthickness=0)
+master_sb     = ttk.Scrollbar(sidebar, orient=tk.VERTICAL, command=master_canvas.yview)
+stack_frame   = ttk.Frame(master_canvas)
+
+master_canvas.create_window((0,0), window=stack_frame, anchor="nw")
+master_canvas.configure(yscrollcommand=master_sb.set)
+master_canvas.grid(row=0, column=0, sticky=tk.NSEW)
+master_sb.grid(row=0, column=1, sticky=tk.NS)
+
+def _resize(_e=None):
+    master_canvas.configure(scrollregion=master_canvas.bbox("all"))
+    master_canvas.itemconfig(1, width=master_canvas.winfo_width())
+
+stack_frame.bind("<Configure>", _resize)
+```
+
+2. Move existing sections (Base/Available, Ollama, Collections) into `stack_frame` as:
+
+```python
+def make_section(parent, title, expanded_var: tk.BooleanVar):
+    hdr = ttk.Frame(parent); hdr.pack(fill=tk.X, pady=(10,2))
+    btn = ttk.Button(hdr, width=2, text="▼" if expanded_var.get() else "▶")
+    btn.pack(side=tk.LEFT, padx=(0,6))
+    ttk.Label(hdr, text=title, style='CategoryPanel.TLabel').pack(side=tk.LEFT)
+
+    body = ttk.Frame(parent); 
+    if expanded_var.get():
+        body.pack(fill=tk.BOTH, expand=True)
+    def _toggle():
+        if expanded_var.get():
+            # collapse
+            for w in list(body.pack_slaves()):
+                pass
+            body.forget()
+            expanded_var.set(False)
+            btn.config(text="▶")
+        else:
+            body.pack(fill=tk.BOTH, expand=True)
+            expanded_var.set(True)
+            btn.config(text="▼")
+        _resize()
+    btn.config(command=_toggle)
+    return hdr, body
+```
+
+3. Rebuild three sections:
+
+```python
+hdr1, body1 = make_section(stack_frame, "🧠 Base Models (PyTorch)", self.base_expanded)
+hdr2, body2 = make_section(stack_frame, "🐪 Ollama Models (GGUF)", self.ollama_expanded)
+hdr3, body3 = make_section(stack_frame, "📚 Collections",         self.collections_expanded)
+```
+
+4. Place existing lists into `body1/body2/body3` (no internal canvases/scrollbars).
+
+**Validate**
+
+* All sections share one scrollbar; collapse/expand reflows correctly.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/models_tab.py
+git commit -m "WO-7e: Unified sidebar scroll with stacked sections"
+```
+
+---
+
+# WO-7f — Variant Prefill Without Relaunch (Event Coverage)
+
+**Goal**
+Ensure TypesPanel prefill updates immediately on base model selection, tab switches, and initial render.
+
+**Files**
+
+* `Data/tabs/models_tab/models_tab.py`
+* `Data/tabs/models_tab/types_panel.py`
+
+**Edits**
+
+1. Emit to both the panel **and its parent notebook**:
+
+```python
+# after building payload in display_model_info*
+if getattr(self, "panel_types", None):
+    self.panel_types.event_generate("<<ModelSelected>>", data=payload, when="tail")
+if getattr(self, "model_info_notebook", None):
+    self.model_info_notebook.event_generate("<<ModelSelected>>", data=payload, when="tail")
+```
+
+2. In `TypesPanel.__init__` add broader binds:
+
+```python
+self.bind("<<ModelSelected>>", self._on_model_selected)
+self.master.bind("<<ModelSelected>>", self._on_model_selected)  # parent frame
+self.after(0, lambda: self._prefill_variant_name(self.base_model_var.get(), self._current_type_id or (self.type_ids[0] if self.type_ids else "")))
+```
+
+**Validate**
+
+* Selecting base model updates Variant Name instantly; switching back to Types tab still shows correct suggestion.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/models_tab.py Data/tabs/models_tab/types_panel.py
+git commit -m "WO-7f: Ensure variant name prefill reacts immediately via wider event coverage"
+```
+
+---
+
+# WO-7g — Adapter↔Variant Linkage in Training Artifacts
+
+**Goal**
+Every training run records `variant_id`, `type_id`, `base_model` in outputs, enabling badges, filtering, and lineage.
+
+**Files**
+
+* `Data/training_engine.py` (or the runner that writes adapters)
+* `Data/config.py` (helper)
+
+**Edits**
+
+1. In `config.py` helper:
+
+```python
+def get_active_variant_meta(variant_id:str)->dict:
+    mp = load_model_profile(variant_id) or {}
+    tp = load_training_profile(variant_id) or {}
+    return {
+        "variant_id": variant_id,
+        "base_model": mp.get("base_model",""),
+        "type_id":    mp.get("assigned_type") or mp.get("type_id",""),
+        "class_level": tp.get("class_level") or tp.get("runner_settings",{}).get("class_level",""),
+    }
+```
+
+2. In `training_engine.py` when creating run dir / saving adapter:
+
+* Inject variant metadata file (e.g., `variant_meta.json`):
+
+```python
+from Data import config as C
+meta = {}
+try:
+    vid = getattr(self, "active_trainee_name", "") or kwargs.get("variant_id","")
+    if vid:
+        meta = C.get_active_variant_meta(vid)
+        with open(os.path.join(run_dir, "variant_meta.json"), "w", encoding="utf-8") as f:
+            json.dump(meta, f, indent=2)
+except Exception as e:
+    print("[Training] warn: variant meta write failed", e)
+```
+
+* Optionally include `variant_id` in filename postfix:
+  `trained_adapter_{base_short}_{type_id}_{timestamp}.bin`
+
+**Validate**
+
+* After training, run dir contains `variant_meta.json` with expected fields; filenames include type/variant when configured.
+
+**Commit**
+
+```bash
+git add Data/training_engine.py Data/config.py
+git commit -m "WO-7g: Persist variant/type/base metadata with training artifacts"
+```
+
+---
+
+# WO-7h — Type Badges + Color Map
+
+**Goal**
+Visual badges for type/class in Collections and Overview.
+
+**Files**
+
+* `Data/config.py`
+* `Data/tabs/models_tab/models_tab.py`
+
+**Edits**
+
+1. In `config.py` add a small map + helper:
+
+```python
+TYPE_BADGE_MAP = {
+    "coder":      {"abbr":"COD","emoji":"🧩","color":"#4FC3F7"},
+    "researcher": {"abbr":"RES","emoji":"🔬","color":"#FBC02D"},
+    # extend…
+}
+def get_type_badge(type_id:str, class_level:str="")->dict:
+    m = TYPE_BADGE_MAP.get((type_id or "").lower(), {"abbr":type_id[:3].upper(),"emoji":"🏷","color":"#90A4AE"})
+    m = dict(m)  # copy
+    if class_level:
+        m["abbr"] = f"{m['abbr']}-{class_level[:3].upper()}"
+    return m
+```
+
+2. In `models_tab.py::refresh_collections_panel()`:
+
+```python
+meta = C.get_variant_display_meta(vid)
+badge = C.get_type_badge(meta.get("type_id",""), meta.get("class_level",""))
+label = f"{meta['base_model']} ▸ {vid}  [{badge['emoji']} {badge['abbr']}]"
+self.collections_list.insert(tk.END, label)
+```
+
+3. (Optional) For Overview, show a colored label:
+
+```python
+style_name = f"TypeBadge_{badge['abbr']}.TLabel"
+try:
+    self.style.configure(style_name, foreground=badge["color"])
+except Exception: pass
+ttk.Label(some_overview_frame, text=f"{badge['emoji']} {badge['abbr']}", style=style_name).pack(...)
+```
+
+**Validate**
+
+* Collections entries show emoji + short badge; Overview shows colored badge.
+
+**Commit**
+
+```bash
+git add Data/config.py Data/tabs/models_tab/models_tab.py
+git commit -m "WO-7h: Type badge + color rendering in Collections/Overview"
+```
+
+---
+
+# WO-7i — Training Launch Consumes Variant (Runner)
+
+**Goal**
+Runner passes the selected `variant_id` to the engine so artifacts and settings are consistent.
+
+**Files**
+
+* `Data/tabs/training_tab/training_tab.py`
+* `Data/training_engine.py` (or the launcher)
+
+**Edits**
+
+1. In `training_tab.py`, when user clicks Start:
+
+```python
+variant = getattr(self, "active_trainee_name", "") or ""
+kwargs["variant_id"] = variant
+# pass kwargs into engine start call
+```
+
+2. In the engine’s entry point (if not already), accept `variant_id` and keep it on `self` so WO-7g can write metadata.
+
+**Validate**
+
+* Launch training after applying a plan → engine receives `variant_id` (log it).
+
+**Commit**
+
+```bash
+git add Data/tabs/training_tab/training_tab.py Data/training_engine.py
+git commit -m "WO-7i: Runner passes variant_id through to training engine"
+```
+
+---
+
+# WO-7j — Smoke Tests & Quick QA Hooks
+
+**Goal**
+Scripted checks for the Type→Variant→Training pipeline + UI refreshes.
+
+**Files**
+
+* `wo7_smoke.py` (repo root)
+
+**Content**
+
+```python
+from Data import config as C
+vid = "Qwen2.5-0.5b_coder"
+base = "Qwen2.5-0.5b-Instruct"
+
+# Seed profiles
+C.save_model_profile(vid, {"trainee_name": vid, "base_model": base, "assigned_type":"coder"})
+C.upsert_training_profile_for_model(vid, base, "coder")
+
+# Collections list
+items = C.list_model_profiles()
+assert any(i.get("variant_id")==vid for i in items), "variant missing in collections"
+
+# Display meta + badge
+meta = C.get_variant_display_meta(vid); assert meta["base_model"]==base
+badge = C.get_type_badge(meta["type_id"], meta.get("class_level","")); assert "color" in badge
+
+print("WO-7 smoke OK")
+```
+
+**Run**
+
+```bash
+python3 wo7_smoke.py
+```
+
+**Commit**
+
+```bash
+git add wo7_smoke.py
+git commit -m "WO-7j: Smoke test for Type→Variant pipeline"
+```
+
+---
+
+### Roll-up command (optional)
+
+When done implementing each WO, you can also squash:
+
+```bash
+git push -u origin <your-branch>
+```
+
+---
+
+# WO-7j — Smoke Tests & Quick QA Hooks (already shared)
+
+*(Included here only for continuity; skip if you already applied.)*
+
+---
+
+# WO-7k — Fix `<<ModelSelected>>` payload + add display meta helper
+
+**Goal**
+Stop the undefined `payload` bug on model selection and provide a single source of truth for variant display meta (base_model, type_id, class_level).
+
+**Files**
+
+* `Data/tabs/models_tab/models_tab.py`
+* `Data/config.py`
+
+**Edits (config.py)** — add helper (used later by Collections, badges, etc.):
+
+```python
+# --- WO-7k: display meta helper ---------------------------------------
+def get_variant_display_meta(variant_id: str) -> dict:
+    """Return {variant_id, base_model, type_id, class_level} for UI."""
+    mp = load_model_profile(variant_id) or {}
+    tp = load_training_profile(variant_id) or {}
+    return {
+        "variant_id": variant_id,
+        "base_model": mp.get("base_model", ""),
+        "type_id":    (mp.get("assigned_type") or mp.get("type_id", "")) or tp.get("assigned_type", ""),
+        "class_level": tp.get("class_level") or tp.get("runner_settings", {}).get("class_level", ""),
+    }
+```
+
+**Edits (models_tab.py)** — build `payload` before emitting (both codepaths):
+
+```python
+import json
+payload = json.dumps({
+    "model_name": model_name,
+    "model_type": model_type,     # or .get("type","ollama") in the ollama path
+    "is_ollama": False
+})
+if getattr(self, "panel_types", None):
+    self.panel_types.event_generate("<<ModelSelected>>", data=payload, when="tail")
+if getattr(self, "model_info_notebook", None):
+    self.model_info_notebook.event_generate("<<ModelSelected>>", data=payload, when="tail")
+```
+
+**Validate**
+
+* Click base model → no exceptions; Types tab prefill fires.
+
+**Commit**
+
+```bash
+git add Data/config.py Data/tabs/models_tab/models_tab.py
+git commit -m "WO-7k: Fix ModelSelected payload + add get_variant_display_meta helper"
+```
+
+---
+
+# WO-7l — TrainingTab: make variant selection truly variant-aware
+
+**Goal**
+When a plan is applied or a Collection is picked, TrainingTab should:
+
+1. set `active_trainee_name`,
+2. set ModelSelectionPanel base model from profile,
+3. hydrate runner settings, scripts, prompts, schemas (already partly done),
+4. select profile in the profiles dropdown.
+
+**Files**
+
+* `Data/tabs/training_tab/training_tab.py`
+* `Data/tabs/training_tab/model_selection_panel.py` (non-breaking hook)
+
+**Edits (training_tab.py)** — extend `apply_plan`:
+
+```python
+# after loading tp
+base = tp.get("base_model","")
+if hasattr(self, "model_selection_panel") and hasattr(self.model_selection_panel, "set_base_model_by_name"):
+    try:
+        self.model_selection_panel.set_base_model_by_name(base)
+    except Exception as e:
+        print("[TrainingTab] warn: set_base_model_by_name failed:", e)
+# rest of existing hydration stays
+```
+
+**Edits (model_selection_panel.py)** — add a safe setter:
+
+```python
+def set_base_model_by_name(self, name: str):
+    """Select base model in UI by display name, no-op if not found."""
+    try:
+        # match your listbox/tree structure; example for listbox:
+        for i in range(self.models_listbox.size()):
+            if self.models_listbox.get(i) == name:
+                self.models_listbox.selection_clear(0, tk.END)
+                self.models_listbox.selection_set(i)
+                self.models_listbox.activate(i)
+                self.models_listbox.event_generate("<<ListboxSelect>>")
+                return
+    except Exception:
+        pass
+```
+
+**Validate**
+
+* Apply plan → Training shows base model selected; runner/panels hydrated.
+
+**Commit**
+
+```bash
+git add Data/tabs/training_tab/training_tab.py Data/tabs/training_tab/model_selection_panel.py
+git commit -m "WO-7l: TrainingTab apply_plan sets base model selection from profile"
+```
+
+---
+
+# WO-7m — Collections labels show type + class; quick filter
+
+**Goal**
+Collections list should render `Base ▸ Variant [TYPE-CLASS]` and support quick filter by text.
+
+**Files**
+
+* `Data/tabs/models_tab/models_tab.py`
+* `Data/config.py` (uses helper added in 7k)
+
+**Edits (models_tab.py)** — render with class; add filter Entry:
+
+```python
+# header area near Collections toggle
+self.collections_filter_var = tk.StringVar()
+ttk.Entry(self.collections_toggle_frame, textvariable=self.collections_filter_var, width=18)\
+    .pack(side=tk.RIGHT, padx=4)
+ttk.Button(self.collections_toggle_frame, text="Filter", command=self.refresh_collections_panel)\
+    .pack(side=tk.RIGHT, padx=4)
+
+# in refresh_collections_panel()
+q = (self.collections_filter_var.get() or "").lower().strip()
+...
+for it in items:
+    vid = it.get("variant_id","")
+    meta = C.get_variant_display_meta(vid)
+    label = f"{meta.get('base_model','?')} ▸ {vid}  [{(meta.get('type_id') or '').upper()}-{(meta.get('class_level') or 'NOVICE').upper()}]"
+    if q and q not in label.lower():
+        continue
+    self.collections_list.insert(tk.END, label)
+```
+
+**Validate**
+
+* See class in brackets; typing in filter hides non-matches.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/models_tab.py
+git commit -m "WO-7m: Collections shows TYPE-CLASS and supports quick filter"
+```
+
+---
+
+# WO-7n — Profiles unification: show both legacy and Type variants
+
+**Goal**
+Training Profiles dropdown should list legacy profiles *and* Type Training profiles, grouped with headers.
+
+**Files**
+
+* `Data/tabs/training_tab/profiles_panel.py`
+* `Data/config.py`
+
+**Edits (config.py)** — add unified lister:
+
+```python
+def list_training_profiles_unified() -> dict:
+    """Return {'type_variants': [...], 'legacy': [...]}"""
+    out = {"type_variants": [], "legacy": []}
+    # type variants from MODEL_PROFILES_DIR
+    out["type_variants"] = list_model_profiles()
+    # legacy: e.g., scan TRAINING_PROFILES_DIR for older shape
+    try:
+        base = Path(TRAINING_PROFILES_DIR)
+        if base.exists():
+            for p in base.glob("*.json"):
+                data = _read_json(str(p)) or {}
+                if not data.get("base_model") and not data.get("assigned_type"):
+                    out["legacy"].append({"name": p.stem, "path": str(p)})
+    except Exception:
+        pass
+    return out
+```
+
+**Edits (profiles_panel.py)** — populate dropdown with separators:
+
+```python
+data = C.list_training_profiles_unified()
+self.dropdown['values'] = []  # or rebuild control
+vals = []
+if data["type_variants"]:
+    vals.append("--- Type Variants ---")
+    vals += [it["variant_id"] for it in data["type_variants"]]
+if data["legacy"]:
+    vals.append("--- Legacy Profiles ---")
+    vals += [it["name"] for it in data["legacy"]]
+self.dropdown['values'] = vals
+```
+
+**Validate**
+
+* Profiles dropdown shows two sections; both selectable.
+
+**Commit**
+
+```bash
+git add Data/config.py Data/tabs/training_tab/profiles_panel.py
+git commit -m "WO-7n: Profiles dropdown unified for Type Variants + Legacy"
+```
+
+---
+
+# WO-7o — GGUF export/ollama: embed Variant metadata + parent link
+
+**Goal**
+When exporting gguf or registering with Ollama, save a `variant_meta.json` and a pointer back to the parent base + variant.
+
+**Files**
+
+* `Data/training_engine.py` (or exporter)
+* `Data/config.py`
+
+**Edits (training_engine.py)** — when producing/exporting model:
+
+```python
+# after creating gguf/output dir
+try:
+    vid = getattr(self, "active_trainee_name", "") or kwargs.get("variant_id","")
+    if vid:
+        meta = C.get_active_variant_meta(vid)  # from WO-7g
+        meta_path = os.path.join(output_dir, "variant_meta.json")
+        with open(meta_path, "w", encoding="utf-8") as f:
+            json.dump(meta, f, indent=2)
+except Exception as e:
+    print("[Export] warn: variant_meta write failed:", e)
+```
+
+**Validate**
+
+* Exported directory contains `variant_meta.json` with base/variant/type/class.
+
+**Commit**
+
+```bash
+git add Data/training_engine.py
+git commit -m "WO-7o: GGUF/ollama export includes variant_meta.json for linkage"
+```
+
+---
+
+# WO-7p — Variant-aware Stats/Skills view in Models tab
+
+**Goal**
+When picking a Collection, the right-hand stats/skills reflect the variant (not just the base).
+
+**Files**
+
+* `Data/tabs/models_tab/models_tab.py`
+* `Data/config.py` (optional helper)
+
+**Edits (models_tab.py)** — in `_on_collection_pick` after `apply_plan` relay:
+
+```python
+# also update right-side info panels if they support variant display
+try:
+    self.current_model_for_stats = variant  # used by your stats/skills panes
+    self.display_model_info_from_dict({"name": variant, "type": "variant"})
+except Exception:
+    pass
+```
+
+*(If your stats rendering uses another method, call that instead with `variant`.)*
+
+**Validate**
+
+* Selecting a Collection re-renders stats/skills for that variant id.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/models_tab.py
+git commit -m "WO-7p: Models stats/skills react to selected variant"
+```
+
+---
+
+# WO-7q — Duplicate variant detection + rename prompt
+
+**Goal**
+Prevent silent overwrite; offer rename if variant id exists.
+
+**Files**
+
+* `Data/tabs/models_tab/types_panel.py`
+* `Data/config.py`
+
+**Edits (types_panel.py)** — before save:
+
+```python
+vid = self.name_var.get().strip()
+if not vid:
+    self._status("Variant name required."); return
+from pathlib import Path
+mp_path = Path(C.MODEL_PROFILES_DIR) / f"{vid}.json"
+if mp_path.exists():
+    # simple rename prompt (tkinter.simpledialog or small entry popup)
+    import tkinter.simpledialog as sd
+    new_vid = sd.askstring("Duplicate Variant", f"'{vid}' exists. Enter new name:", initialvalue=vid+"_1")
+    if not new_vid: return
+    self.name_var.set(new_vid)
+    vid = new_vid
+```
+
+**Validate**
+
+* Try to save existing name → dialog appears → new name persists.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/types_panel.py
+git commit -m "WO-7q: Duplicate variant detection with rename prompt"
+```
+
+---
+
+# WO-7r — Rename/Delete variant from Collections
+
+**Goal**
+Provide right-click (context menu) on Collections to rename or delete variant (moves/renames both Model & Training profiles).
+
+**Files**
+
+* `Data/tabs/models_tab/models_tab.py`
+* `Data/config.py`
+
+**Edits (config.py)** — helpers:
+
+```python
+def rename_variant(old_id: str, new_id: str):
+    # move model profile file & training profile file, update trainee_name in both
+    for base_dir, key in [(MODEL_PROFILES_DIR,"model"), (TRAINING_PROFILES_DIR,"training")]:
+        op = Path(base_dir) / f"{old_id}.json"
+        np = Path(base_dir) / f"{new_id}.json"
+        if op.exists():
+            data = _read_json(str(op))
+            data["trainee_name"] = new_id
+            with open(np, "w", encoding="utf-8") as f: json.dump(data, f, indent=2)
+            op.unlink(missing_ok=True)
+
+def delete_variant(vid: str):
+    for base_dir in (MODEL_PROFILES_DIR, TRAINING_PROFILES_DIR):
+        p = Path(base_dir) / f"{vid}.json"
+        if p.exists(): p.unlink()
+```
+
+**Edits (models_tab.py)** — bind context menu:
+
+```python
+self.collections_menu = tk.Menu(self, tearoff=0)
+self.collections_menu.add_command(label="Rename Variant...", command=self._rename_selected_variant)
+self.collections_menu.add_command(label="Delete Variant",    command=self._delete_selected_variant)
+self.collections_list.bind("<Button-3>", lambda e: self.collections_menu.tk_popup(e.x_root, e.y_root))
+
+def _get_selected_variant_id(self):
+    sel = self.collections_list.curselection()
+    if not sel: return ""
+    idx = sel[0]; it = (self._collections_cache or [])[idx]
+    return it.get("variant_id","")
+
+def _rename_selected_variant(self):
+    vid = self._get_selected_variant_id()
+    if not vid: return
+    import tkinter.simpledialog as sd
+    nid = sd.askstring("Rename Variant", "New name:", initialvalue=vid)
+    if not nid or nid == vid: return
+    from Data import config as C
+    C.rename_variant(vid, nid)
+    self.refresh_collections_panel()
+
+def _delete_selected_variant(self):
+    vid = self._get_selected_variant_id()
+    if not vid: return
+    from tkinter import messagebox as mb
+    if not mb.askyesno("Delete Variant", f"Delete '{vid}' profiles?"): return
+    from Data import config as C
+    C.delete_variant(vid)
+    self.refresh_collections_panel()
+```
+
+**Validate**
+
+* Right-click on item → rename or delete works, list refreshes.
+
+**Commit**
+
+```bash
+git add Data/config.py Data/tabs/models_tab/models_tab.py
+git commit -m "WO-7r: Collections context menu for rename/delete variant"
+```
+
+---
+
+# WO-7s — JSON Event helper + consistent dispatch
+
+**Goal**
+Avoid repeated try/excepts for event JSON; central helper to emit/parse.
+
+**Files**
+
+* `Data/tabs/models_tab/models_tab.py` (helper in class)
+* `Data/tabs/models_tab/types_panel.py` (use helper)
+
+**Edits (models_tab.py)** — helper methods in ModelsTab:
+
+```python
+def _emit_json_event(self, widget, name: str, payload: dict):
+    try:
+        import json
+        widget.event_generate(name, data=json.dumps(payload), when="tail")
+    except Exception:
+        widget.event_generate(name, when="tail")
+
+def _parse_event_json(self, event):
+    try:
+        import json
+        return json.loads(getattr(event, "data", "") or "{}")
+    except Exception:
+        return {}
+```
+
+Use `_emit_json_event(...)` wherever events are raised.
+
+**Edits (types_panel.py)** — similar small `parse_event_json` (or call parent via `self.master` if accessible).
+
+**Validate**
+
+* Events still flow; code less brittle.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/models_tab.py Data/tabs/models_tab/types_panel.py
+git commit -m "WO-7s: JSON event helpers; unify emit/parse usage"
+```
+
+---
+
+# WO-7t — Class Level control in TypesPanel (affects runner/profile)
+
+**Goal**
+Add a “Class Level” dropdown (e.g., Novice/Intermediate/Advanced) that writes to Training Profile and informs runner defaults.
+
+**Files**
+
+* `Data/tabs/models_tab/types_panel.py`
+* `Data/config.py`
+
+**Edits (types_panel.py)** — UI and save path:
+
+```python
+self.class_level_var = tk.StringVar(value="novice")
+# in details frame:
+ttk.Label(details, text="Class Level").grid(row=..., column=0, sticky=tk.W, pady=2)
+ttk.Combobox(details, textvariable=self.class_level_var, values=["novice","intermediate","advanced"], state="readonly")\
+    .grid(row=..., column=1, sticky=tk.EW, pady=2)
+
+# when building training profile in _apply_plan:
+tp = C.build_training_profile_from_type(trainee_name, base_model, type_id)
+tp.setdefault("runner_settings", {})["class_level"] = self.class_level_var.get()
+C.save_training_profile(trainee_name, tp)
+```
+
+**Edits (config.py)** — make runner defaults sensitive to class_level if desired (simple example):
+
+```python
+def apply_class_level_defaults(tp: dict):
+    lv = (tp.get("runner_settings",{}) or {}).get("class_level","novice")
+    rs = tp.setdefault("runner_settings",{})
+    if lv == "novice":
+        rs.setdefault("max_time_min", 20)
+    elif lv == "intermediate":
+        rs.setdefault("max_time_min", 40)
+    else:
+        rs.setdefault("max_time_min", 60)
+```
+
+Call `apply_class_level_defaults(tp)` inside `build_training_profile_from_type(...)`.
+
+**Validate**
+
+* Choose class level → Training Profile persists it; runner time defaults adjust if not overridden.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/types_panel.py Data/config.py
+git commit -m "WO-7t: Class Level control in TypesPanel wired to Training Profile"
+```
+
+---
+
+# WO-7u — Settings normalization guardrails (tab order & duplicates)
+
+**Goal**
+Persist stable tab order, remove dupes, ensure Settings tab present and last.
+
+**Files**
+
+* `Data/interactive_trainer_gui_NEW.py` (or your main GUI loader)
+
+**Edits** — in `load_tabs()` after reading settings:
+
+```python
+def _normalize_tab_order(order, available):
+    DEFAULT = ['training_tab','models_tab','custom_code_tab','settings_tab']
+    # base skeleton
+    out = [t for t in DEFAULT if t in available]
+    # extras (non-dupe, before settings)
+    extras = [t for t in available if t not in out and t != 'settings_tab']
+    try:
+        idx = out.index('settings_tab')
+        out[idx:idx] = extras
+    except Exception:
+        out += extras
+        if 'settings_tab' in available: out.append('settings_tab')
+    # de-dupe
+    seen=set(); out2=[]
+    for t in out:
+        if t not in seen:
+            out2.append(t); seen.add(t)
+    return out2
+
+tab_order = _normalize_tab_order(settings.get('tab_order', []), list(tab_definitions.keys()))
+settings['tab_order'] = tab_order
+```
+
+**Validate**
+
+* Relaunch → stable tab order; Settings last.
+
+**Commit**
+
+```bash
+git add Data/interactive_trainer_gui_NEW.py
+git commit -m "WO-7u: Settings/tab order normalization and de-duplication"
+```
+
+---
+
+# WO-7v — Friendlier toasts + log context for missing/malformed files
+
+**Goal**
+When catalogs/profiles are missing or invalid, show a toast and emit a clear log with file path.
+
+**Files**
+
+* `Data/tabs/models_tab/types_panel.py`
+* `Data/logger_util.py`
+
+**Edits (logger_util.py)** — convenience:
+
+```python
+def toast(root, msg: str):
+    try:
+        import tkinter.messagebox as mb
+        mb.showinfo("Trainer", msg)
+    except Exception:
+        print("[TOAST]", msg)
+```
+
+**Edits (types_panel.py)** — use it:
+
+```python
+try:
+    catalog = config.load_type_catalog()
+except Exception as e:
+    logger_util.log_message(f"Types: catalog load failed: {e}")
+    logger_util.toast(self, "Type Catalog failed to load. See log.")
+    return
+```
+
+**Validate**
+
+* Break a file → toast & log, app stays responsive.
+
+**Commit**
+
+```bash
+git add Data/logger_util.py Data/tabs/models_tab/types_panel.py
+git commit -m "WO-7v: Toasts and clearer logging for file errors"
+```
+
+---
+
+# WO-7w — UI polish for headers, icons, and spacing
+
+**Goal**
+Consistent header font/spacing, emoji/icon usage, and section padding.
+
+**Files**
+
+* `Data/tabs/models_tab/models_tab.py`
+* Stylesheet if applicable
+
+**Edits**
+
+* Ensure all headers use `'CategoryPanel.TLabel'` and `font=("Arial", 12, "bold")`.
+* Ensure `padx/pady` uniform: headers `(10,4)`, bodies `pady=(0,8)`.
+* Ensure emojis: 🧠 Base, 🐪 Ollama, 📚 Collections, 🧩 coder, 🔬 researcher.
+
+**Validate**
+
+* Visual tidy and consistent.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/models_tab.py
+git commit -m "WO-7w: Header/icon/spacing polish across sidebar sections"
+```
+
+---
+
+# WO-7x — Migration script: backfill `variant_meta.json` into past runs
+
+**Goal**
+Generate `variant_meta.json` for existing adapter/run folders by inferring from profile filenames.
+
+**Files**
+
+* `tools/migrate_variant_meta.py` (new)
+
+**Content**
+
+```python
+import os, json
+from pathlib import Path
+from Data import config as C
+
+RUNS = Path("Models")  # or your training outputs root
+for d in RUNS.glob("**/"):
+    if not d.is_dir(): continue
+    meta_path = d / "variant_meta.json"
+    if meta_path.exists(): continue
+    # naive heuristic: look for nearest profile used (customize as needed)
+    # here we skip complicated heuristics; write a blank shell to unblock UI
+    meta = {"variant_id":"", "base_model":"", "type_id":"", "class_level":""}
+    try:
+        with open(meta_path,"w",encoding="utf-8") as f: json.dump(meta,f,indent=2)
+        print("backfilled", meta_path)
+    except Exception as e:
+        print("skip", d, e)
+```
+
+**Validate**
+
+* Run → no crashes; files appear (can improve heuristics later).
+
+**Commit**
+
+```bash
+git add tools/migrate_variant_meta.py
+git commit -m "WO-7x: Migration helper to backfill variant_meta.json in old runs"
+```
+
+---
+
+# WO-7y — Unit tests for config helpers (no external deps)
+
+**Goal**
+Basic coverage for `derive_variant_name`, `list_model_profiles`, `get_variant_display_meta`, `get_type_badge`.
+
+**Files**
+
+* `tests/test_config_helpers.py`
+
+**Content (minimal)**
+
+```python
+import json, os
+from pathlib import Path
+from Data import config as C
+
+def test_derive_variant_name():
+    assert C.derive_variant_name("Qwen2.5-0.5b-Instruct","coder").startswith("Qwen2.5-0.5b_")
+
+def test_get_type_badge():
+    b = C.get_type_badge("coder","novice")
+    assert "abbr" in b and "color" in b
+
+def test_list_model_profiles(tmp_path, monkeypatch):
+    mp = tmp_path / "models"
+    mp.mkdir()
+    (mp / "Alice.json").write_text(json.dumps({"trainee_name":"Alice","base_model":"Qwen","assigned_type":"coder"}), "utf-8")
+    monkeypatch.setattr(C, "MODEL_PROFILES_DIR", str(mp))
+    items = C.list_model_profiles()
+    assert any(i.get("variant_id")=="Alice" for i in items)
+
+def test_get_variant_display_meta(tmp_path, monkeypatch):
+    mp = tmp_path / "models"; tp = tmp_path / "training"
+    mp.mkdir(); tp.mkdir()
+    monkeypatch.setattr(C, "MODEL_PROFILES_DIR", str(mp))
+    monkeypatch.setattr(C, "TRAINING_PROFILES_DIR", str(tp))
+    (mp / "A.json").write_text(json.dumps({"trainee_name":"A","base_model":"Qwen","assigned_type":"coder"}),"utf-8")
+    (tp / "A.json").write_text(json.dumps({"trainee_name":"A","runner_settings":{"class_level":"novice"}}),"utf-8")
+    meta = C.get_variant_display_meta("A")
+    assert meta["type_id"]=="coder" and meta["class_level"]=="novice"
+```
+
+**Validate**
+
+* `pytest -q` (or `python3 -m pytest -q`) runs green.
+
+**Commit**
+
+```bash
+git add tests/test_config_helpers.py
+git commit -m "WO-7y: Unit tests for config helpers"
+```
+
+---
+
+# WO-7z — E2E QA script + PR template with checklist
+
+**Goal**
+One-click local QA covering: create type, apply, collection appears, training hydrates, export writes meta. Plus PR template with checklist.
+
+**Files**
+
+* `qa/e2e_type_flow.py` (new)
+* `.github/PULL_REQUEST_TEMPLATE.md` (new)
+
+**Content (qa/e2e_type_flow.py)**
+
+```python
+from Data import config as C
+vid = C.derive_variant_name("Qwen2.5-0.5b-Instruct","researcher")
+C.save_model_profile(vid, {"trainee_name": vid, "base_model": "Qwen2.5-0.5b-Instruct","assigned_type":"researcher"})
+C.upsert_training_profile_for_model(vid, "Qwen2.5-0.5b-Instruct", "researcher")
+items = C.list_model_profiles()
+assert any(i.get("variant_id")==vid for i in items)
+meta = C.get_variant_display_meta(vid); assert meta["type_id"]=="researcher"
+print("E2E OK:", vid)
+```
+
+**Content (.github/PULL_REQUEST_TEMPLATE.md)**
+
+```md
+## WO-7 Batch – Type→Variant→Training Flow
+
+- [ ] TypesPanel: apply creates/updates Model+Training profiles
+- [ ] Collections lists new variant with TYPE-CLASS badge
+- [ ] Selecting Collection hydrates Training (scripts/prompts/schemas/settings)
+- [ ] Training launch passes `variant_id` to engine; export writes `variant_meta.json`
+- [ ] Variant rename/delete works; duplicate name prompts
+- [ ] Unified sidebar scroll behaves (headers fixed, bodies collapse/expand)
+- [ ] Errors show toast and log path
+- [ ] Unit tests pass (`tests/test_config_helpers.py`)
+- [ ] QA script passes (`python3 qa/e2e_type_flow.py`)
+```
+
+**Validate**
+
+* Run QA script → prints `E2E OK: ...`.
+
+**Commit**
+
+```bash
+git add qa/e2e_type_flow.py .github/PULL_REQUEST_TEMPLATE.md
+git commit -m "WO-7z: E2E QA script and PR checklist for Type→Variant pipeline"
+```
+
+---

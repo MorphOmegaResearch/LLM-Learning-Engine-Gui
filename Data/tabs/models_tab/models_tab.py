@@ -103,6 +103,13 @@ class ModelsTab(BaseTab):
         # Overview Tab
         self.overview_tab_frame = ttk.Frame(self.model_info_notebook)
         self.model_info_notebook.add(self.overview_tab_frame, text="Overview")
+        # WO-6z: Active Variant indicator (top of Overview)
+        try:
+            self.active_variant_var = tk.StringVar(value="")
+            banner = ttk.Label(self.overview_tab_frame, textvariable=self.active_variant_var, style='Config.TLabel', foreground='#ffd43b')
+            banner.grid(row=0, column=0, sticky=tk.W, padx=6, pady=4)
+        except Exception:
+            pass
         # Labels for parsed info will be created dynamically in display_model_info
 
         # --- Types Tab (must be visible next to Overview) ---
@@ -135,6 +142,12 @@ class ModelsTab(BaseTab):
             # Bind the event bridge (safe even if Training tab misses apply_plan)
             try:
                 self.panel_types.bind("<<TypePlanApplied>>", self._on_type_plan_applied)
+            except Exception:
+                pass
+            # WO-6p/6x: Listen for global profile/variant events
+            try:
+                self.bind("<<VariantApplied>>", self._on_variant_applied)
+                self.bind("<<ProfilesChanged>>", lambda _e: self.refresh_collections_panel())
             except Exception:
                 pass
         except Exception as _e:
@@ -203,60 +216,91 @@ class ModelsTab(BaseTab):
         self.model_info_notebook.add(self.compare_tab_frame, text="Compare")
         self.create_compare_panel(self.compare_tab_frame)
 
-        # Right side: Two scrollable lists (Base/Levels/Trained) and (Ollama)
-        model_list_frame = ttk.Frame(parent, style='Category.TFrame')
-        model_list_frame.grid(row=0, column=1, sticky=tk.NSEW, padx=10, pady=10)
+        # Right side: Unified scroll container with a draggable resizer gutter
+        # Insert a thin resizer between left (col 0) and right pane
+        self._resizer = ttk.Frame(parent, width=6, cursor='sb_h_double_arrow', style='Category.TFrame')
+        self._resizer.grid(row=0, column=1, sticky=tk.NS)
+        # Canvas and scrollbar for right pane move to columns 2 and 3
+        self.right_canvas = tk.Canvas(parent, bg="#2b2b2b", highlightthickness=0)
+        self.right_scrollbar = ttk.Scrollbar(parent, orient="vertical", command=self.right_canvas.yview)
+        self.right_frame = ttk.Frame(self.right_canvas, style='Category.TFrame')
+        self.right_canvas_window_id = self.right_canvas.create_window((0, 0), window=self.right_frame, anchor="nw")
+        self.right_canvas.configure(yscrollcommand=self.right_scrollbar.set)
+        self.right_pane_width = 360
+        try:
+            self.right_canvas.config(width=self.right_pane_width)
+        except Exception:
+            pass
+        self.right_canvas.grid(row=0, column=2, sticky=tk.NSEW, padx=(6,10), pady=10)
+        self.right_scrollbar.grid(row=0, column=3, sticky=tk.NS, pady=10)
+        self.right_canvas.bind("<Configure>", lambda e: self.right_canvas.itemconfig(self.right_canvas_window_id, width=e.width))
+        self.right_frame.bind("<Configure>", lambda e: self.right_canvas.configure(scrollregion=self.right_canvas.bbox("all")))
+        # Resizer drag behavior
+        self._resizer.bind("<ButtonPress-1>", self._on_resizer_press)
+        self._resizer.bind("<B1-Motion>", self._on_resizer_drag)
+
+        # Inside the unified right column, we keep existing sections
+        model_list_frame = ttk.Frame(self.right_frame, style='Category.TFrame')
+        model_list_frame.grid(row=0, column=0, sticky=tk.NSEW)
         model_list_frame.columnconfigure(0, weight=1)
-        model_list_frame.rowconfigure(3, weight=1)
+        model_list_frame.rowconfigure(1, weight=1) # For Base/Levels/Trained canvas
+        model_list_frame.rowconfigure(3, weight=1) # For Ollama canvas
 
         ttk.Label(model_list_frame, text="Available Models", font=("Arial", 12, "bold"), style='CategoryPanel.TLabel').grid(row=0, column=0, pady=5, sticky=tk.W)
 
-        # Base/Levels/Trained canvas
-        base_canvas = tk.Canvas(model_list_frame, bg="#2b2b2b", highlightthickness=0)
-        base_scrollbar = ttk.Scrollbar(model_list_frame, orient="vertical", command=base_canvas.yview)
-        self.base_buttons_frame = ttk.Frame(base_canvas)
-        self.base_buttons_frame.bind("<Configure>", lambda e: base_canvas.configure(scrollregion=base_canvas.bbox("all")))
-        self.base_canvas_window_id = base_canvas.create_window((0, 0), window=self.base_buttons_frame, anchor="nw")
-        base_canvas.configure(yscrollcommand=base_scrollbar.set)
-        base_canvas.grid(row=1, column=0, sticky=tk.NSEW)
-        base_scrollbar.grid(row=1, column=1, sticky=tk.NS)
-        base_canvas.bind("<Configure>", lambda e: base_canvas.itemconfig(self.base_canvas_window_id, width=e.width))
-
-        # Enable mousewheel scrolling for base models list
-        self.bind_mousewheel_to_canvas(base_canvas)
+        # Base/Levels/Trained section (no inner scrollbar; outer right pane scrolls)
+        self.base_buttons_frame = ttk.Frame(model_list_frame)
+        self.base_buttons_frame.grid(row=1, column=0, sticky=tk.NSEW)
 
         # Ollama header
         ttk.Label(model_list_frame, text="🟡 Ollama Models (GGUF)", font=("Arial", 12, "bold"), style='CategoryPanel.TLabel').grid(row=2, column=0, pady=(10,5), sticky=tk.W)
 
-        # Ollama canvas
-        oll_canvas = tk.Canvas(model_list_frame, bg="#2b2b2b", highlightthickness=0)
-        oll_scrollbar = ttk.Scrollbar(model_list_frame, orient="vertical", command=oll_canvas.yview)
-        self.ollama_buttons_frame = ttk.Frame(oll_canvas)
-        self.ollama_buttons_frame.bind("<Configure>", lambda e: oll_canvas.configure(scrollregion=oll_canvas.bbox("all")))
-        self.ollama_canvas_window_id = oll_canvas.create_window((0, 0), window=self.ollama_buttons_frame, anchor="nw")
-        oll_canvas.configure(yscrollcommand=oll_scrollbar.set)
-        oll_canvas.grid(row=3, column=0, sticky=tk.NSEW)
-        oll_scrollbar.grid(row=3, column=1, sticky=tk.NS)
-        oll_canvas.bind("<Configure>", lambda e: oll_canvas.itemconfig(self.ollama_canvas_window_id, width=e.width))
+        # Ollama section (no inner scrollbar; outer right pane scrolls)
+        self.ollama_buttons_frame = ttk.Frame(model_list_frame)
+        self.ollama_buttons_frame.grid(row=3, column=0, sticky=tk.NSEW)
 
         # --- WO-6b: Collections panel ---------------------------------------
-        self.collections_section = ttk.LabelFrame(model_list_frame, text="Collections")
-        self.collections_section.grid(row=4, column=0, columnspan=2, sticky=tk.NSEW, padx=4, pady=6) # Adjusted row and columnspan
-        self.collections_section.columnconfigure(0, weight=1) # Allow listbox to expand
+        collections_section_frame = ttk.Frame(model_list_frame, style='Category.TFrame')
+        collections_section_frame.grid(row=4, column=0, sticky=tk.NSEW, pady=(10,5))
+        collections_section_frame.columnconfigure(0, weight=1)
+        # Reserve rows: 0=header, 1=toggle, 2=canvas
+        collections_section_frame.rowconfigure(2, weight=1) # For Collections canvas within this section
 
-        # simple listbox for now
-        self.collections_list = tk.Listbox(self.collections_section, height=8, exportselection=False)
-        self.collections_list.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
+        # Header for Collections (now within collections_section_frame)
+        ttk.Label(collections_section_frame, text="📚 Collections", font=("Arial", 12, "bold"), style='CategoryPanel.TLabel').grid(row=0, column=0, sticky=tk.W)
 
-        # optional: little refresh button
-        self.collections_refresh_btn = ttk.Button(self.collections_section, text="Refresh", command=self.refresh_collections_panel)
-        self.collections_refresh_btn.pack(anchor="e", padx=6, pady=(0,6))
+        # Toggle button for Collections (now within collections_section_frame)
+        collections_toggle_frame = ttk.Frame(collections_section_frame)
+        collections_toggle_frame.grid(row=1, column=0, sticky=tk.EW, padx=5)
+        collections_toggle_frame.columnconfigure(0, weight=1)
 
-        self.collections_list.bind("<<ListboxSelect>>", self._on_collection_pick)
+        self.collections_expanded = tk.BooleanVar(value=False) # Default to collapsed
+        self.collections_toggle_btn = ttk.Button(collections_toggle_frame, text="▶", width=2, style='Select.TButton', command=self._toggle_collections_group)
+        self.collections_toggle_btn.pack(side=tk.LEFT, padx=(0,5))
+        ttk.Label(collections_toggle_frame, text="Type Assigned Models", style='Config.TLabel').pack(side=tk.LEFT) # Placeholder for now
+
+        # (Filter UI removed by request)
+
+        # Collections canvas (now within collections_section_frame)
+        self.collections_canvas = tk.Canvas(collections_section_frame, bg="#2b2b2b", highlightthickness=0)
+        self.collections_scrollbar = ttk.Scrollbar(collections_section_frame, orient="vertical", command=self.collections_canvas.yview)
+        self.collections_buttons_frame = ttk.Frame(self.collections_canvas)
+        self.collections_buttons_frame.bind("<Configure>", lambda e: self.collections_canvas.configure(scrollregion=self.collections_canvas.bbox("all")))
+        self.collections_canvas_window_id = self.collections_canvas.create_window((0, 0), window=self.collections_buttons_frame, anchor="nw")
+        self.collections_canvas.configure(yscrollcommand=self.collections_scrollbar.set)
+        # Conditional initial grid for canvas (row 2)
+        if self.collections_expanded.get(): # This is False initially
+            self.collections_canvas.grid(row=2, column=0, sticky=tk.NSEW)
+            self.collections_scrollbar.grid(row=2, column=1, sticky=tk.NS)
+        self.collections_canvas.bind("<Configure>", lambda e: self.collections_canvas.itemconfig(self.collections_canvas_window_id, width=e.width))
+
         # --------------------------------------------------------------------
 
-        # Enable mousewheel scrolling for Ollama models list
-        self.bind_mousewheel_to_canvas(oll_canvas)
+        # Bind mousewheel to the unified right scroll on hover only
+        try:
+            self.bind_mousewheel_to_canvas(self.right_canvas)
+        except Exception:
+            pass
 
         # Expanded state for Ollama groups
         self.ollama_expanded = {}
@@ -264,6 +308,15 @@ class ModelsTab(BaseTab):
 
         self.populate_model_list()
         self.refresh_collections_panel() # Call after UI is built
+
+        # WO-6j: Restore UI state (Collections expansion) if available
+        try:
+            import config as C
+            ui_state = (C.load_ui_state() or {}).get('models_tab', {})
+            if bool(ui_state.get('collections_expanded', False)) and not self.collections_expanded.get():
+                self._toggle_collections_group()
+        except Exception:
+            pass
 
     def refresh_models_tab(self):
         """Refresh the models tab - reloads all models and updates display."""
@@ -383,24 +436,50 @@ class ModelsTab(BaseTab):
                 if self.levels_expanded[base_name] and levels:
                     container.pack(fill=tk.X)
 
-        # Populate Ollama grouped by base (using level manifests if available)
+        # Populate Ollama under Assigned and Unassigned
         if ollama_models:
-            grouped = self._group_ollama_by_base([m['name'] for m in ollama_models])
-            for base_name, names in grouped.items():
-                # Header row with arrow
-                row = ttk.Frame(self.ollama_buttons_frame)
-                row.pack(fill=tk.X, padx=5, pady=2)
-                self.ollama_expanded[base_name] = self.ollama_expanded.get(base_name, False)
-                arrow_btn = ttk.Button(row, text=('▼' if self.ollama_expanded[base_name] else '▶'), width=2,
-                                       command=lambda b=base_name: self._toggle_ollama_group(b), style='Select.TButton')
-                arrow_btn.pack(side=tk.LEFT, padx=(0,5))
-                ttk.Label(row, text=base_name, style='Config.TLabel', foreground='#61dafb').pack(side=tk.LEFT)
-                cont = ttk.Frame(self.ollama_buttons_frame)
-                self.ollama_ui[base_name] = { 'arrow': arrow_btn, 'container': cont }
-                for n in names:
-                    ttk.Button(cont, text=f"   🔶 {n} • inference-only", command=lambda name=n: self.display_model_info({'name':name,'type':'ollama'}), style='Select.TButton').pack(fill=tk.X, padx=25, pady=1)
-                if self.ollama_expanded[base_name] and names:
-                    cont.pack(fill=tk.X)
+            try:
+                from config import list_assigned_ollama_tags, load_ollama_assignments
+                assigned_tags = set(list_assigned_ollama_tags() or set())
+                assignments = load_ollama_assignments() or {}
+            except Exception:
+                assigned_tags = set(); assignments = {}
+
+            all_names = [m['name'] if isinstance(m, dict) else m for m in ollama_models]
+            assigned_names = [n for n in all_names if n in assigned_tags]
+            unassigned_names = [n for n in all_names if n not in assigned_tags]
+
+            # Assigned header
+            row = ttk.Frame(self.ollama_buttons_frame)
+            row.pack(fill=tk.X, padx=5, pady=2)
+            key = 'Assigned'
+            self.ollama_expanded[key] = self.ollama_expanded.get(key, True)
+            arrow_btn = ttk.Button(row, text=('▼' if self.ollama_expanded[key] else '▶'), width=2,
+                                   command=lambda b=key: self._toggle_ollama_group(b), style='Select.TButton')
+            arrow_btn.pack(side=tk.LEFT, padx=(0,5))
+            ttk.Label(row, text='Assigned', style='Config.TLabel', foreground='#51cf66').pack(side=tk.LEFT)
+            cont = ttk.Frame(self.ollama_buttons_frame)
+            self.ollama_ui[key] = { 'arrow': arrow_btn, 'container': cont }
+            for n in sorted(assigned_names):
+                ttk.Button(cont, text=f"   🔶 {n} • assigned", command=lambda name=n: self.display_model_info({'name':name,'type':'ollama'}), style='Select.TButton').pack(fill=tk.X, padx=25, pady=1)
+            if self.ollama_expanded[key] and assigned_names:
+                cont.pack(fill=tk.X)
+
+            # Unassigned header
+            row2 = ttk.Frame(self.ollama_buttons_frame)
+            row2.pack(fill=tk.X, padx=5, pady=2)
+            key2 = 'Unassigned'
+            self.ollama_expanded[key2] = self.ollama_expanded.get(key2, False)
+            arrow_btn2 = ttk.Button(row2, text=('▼' if self.ollama_expanded[key2] else '▶'), width=2,
+                                   command=lambda b=key2: self._toggle_ollama_group(b), style='Select.TButton')
+            arrow_btn2.pack(side=tk.LEFT, padx=(0,5))
+            ttk.Label(row2, text='Unassigned', style='Config.TLabel', foreground='#61dafb').pack(side=tk.LEFT)
+            cont2 = ttk.Frame(self.ollama_buttons_frame)
+            self.ollama_ui[key2] = { 'arrow': arrow_btn2, 'container': cont2 }
+            for n in sorted(unassigned_names):
+                ttk.Button(cont2, text=f"   🔶 {n} • inference-only", command=lambda name=n: self.display_model_info({'name':name,'type':'ollama'}), style='Select.TButton').pack(fill=tk.X, padx=25, pady=1)
+            if self.ollama_expanded[key2] and unassigned_names:
+                cont2.pack(fill=tk.X)
 
     def create_notes_panel(self, parent):
         """Create the notes panel for model-specific notes."""
@@ -773,16 +852,31 @@ class ModelsTab(BaseTab):
                 "Start it with 'ollama serve' or 'sudo systemctl start ollama', then retry."
             )
             return False
-        # If schema-aware and selected model is trainable, ensure an inference (GGUF) model exists
+        # Ensure an inference (GGUF) model exists when evaluating non-Ollama targets
         try:
-            sel_type = (self.current_model_info or {}).get('type')
-            if tool_schema_name and sel_type in ('pytorch', 'trained'):
-                if not (self.ollama_models or []):
-                    messagebox.showinfo(
-                        "Export Required",
-                        "No inference (GGUF) models are installed.\n"
-                        "Export your base/level to GGUF first (Models → Levels: Export to GGUF), then run baseline."
-                    )
+            # Refresh available Ollama tags
+            try:
+                self.ollama_models = get_ollama_models()
+            except Exception:
+                pass
+
+            # Determine selected target name
+            model_name = self.current_model_for_stats or ((self.current_model_info or {}).get('name') or '')
+
+            # Build a flat set of known Ollama tags/names
+            known = set()
+            try:
+                for m in (self.ollama_models or []):
+                    if isinstance(m, dict) and m.get('name'):
+                        known.add(m.get('name'))
+                    elif isinstance(m, str):
+                        known.add(m)
+            except Exception:
+                known = set()
+
+            # If target is not an Ollama tag and no override has been chosen, prompt to select one
+            if model_name and (model_name not in known) and not getattr(self, '_eval_override_model_name', None):
+                if not self._ensure_inference_model_for_eval(model_name):
                     return False
         except Exception:
             pass
@@ -893,53 +987,136 @@ class ModelsTab(BaseTab):
             self._run_export_base_to_gguf(base_model_path, qvar.get())
         ttk.Button(f, text='Start Export', command=go, style='Action.TButton').grid(row=2, column=1, sticky=tk.E, pady=(8,0))
 
-    def _run_export_base_to_gguf(self, base_model_path, quant: str):
-        # Spawn export_base_to_gguf.py in a thread
-        self.append_runner_output(f"\n--- Exporting Base to GGUF ({quant}) ---\n")
+    def _run_export_base_to_gguf(self, base_model_path, quant: str, *, model_tag_override: str = None):
+        # Spawn export_base_to_gguf.py in a thread and show live logs in a popup
+        self._open_export_log_window(title=f"GGUF Export ({quant})")
+        self._export_log_append(f"\n--- Exporting Base to GGUF ({quant}) ---\n")
         def worker():
             try:
                 import subprocess, sys
                 script = Path(__file__).parent.parent.parent / 'export_base_to_gguf.py'
                 outdir = Path(__file__).parent.parent.parent / 'exports' / 'gguf'
                 cmd = [sys.executable, str(script), '--base', str(base_model_path), '--output', str(outdir), '--quant', quant]
-                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                env = os.environ.copy()
+                env.setdefault('HF_HUB_OFFLINE', '1')
+                env.setdefault('CUDA_VISIBLE_DEVICES', '')
+                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
                 while True:
                     line = proc.stdout.readline()
                     if line == '' and proc.poll() is not None:
                         break
                     if line:
-                        self.root.after(0, self.append_runner_output, line)
+                        self.root.after(0, self._export_log_append, line)
                 rc = proc.poll()
                 if rc == 0:
                     # Attempt to create an Ollama model referencing the GGUF
                     try:
                         base_name = Path(str(base_model_path)).name
-                        gguf_path = outdir / f"{base_name}.{quant}.gguf"
-                        modelfile = outdir / f"{base_name}.Modelfile"
-                        mf = f"FROM {gguf_path}\nTEMPLATE \"{{{{ .Prompt }}}}\"\n"
+                        tag_name = model_tag_override or base_name
+                        # Resolve GGUF path with quant casing tolerance
+                        q_upper = (quant or '').upper()
+                        cand1 = (outdir / f"{base_name}.{quant}.gguf").resolve()
+                        cand2 = (outdir / f"{base_name}.{q_upper}.gguf").resolve()
+                        gguf_abs = cand1 if cand1.exists() else (cand2 if cand2.exists() else None)
+                        # Validate GGUF path
+                        if not gguf_abs:
+                            try:
+                                matches = sorted(outdir.glob(f"{base_name}.*.gguf"), key=lambda p: p.stat().st_mtime, reverse=True)
+                                gguf_abs = matches[0].resolve() if matches else None
+                            except Exception:
+                                gguf_abs = None
+                        if not gguf_abs or not gguf_abs.exists():
+                            self.root.after(0, self._export_log_append, f"ERROR: GGUF not found at {gguf_abs}\n")
+                            self.root.after(0, lambda: messagebox.showerror('Ollama', f'GGUF not found at {gguf_abs}'))
+                            return
+                        modelfile = outdir / f"{tag_name}.Modelfile"
+                        mf = f"FROM {gguf_abs}\nTEMPLATE \"{{{{ .Prompt }}}}\"\n"
                         modelfile.write_text(mf)
-                        model_tag = f"{base_name}:latest"
+                        model_tag = f"{tag_name}:latest"
+                        # If tag already exists, treat as success and assign
+                        try:
+                            import subprocess
+                            pre = subprocess.run(['ollama','list'], capture_output=True, text=True)
+                            if pre.returncode == 0 and (model_tag.split(':')[0] in pre.stdout):
+                                def _exists_done():
+                                    try:
+                                        if model_tag_override:
+                                            from config import add_ollama_assignment
+                                            add_ollama_assignment(model_tag_override, model_tag)
+                                    except Exception:
+                                        pass
+                                    self.ollama_models = get_ollama_models(); self.populate_model_list()
+                                self.root.after(0, _exists_done)
+                                return
+                        except Exception:
+                            pass
+                        # Ensure Ollama service is running
+                        try:
+                            if not self._ensure_ollama_running():
+                                # Try to start it in the background
+                                import subprocess, time
+                                self.root.after(0, self._export_log_append, "\n--- Starting Ollama service ---\n")
+                                if 'linux' in sys.platform:
+                                    subprocess.Popen(['ollama','serve'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, preexec_fn=os.setsid)
+                                else:
+                                    subprocess.Popen(['ollama','serve'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                # Poll up to ~15s
+                                for _ in range(30):
+                                    time.sleep(0.5)
+                                    if self._ensure_ollama_running():
+                                        break
+                        except Exception:
+                            pass
+                        # Create tag with captured output for diagnostics
                         create_cmd = ['ollama', 'create', model_tag, '-f', str(modelfile)]
-                        self.root.after(0, self.append_runner_output, f"\n--- Creating Ollama model {model_tag} ---\n")
-                        cproc = subprocess.Popen(create_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-                        while True:
-                            l2 = cproc.stdout.readline()
-                            if l2 == '' and cproc.poll() is not None:
-                                break
-                            if l2:
-                                self.root.after(0, self.append_runner_output, l2)
-                        crc = cproc.poll()
+                        self.root.after(0, self._export_log_append, f"\n--- Creating Ollama model {model_tag} ---\n")
+                        cproc = subprocess.run(create_cmd, capture_output=True, text=True)
+                        # stream outputs to UI
+                        if cproc.stdout:
+                            self.root.after(0, self._export_log_append, cproc.stdout)
+                        if cproc.stderr:
+                            self.root.after(0, self._export_log_append, cproc.stderr)
+                        crc = cproc.returncode
                         if crc == 0:
                             def _done():
-                                messagebox.showinfo('Export', f'Base GGUF export complete and Ollama model created: {model_tag}. Starting baseline evaluation...')
-                                # Refresh Ollama list so it appears
+                                # Silent success; no modal interrupt
+                                # Record assignment if tagged to a variant
+                                try:
+                                    if model_tag_override:
+                                        from config import add_ollama_assignment
+                                        add_ollama_assignment(model_tag_override, model_tag)
+                                except Exception:
+                                    pass
+                                # Refresh Ollama list so it appears under Assigned
                                 self.ollama_models = get_ollama_models()
                                 self.populate_model_list()
-                                self.append_runner_output("\n--- Export complete. Starting baseline evaluation with created model ---\n")
-                                self._resume_eval_with_override(model_tag)
+                                self._export_log_append(f"\n✓ Ollama model created: {model_tag}\n")
+                                self._close_export_log_window()
                             self.root.after(0, _done)
                         else:
-                            self.root.after(0, lambda: messagebox.showwarning('Ollama', 'GGUF export complete, but failed to create Ollama model. You can create it manually.'))
+                            # As a last resort, try one more time after a brief delay if service just came up
+                            def _retry_create():
+                                try:
+                                    c2 = subprocess.run(['ollama','create', model_tag, '-f', str(modelfile)], capture_output=True, text=True)
+                                    if c2.returncode == 0:
+                                        try:
+                                            if model_tag_override:
+                                                from config import add_ollama_assignment
+                                                add_ollama_assignment(model_tag_override, model_tag)
+                                        except Exception:
+                                            pass
+                                        self.ollama_models = get_ollama_models(); self.populate_model_list()
+                                    else:
+                                        # Append diagnostic output
+                                        if c2.stdout:
+                                            self._export_log_append(c2.stdout)
+                                        if c2.stderr:
+                                            self._export_log_append(c2.stderr)
+                                        messagebox.showwarning('Ollama', 'GGUF export complete, but failed to create Ollama model. You can create it manually.')
+                                        self._export_log_append("\n⚠️ Failed to create Ollama model. See above logs.\n")
+                                except Exception:
+                                    messagebox.showwarning('Ollama', 'GGUF export complete, but failed to create Ollama model. You can create it manually.')
+                            self.root.after(500, _retry_create)
                     except Exception as e:
                         self.root.after(0, lambda: messagebox.showwarning('Ollama', f'GGUF export complete, but Ollama create failed: {e}'))
                 else:
@@ -948,7 +1125,7 @@ class ModelsTab(BaseTab):
                         base_name = Path(str(base_model_path)).name
                         tag = self._guess_ollama_tag_from_base_name(base_name)
                         if tag and messagebox.askyesno('Export Failed', f'Base GGUF export failed (likely no GPU).\n\nPull prebuilt base from Ollama registry and use that instead?\n\nModel: {tag}'):
-                            self.root.after(0, self.append_runner_output, f"\n--- Pulling Ollama model {tag} ---\n")
+                            self.root.after(0, self._export_log_append, f"\n--- Pulling Ollama model {tag} ---\n")
                             p2 = subprocess.Popen(['ollama','pull',tag], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
                             while True:
                                 l3 = p2.stdout.readline()
@@ -960,17 +1137,21 @@ class ModelsTab(BaseTab):
                             if prc == 0:
                                 def _done2():
                                     self.ollama_models = get_ollama_models(); self.populate_model_list()
-                                    self.append_runner_output("\n--- Pull complete. Starting baseline evaluation with pulled model ---\n")
+                                    self._export_log_append("\n--- Pull complete. Model available ---\n")
+                                    self._close_export_log_window()
                                     self._resume_eval_with_override(tag)
                                 self.root.after(0, _done2)
                             else:
                                 self.root.after(0, lambda: messagebox.showerror('Ollama', f'Pull failed with code {prc}'))
                         else:
                             self.root.after(0, lambda: messagebox.showerror('Export Failed', f'Export failed with code {rc}'))
+                            self._export_log_append(f"\n❌ Export failed with code {rc}\n")
                     except Exception:
                         self.root.after(0, lambda: messagebox.showerror('Export Failed', f'Export failed with code {rc}'))
+                        self._export_log_append(f"\n❌ Export failed with code {rc}\n")
             except Exception as e:
                 self.root.after(0, lambda: messagebox.showerror('Export Error', str(e)))
+                self.root.after(0, self._export_log_append, f"\n❌ Export Error: {e}\n")
         t = threading.Thread(target=worker); t.daemon=True; t.start()
 
     def _guess_ollama_tag_from_base_name(self, base_name: str) -> str:
@@ -987,6 +1168,59 @@ class ModelsTab(BaseTab):
             return ''
         except Exception:
             return ''
+
+    def _ensure_ollama_running(self) -> bool:
+        """Return True if Ollama API responds; False otherwise."""
+        try:
+            import requests
+            r = requests.get("http://localhost:11434/api/tags", timeout=1.5)
+            return r.status_code == 200
+        except Exception:
+            return False
+
+    # --- Export Log Window helpers -----------------------------------------
+    def _open_export_log_window(self, title: str = "GGUF Export"):
+        try:
+            import tkinter as tk
+            from tkinter import ttk, scrolledtext
+            if getattr(self, '_export_log_win', None) and tk.Toplevel.winfo_exists(self._export_log_win):
+                self._export_log_win.lift(); return
+            win = tk.Toplevel(self.root); win.title(title)
+            frame = ttk.Frame(win); frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            txt = scrolledtext.ScrolledText(frame, wrap=tk.WORD, font=("Courier", 9))
+            txt.pack(fill=tk.BOTH, expand=True)
+            txt.insert(tk.END, f"{title}\n")
+            txt.config(state=tk.DISABLED)
+            self._export_log_win = win
+            self._export_log_text = txt
+        except Exception:
+            self._export_log_win = None
+            self._export_log_text = None
+
+    def _export_log_append(self, text: str):
+        try:
+            if not text: return
+            if getattr(self, '_export_log_text', None):
+                self._export_log_text.config(state=tk.NORMAL)
+                self._export_log_text.insert(tk.END, text)
+                self._export_log_text.see(tk.END)
+                self._export_log_text.config(state=tk.DISABLED)
+            try:
+                self.append_runner_output(text)
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _close_export_log_window(self):
+        try:
+            if getattr(self, '_export_log_win', None):
+                self._export_log_win.destroy()
+        except Exception:
+            pass
+        finally:
+            self._export_log_win = None
+            self._export_log_text = None
 
     def _focus_settings_debug_tab(self):
         try:
@@ -2654,17 +2888,31 @@ class ModelsTab(BaseTab):
         # Emit event for other panels to react to model selection
         try:
             import json
+            payload = json.dumps({
+                "model_name": model_name,
+                "model_type": model_type,
+                "is_ollama": False,
+            })
             if hasattr(self, 'panel_types') and self.panel_types:
                 self.panel_types.event_generate("<<ModelSelected>>", data=payload, when="tail")
-            self.refresh_collections_panel() # Refresh collections after a type plan is applied
+            # Keep Collections fresh so new variants appear promptly
+            self.refresh_collections_panel()
         except Exception:
             pass
 
 
         # --- Populate Overview Tab ---
+        # When selecting a base model, clear any active variant context
+        try:
+            self._active_variant_id = ''
+            if hasattr(self, 'active_variant_var'):
+                self.active_variant_var.set('')
+        except Exception:
+            pass
         # Clear previous content
         for widget in self.overview_tab_frame.winfo_children():
             widget.destroy()
+        # Do NOT build variant header/actions for base models
 
         # Load config.json if available
         model_config = {}
@@ -2895,35 +3143,542 @@ class ModelsTab(BaseTab):
         except Exception:
             pass
 
-    def refresh_collections_panel(self):
-        """Reload list from config.list_model_profiles() and show 'Base ▸ Variant (type)'."""
+    def _toggle_collections_group(self):
+        """Expand/collapse the Collections panel."""
         try:
-            from Data import config as C
+            if self.collections_expanded.get():
+                self.collections_canvas.grid_remove()
+                self.collections_scrollbar.grid_remove()
+                self.collections_toggle_btn.config(text="▶")
+                self.collections_expanded.set(False)
+            else:
+                self.collections_canvas.grid(row=2, column=0, sticky=tk.NSEW)
+                self.collections_scrollbar.grid(row=2, column=1, sticky=tk.NS)
+                self.collections_toggle_btn.config(text="▼")
+                self.collections_expanded.set(True)
+            # Update the outer scrollregion after layout change
+            if hasattr(self, 'right_canvas'):
+                self._update_right_scrollregion()
+        except Exception:
+            pass
+
+    def _update_right_scrollregion(self):
+        try:
+            self.root.after_idle(lambda: self.right_canvas.configure(scrollregion=self.right_canvas.bbox("all")))
+        except Exception:
+            pass
+
+    # --- Overview Header & Variant Actions ----------------------------------
+    def _build_overview_header(self):
+        try:
+            # Only render header/actions if a Variant is active
+            vid = getattr(self, '_active_variant_id', '') or ''
+            if not vid:
+                return
+            header = ttk.Frame(self.overview_tab_frame)
+            header.pack(fill=tk.X, padx=10, pady=(6, 0))
+            # Active Variant banner (left)
+            if not hasattr(self, 'active_variant_var'):
+                self.active_variant_var = tk.StringVar(value="")
+            ttk.Label(header, textvariable=self.active_variant_var, style='Config.TLabel', foreground='#ffd43b').pack(side=tk.LEFT)
+
+            # Parent base summary (center)
+            try:
+                from config import load_model_profile
+                mp = load_model_profile(vid) or {}
+                base = mp.get('base_model') or ''
+                if base:
+                    ttk.Label(header, text=f"  • Parent: {base}", style='Config.TLabel').pack(side=tk.LEFT, padx=(10,0))
+            except Exception:
+                pass
+
+            # Actions (right)
+            act = ttk.Frame(header)
+            act.pack(side=tk.RIGHT)
+            self.btn_create_gguf = ttk.Button(act, text="Create GGUF for Variant", style='Action.TButton', command=self._create_gguf_for_active_variant)
+            self.btn_create_gguf.pack(side=tk.LEFT, padx=(0,6))
+            self.btn_delete_variant = ttk.Button(act, text="Delete Variant", style='Select.TButton', command=self._delete_active_variant)
+            self.btn_delete_variant.pack(side=tk.LEFT)
+            self._refresh_overview_actions_state()
+        except Exception:
+            pass
+
+    def _refresh_overview_actions_state(self):
+        try:
+            vid = getattr(self, '_active_variant_id', '') or ''
+            # default states
+            state_create = tk.DISABLED
+            state_delete = tk.DISABLED
+            if vid:
+                state_delete = tk.NORMAL
+                state_create = tk.NORMAL
+                try:
+                    from config import get_baseline_report_path
+                    p = get_baseline_report_path(vid)
+                    if p.exists():
+                        state_create = tk.DISABLED
+                except Exception:
+                    pass
+            if hasattr(self, 'btn_create_gguf'):
+                self.btn_create_gguf.config(state=state_create)
+            if hasattr(self, 'btn_delete_variant'):
+                self.btn_delete_variant.config(state=state_delete)
+        except Exception:
+            pass
+
+    def _create_gguf_for_active_variant(self):
+        try:
+            vid = getattr(self, '_active_variant_id', '') or ''
+            if not vid:
+                messagebox.showwarning('Create GGUF', 'Select a Variant from Collections first.')
+                return
+            from config import load_model_profile
+            mp = load_model_profile(vid) or {}
+            base_name = mp.get('base_model')
+            if not base_name:
+                messagebox.showerror('Create GGUF', 'Variant profile missing base_model.')
+                return
+            base_path = self._find_base_path(base_name)
+            if not base_path:
+                messagebox.showerror('Create GGUF', f"Base model path not found for '{base_name}'.")
+                return
+            # Ask quant and export
+            self._export_base_to_gguf_dialog_for_variant(base_name, base_path, vid)
+        except Exception as e:
+            messagebox.showerror('Create GGUF', str(e))
+
+    def _export_base_to_gguf_dialog_for_variant(self, base_model_name: str, base_model_path, variant_id: str):
+        win = tk.Toplevel(self.root); win.title('Export Base to GGUF (Variant)')
+        f = ttk.Frame(win); f.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        ttk.Label(f, text=f"Export base '{base_model_name}' to GGUF for variant '{variant_id}'", style='Config.TLabel').grid(row=0, column=0, sticky=tk.W)
+        ttk.Label(f, text="Quantization:", style='Config.TLabel').grid(row=1, column=0, sticky=tk.W, pady=(6,2))
+        qvar = tk.StringVar(value='q4_k_m')
+        combo = ttk.Combobox(f, textvariable=qvar, values=['q4_k_m','q5_k_m','q8_0'], state='readonly', width=12)
+        combo.grid(row=1, column=1, sticky=tk.W)
+        def go():
+            win.destroy()
+            self._run_export_base_to_gguf(base_model_path, qvar.get(), model_tag_override=variant_id)
+        ttk.Button(f, text='Start Export', command=go, style='Action.TButton').grid(row=2, column=1, sticky=tk.E, pady=(8,0))
+
+    def _delete_active_variant(self):
+        try:
+            vid = getattr(self, '_active_variant_id', '') or ''
+            if not vid:
+                return
+            if not messagebox.askyesno('Delete Variant', f"Delete variant '{vid}' and its training profile?"):
+                return
+            # Remove profiles and stats; keep models intact
+            from config import _mp_path as _mppath, _tp_path as _tppath
+            try:
+                p = _mppath(vid)
+                if p.exists(): p.unlink()
+            except Exception: pass
+            try:
+                p2 = _tppath(vid)
+                if p2.exists(): p2.unlink()
+            except Exception: pass
+            # Clear stats if present
+            try:
+                from config import DATA_DIR
+                sp = (DATA_DIR / 'Stats' / f'{vid}.json')
+                if sp.exists(): sp.unlink()
+            except Exception: pass
+            # Remove assignment mapping if present
+            try:
+                from config import load_ollama_assignments, save_ollama_assignments
+                d = load_ollama_assignments() or {}
+                if vid in d:
+                    d.pop(vid, None)
+                    save_ollama_assignments(d)
+            except Exception: pass
+            # Refresh UI
+            self._active_variant_id = ''
+            self.active_variant_var.set('')
+            self.refresh_collections_panel()
+            self._refresh_overview_actions_state()
+            messagebox.showinfo('Delete Variant', 'Variant deleted.')
+        except Exception as e:
+            messagebox.showerror('Delete Variant', str(e))
+
+    def _render_variant_overview(self):
+        try:
+            vid = getattr(self, '_active_variant_id', '') or ''
+            # Clear current overview and rebuild header
+            for w in self.overview_tab_frame.winfo_children():
+                w.destroy()
+            self._build_overview_header()
+
+            if not vid:
+                return
+            from config import load_model_profile
+            mp = load_model_profile(vid) or {}
+            base_name = mp.get('base_model') or ''
+            base = None
+            try:
+                for m in (self.all_models or []):
+                    if m.get('name') == base_name and m.get('type') == 'pytorch':
+                        base = m; break
+            except Exception:
+                base = None
+
+            pane = ttk.LabelFrame(self.overview_tab_frame, text="Parent Base Overview", style='TLabelframe')
+            pane.pack(fill=tk.X, padx=10, pady=10)
+            if not base:
+                ttk.Label(pane, text=f"Base model '{base_name}' not found.", style='Config.TLabel').grid(row=0, column=0, sticky=tk.W, padx=10, pady=5)
+                return
+            pane.columnconfigure(1, weight=1)
+            r = 0
+            ttk.Label(pane, text="Name:", font=("Arial", 10, "bold"), style='Config.TLabel').grid(row=r, column=0, sticky=tk.W, padx=10, pady=4)
+            ttk.Label(pane, text=base.get('name',''), style='Config.TLabel', foreground='#61dafb').grid(row=r, column=1, sticky=tk.W, padx=5, pady=4); r+=1
+            if base.get('size'):
+                ttk.Label(pane, text="Size:", font=("Arial", 10, "bold"), style='Config.TLabel').grid(row=r, column=0, sticky=tk.W, padx=10, pady=4)
+                ttk.Label(pane, text=str(base.get('size')), style='Config.TLabel').grid(row=r, column=1, sticky=tk.W, padx=5, pady=4); r+=1
+            if base.get('path'):
+                ttk.Label(pane, text="Path:", font=("Arial", 10, "bold"), style='Config.TLabel').grid(row=r, column=0, sticky=tk.W, padx=10, pady=4)
+                ttk.Label(pane, text=str(base.get('path')), style='Config.TLabel').grid(row=r, column=1, sticky=tk.W, padx=5, pady=4); r+=1
+        except Exception:
+            pass
+
+    # --- Resizer logic -------------------------------------------------------
+    def _on_resizer_press(self, event):
+        try:
+            self._resizer_drag_start_x = event.x_root
+            # Cache current width
+            self._resizer_start_width = int(self.right_canvas.winfo_width())
+        except Exception:
+            self._resizer_drag_start_x = None
+            self._resizer_start_width = None
+
+    def _on_resizer_drag(self, event):
+        try:
+            if self._resizer_drag_start_x is None or self._resizer_start_width is None:
+                return
+            dx = event.x_root - self._resizer_drag_start_x
+            # Invert direction so dragging right widens the right pane
+            new_w = max(240, min(700, self._resizer_start_width - dx))
+            self.right_pane_width = new_w
+            self.right_canvas.config(width=new_w)
+            self._update_right_scrollregion()
+        except Exception:
+            pass
+
+    def refresh_collections_panel(self):
+        """Reload list from config.list_model_profiles() and show grouped, filtered entries."""
+        try:
+            import config as C
             items = C.list_model_profiles() or []
-            self._collections_cache = items
-            self.collections_list.delete(0, tk.END)
-            # group visually as "Base ▸ Variant   [type]"
+            # Group by type category (assigned_type), then by base
+            grouped_by_type = {}
             for it in items:
-                label = f"{it.get('base_model','?')} ▸ {it.get('variant_id','?')}   [{it.get('assigned_type','')}]"
-                self.collections_list.insert(tk.END, label)
+                t = (it.get('assigned_type') or 'uncategorized')
+                grouped_by_type.setdefault(t, []).append(it)
+            self._collections_cache = items
+
+            # Clear existing buttons
+            for widget in self.collections_buttons_frame.winfo_children():
+                widget.destroy()
+
+            if not items:
+                ttk.Label(self.collections_buttons_frame, text="No collections found.", style='Config.TLabel').pack(pady=10)
+                return
+
+            # Maintain per-type expand state and UI refs
+            if not hasattr(self, 'collections_type_expanded'):
+                self.collections_type_expanded = {}
+            self.collections_type_ui = {}
+
+            # Build grouped UI with Type headers and per-variant rows
+            for type_id in sorted(grouped_by_type.keys()):
+                # Header row with toggle
+                hdr = ttk.Frame(self.collections_buttons_frame)
+                hdr.pack(fill=tk.X, padx=5, pady=(8,2))
+                expanded = bool(self.collections_type_expanded.get(type_id, False))
+                arrow = ttk.Button(hdr, text=('▼' if expanded else '▶'), width=2,
+                                   command=lambda t=type_id: self._toggle_collection_type_group(t), style='Select.TButton')
+                arrow.pack(side=tk.LEFT, padx=(0,5))
+                ttk.Label(hdr, text=type_id.title(), style='Config.TLabel').pack(side=tk.LEFT)
+
+                cont = ttk.Frame(self.collections_buttons_frame)
+                for it in sorted(grouped_by_type[type_id], key=lambda x: (x.get('base_model',''), x.get('variant_id',''))):
+                    try:
+                        cls = C.get_variant_class(it.get('variant_id',''))
+                    except Exception:
+                        cls = "novice"
+                    base = it.get('base_model','?')
+                    # Label: Parent-Type<Class> style
+                    label = f"  • {base}-{type_id.title()}<{cls.title()}>"
+                    btn = ttk.Button(cont, text=label, style='Select.TButton', command=lambda item=it: self._on_collection_pick(item))
+                    btn.pack(fill=tk.X, padx=16, pady=1)
+                    btn.bind("<Button-3>", lambda e, item=it: self._open_collections_menu(e, item))
+                if expanded:
+                    # Ensure the container appears immediately after its header
+                    try:
+                        cont.pack(fill=tk.X, after=hdr)
+                    except Exception:
+                        cont.pack(fill=tk.X)
+                # Keep references including the header for ordered toggling
+                self.collections_type_ui[type_id] = {'arrow': arrow, 'container': cont, 'header': hdr}
         except Exception as e:
             print("[ModelsTab] refresh_collections_panel error:", e)
 
-    def _on_collection_pick(self, _evt=None):
+    def _open_collections_menu(self, event, item: dict):
+        try:
+            if not hasattr(self, 'collections_menu') or self.collections_menu is None:
+                self.collections_menu = tk.Menu(self.parent, tearoff=0)
+                self.collections_menu.add_command(label="Open in Training", command=lambda: self._on_collection_pick(self._collections_ctx_item))
+                self.collections_menu.add_separator()
+                self.collections_menu.add_command(label="Rename…", command=lambda: self._collections_rename(self._collections_ctx_item))
+                self.collections_menu.add_command(label="Duplicate…", command=lambda: self._collections_duplicate(self._collections_ctx_item))
+                self.collections_menu.add_command(label="Delete", command=lambda: self._collections_delete(self._collections_ctx_item))
+                # WO-6s: Badges/Color editor
+                self.collections_menu.add_separator()
+                self.collections_menu.add_command(label="Edit Badges/Color…", command=lambda: self._collections_edit_visuals(self._collections_ctx_item))
+            self._collections_ctx_item = item
+            self.collections_menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            try:
+                self.collections_menu.grab_release()
+            except Exception:
+                pass
+
+    def _toggle_collection_type_group(self, type_id: str):
+        try:
+            ui = (getattr(self, 'collections_type_ui', {}) or {}).get(type_id) or {}
+            cont = ui.get('container'); arrow = ui.get('arrow'); hdr = ui.get('header')
+            if not cont or not arrow:
+                return
+            expanded = bool(self.collections_type_expanded.get(type_id, False))
+            if expanded:
+                cont.pack_forget(); arrow.config(text='▶')
+            else:
+                try:
+                    cont.pack(fill=tk.X, after=hdr)
+                except Exception:
+                    cont.pack(fill=tk.X)
+                arrow.config(text='▼')
+            self.collections_type_expanded[type_id] = not expanded
+            self._update_right_scrollregion()
+        except Exception:
+            pass
+    def _collections_rename(self, item: dict):
+        try:
+            from tkinter import simpledialog
+            old = item.get('variant_id')
+            if not old:
+                return
+            new = simpledialog.askstring("Rename Variant", f"New name for '{old}':", parent=self.root)
+            if not new:
+                return
+            import config as C
+            C.rename_variant(old, new)
+            self.refresh_collections_panel()
+        except Exception as e:
+            print("[ModelsTab] rename error:", e)
+
+    def _collections_duplicate(self, item: dict):
+        try:
+            from tkinter import simpledialog
+            src = item.get('variant_id')
+            if not src:
+                return
+            dst = simpledialog.askstring("Duplicate Variant", f"Duplicate '{src}' to:", parent=self.root)
+            if not dst:
+                return
+            import config as C
+            C.duplicate_variant(src, dst)
+            self.refresh_collections_panel()
+        except Exception as e:
+            print("[ModelsTab] duplicate error:", e)
+
+    def _collections_delete(self, item: dict):
+        try:
+            from tkinter import messagebox
+            v = item.get('variant_id')
+            if not v:
+                return
+            if not messagebox.askyesno("Delete Variant", f"Delete '{v}' (model+training profile)?"):
+                return
+            import config as C
+            C.delete_variant(v)
+            self.refresh_collections_panel()
+        except Exception as e:
+            print("[ModelsTab] delete error:", e)
+
+    def _collections_edit_visuals(self, item: dict):
+        try:
+            from tkinter import simpledialog
+            v = item.get('variant_id')
+            if not v:
+                return
+            badges_str = simpledialog.askstring("Edit Badges", "Comma-separated badges:", parent=self.root)
+            color_str = simpledialog.askstring("Edit Color", "Hex color (e.g., #ffaa00):", parent=self.root)
+            if badges_str is None and color_str is None:
+                return
+            badges = []
+            if badges_str:
+                badges = [b.strip() for b in badges_str.split(',') if b.strip()]
+            import config as C
+            C.update_variant_visuals(v, badges, color_str or "")
+            self.refresh_collections_panel()
+        except Exception as e:
+            print("[ModelsTab] edit visuals error:", e)
+
+    def refresh_variant_stats(self, variant_id: str):
+        """Best-effort: load variant sidecar stats if present and trigger any dependent refresh."""
+        try:
+            import json, os
+            p = os.path.join('Data', 'Stats', f'{variant_id}.json')
+            if os.path.exists(p):
+                with open(p, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                # Placeholder: hook into skills/stats panels if available
+                print(f"[ModelsTab] Loaded stats for {variant_id}: keys={list((data.get('summary') or {}).keys())}")
+        except Exception as e:
+            print("[ModelsTab] refresh_variant_stats error:", e)
+
+    def _on_collection_pick(self, item: dict):
         """When a variant is picked, apply its training profile in Training tab."""
         try:
-            sel = self.collections_list.curselection()
-            if not sel: return
-            idx = sel[0]
-            it = (self._collections_cache or [])[idx]
-            variant = it.get("variant_id")
+            variant = item.get("variant_id")
+            # Update active banner
+            try:
+                if hasattr(self, 'active_variant_var'):
+                    self.active_variant_var.set(f"Active Variant: {variant}")
+            except Exception:
+                pass
+            # Render variant overview (parent summary + actions)
+            try:
+                self._active_variant_id = variant
+                self._render_variant_overview()
+            except Exception:
+                pass
+            # Reflect selection in Evaluation tab context
+            try:
+                if hasattr(self, 'selected_model_label_eval'):
+                    self.selected_model_label_eval.config(text=f"Selected Model: {variant}")
+                if hasattr(self, 'eval_source_label'):
+                    self.eval_source_label.config(text="Source: Variant (Profile)")
+                # Also set evaluation target to this variant
+                self.current_model_for_stats = variant
+                # Auto-toggle baseline for fresh variants and select type-specific suite
+                try:
+                    from config import load_latest_evaluation_report, get_baseline_report_path, load_model_profile
+                    is_fresh = True
+                    try:
+                        rep = load_latest_evaluation_report(variant) or {}
+                        if rep:
+                            is_fresh = False
+                    except Exception:
+                        is_fresh = True
+                    if is_fresh:
+                        # No eval report; also check canonical baseline path existence
+                        try:
+                            p = get_baseline_report_path(variant)
+                            if p.exists():
+                                is_fresh = False
+                        except Exception:
+                            pass
+                    if is_fresh and hasattr(self, 'run_as_baseline_var'):
+                        self.run_as_baseline_var.set(True)
+                    # Choose an evaluation suite based on type (fallback to 'Tools')
+                    t_id = None
+                    try:
+                        mp = load_model_profile(variant) or {}
+                        t_id = (mp.get('assigned_type') or '').lower()
+                    except Exception:
+                        pass
+                    mapping = {
+                        'coder': 'CoderNovice',
+                        'researcher': 'ResearcherNovice',
+                    }
+                    preferred = mapping.get(t_id, 'Tools')
+                    if hasattr(self, 'test_suite_combo') and hasattr(self, 'test_suite_var'):
+                        opts = list(self.test_suite_combo['values']) if isinstance(self.test_suite_combo['values'], tuple) else (self.test_suite_combo['values'] or [])
+                        if preferred in opts:
+                            self.test_suite_combo.set(preferred)
+                        elif opts:
+                            self.test_suite_combo.set(opts[0])
+                except Exception:
+                    pass
+            except Exception:
+                pass
             # Relay to TrainingTab
             tt = self.get_training_tab()
             if tt and hasattr(tt, "apply_plan"):
                 self.root.after(50, lambda: tt.apply_plan(variant_id=variant))
                 print(f"[ModelsTab] Applied collection variant to Training: {variant}")
+            # Refresh variant-linked stats/skills if available
+            try:
+                self.refresh_variant_stats(variant)
+            except Exception:
+                pass
         except Exception as e:
             print("[ModelsTab] _on_collection_pick error:", e)
+
+    def _on_variant_applied(self, evt):
+        try:
+            import json
+            data = json.loads(getattr(evt, 'data', '{}') or '{}')
+            vid = data.get('variant_id')
+            if vid and hasattr(self, 'active_variant_var'):
+                self.active_variant_var.set(f"Active Variant: {vid}")
+                try:
+                    self.refresh_variant_stats(vid)
+                except Exception:
+                    pass
+                # Also update Evaluation tab labels
+                try:
+                    if hasattr(self, 'selected_model_label_eval'):
+                        self.selected_model_label_eval.config(text=f"Selected Model: {vid}")
+                    if hasattr(self, 'eval_source_label'):
+                        self.eval_source_label.config(text="Source: Variant (Profile)")
+                    self.current_model_for_stats = vid
+                    self._active_variant_id = vid
+                    self._refresh_overview_actions_state()
+                    self._render_variant_overview()
+                    # Auto-toggle baseline and pick suite for fresh variants too
+                    try:
+                        from config import load_latest_evaluation_report, get_baseline_report_path, load_model_profile
+                        is_fresh = True
+                        try:
+                            rep = load_latest_evaluation_report(vid) or {}
+                            if rep:
+                                is_fresh = False
+                        except Exception:
+                            is_fresh = True
+                        if is_fresh:
+                            try:
+                                p = get_baseline_report_path(vid)
+                                if p.exists():
+                                    is_fresh = False
+                            except Exception:
+                                pass
+                        if is_fresh and hasattr(self, 'run_as_baseline_var'):
+                            self.run_as_baseline_var.set(True)
+                        # Pick suite
+                        t_id = None
+                        try:
+                            mp = load_model_profile(vid) or {}
+                            t_id = (mp.get('assigned_type') or '').lower()
+                        except Exception:
+                            pass
+                        mapping = {
+                            'coder': 'CoderNovice',
+                            'researcher': 'ResearcherNovice',
+                        }
+                        preferred = mapping.get(t_id, 'Tools')
+                        if hasattr(self, 'test_suite_combo') and hasattr(self, 'test_suite_var'):
+                            opts = list(self.test_suite_combo['values']) if isinstance(self.test_suite_combo['values'], tuple) else (self.test_suite_combo['values'] or [])
+                            if preferred in opts:
+                                self.test_suite_combo.set(preferred)
+                            elif opts:
+                                self.test_suite_combo.set(opts[0])
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
     def _populate_adapters_tab(self, base_model_info):
         """Scans for and displays all adapters trained from the given base model."""
@@ -3005,7 +3760,19 @@ class ModelsTab(BaseTab):
                                 command=self._adapters_update_actions_state).grid(row=0, column=col, sticky=tk.W, padx=5)
                 col += 1
 
-            ttk.Label(adapter_frame, text=f"▶ {adapter_name}", font=("Arial", 10, "bold"), foreground="#51cf66").grid(row=0, column=col, sticky=tk.W, padx=5, pady=2)
+            # Try to show linked variant id from sidecar
+            variant_note = ""
+            try:
+                sidecar = Path(str(adapter_path) + ".variant.json")
+                if sidecar.exists():
+                    with open(sidecar, 'r', encoding='utf-8') as f:
+                        vmeta = json.load(f)
+                    vid = vmeta.get('variant_id')
+                    if vid:
+                        variant_note = f"  [{vid}]"
+            except Exception:
+                pass
+            ttk.Label(adapter_frame, text=f"▶ {adapter_name}{variant_note}", font=("Arial", 10, "bold"), foreground="#51cf66").grid(row=0, column=col, sticky=tk.W, padx=5, pady=2)
             col += 1
             # Readiness pill
             status_label = ttk.Label(adapter_frame, text="", font=("Arial", 8), style='Config.TLabel')
@@ -3622,9 +4389,17 @@ class ModelsTab(BaseTab):
         self.raw_model_info_text.config(state=tk.DISABLED)
 
         # Update Overview Tab
+        # Selecting an Ollama model clears active variant context
+        try:
+            self._active_variant_id = ''
+            if hasattr(self, 'active_variant_var'):
+                self.active_variant_var.set('')
+        except Exception:
+            pass
         # Clear previous overview content
         for widget in self.overview_tab_frame.winfo_children():
             widget.destroy()
+        # Do NOT build variant header/actions for unassigned Ollama models
 
         # Model Rename Section at the top
         rename_frame = ttk.LabelFrame(self.overview_tab_frame, text="🏷️ Rename Model", style='TLabelframe')

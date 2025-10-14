@@ -28,6 +28,7 @@ from config import (
     SEMANTIC_DATA_DIR,
     PROMPTBOX_DIR,
 )
+import config as cfg
 
 # Import panel modules
 from .runner_panel import RunnerPanel
@@ -1142,3 +1143,107 @@ class TrainingTab(BaseTab):
 
     def get_selected_schemas(self):
         return [k for k, v in self.schema_vars.items() if v.get()]
+
+
+
+    def load_prompts(self, prompt_names: list[str]):
+        """
+        Tick prompt checkboxes by name.
+        Expects self.prompt_vars: {name: tk.BooleanVar}
+        """
+        try:
+            names = set(prompt_names or [])
+            for name, var in getattr(self, "prompt_vars", {}).items():
+                var.set(name in names)
+            if hasattr(self, "_update_prompts_selected_count"):
+                self._update_prompts_selected_count()
+        except Exception:
+            pass
+
+    def load_schemas(self, schema_names: list[str]):
+        """
+        Tick schema checkboxes by name.
+        Expects self.schema_vars: {name: tk.BooleanVar}
+        """
+        try:
+            names = set(schema_names or [])
+            for name, var in getattr(self, "schema_vars", {}).items():
+                var.set(name in names)
+            if hasattr(self, "_update_schemas_selected_count"):
+                self._update_schemas_selected_count()
+        except Exception:
+            pass
+
+    def apply_plan(self, variant_id: str | None = None, training_profile: dict | None = None):
+        """
+        Load Training Profile for variant_id (or use provided dict) and hydrate UI:
+          - scripts/prompts/schemas selections
+          - runner settings
+          - select Profiles entry
+        """
+        try:
+            tp = {}
+            if training_profile:
+                tp = training_profile
+            elif variant_id:
+                tp = cfg.load_training_profile(variant_id) or {}
+            else:
+                print("[TrainingTab] apply_plan called without variant_id/profile")
+                return
+
+            # 0) Base model -> Model Selection panel
+            base_model_name = tp.get("base_model", "")
+            try:
+                if hasattr(self, "model_selection_panel") and hasattr(self.model_selection_panel, "set_base_model") and base_model_name:
+                    self.model_selection_panel.set_base_model(base_model_name)
+                elif hasattr(self, "config_vars") and "base_model" in self.config_vars and base_model_name:
+                    # Fallback: set config var
+                    self.config_vars["base_model"].set(base_model_name)
+                    if hasattr(self, "runner_panel"):
+                        self.runner_panel.update_training_model_display()
+            except Exception:
+                pass
+
+            # 1) Scripts
+            scripts = tp.get("selected_scripts", [])
+            if hasattr(self, "runner_panel") and hasattr(self.runner_panel, "load_scripts"):
+                self.runner_panel.load_scripts(scripts)
+
+            # 2) Prompts
+            prompts = tp.get("selected_prompts", [])
+            if hasattr(self, "load_prompts"):
+                self.load_prompts(prompts)
+
+            # 3) Schemas
+            schemas = tp.get("selected_schemas", [])
+            if hasattr(self, "load_schemas"):
+                self.load_schemas(schemas)
+
+            # 4) Runner settings
+            if hasattr(self, "runner_panel") and hasattr(self.runner_panel, "load_settings"):
+                self.runner_panel.load_settings(tp.get("runner_settings", {}))
+
+            # 5) Profiles dropdown: select or create entry for variant
+            try:
+                self.active_trainee_name = variant_id or tp.get("trainee_name")
+            except Exception:
+                pass
+            if hasattr(self, "profiles_panel") and hasattr(self.profiles_panel, "select_profile"):
+                self.profiles_panel.select_profile(self.active_trainee_name)
+
+            # 6) Refresh preview/summary if available
+            if hasattr(self, "update_preview"):
+                self.update_preview()
+
+            print(f"[TrainingTab] Plan applied for {self.active_trainee_name}")
+            # WO-6p: Fire VariantApplied for cross-tab refresh
+            try:
+                import json as _json
+                base = base_model_name
+                payload = _json.dumps({"variant_id": self.active_trainee_name, "base_model": base})
+                # Fire on own widget so it can bubble
+                self.parent.event_generate("<<VariantApplied>>", data=payload, when="tail")
+            except Exception:
+                pass
+        except Exception as e:
+            print("[TrainingTab] Error in apply_plan:", e)

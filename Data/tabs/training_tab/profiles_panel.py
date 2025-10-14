@@ -12,6 +12,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from config import save_profile, load_profile, list_profiles
+from config import list_all_training_profiles
 
 
 import logger_util # Add import for logging
@@ -97,6 +98,11 @@ class ProfilesPanel:
 
         # Initial update of combobox and button states
         self.update_profile_combobox()
+        # WO-6x: Refresh on ProfilesChanged
+        try:
+            self.parent.bind("<<ProfilesChanged>>", lambda e: self.update_profile_combobox())
+        except Exception:
+            pass
 
     def load_profile_from_gui(self, event=None):
         """Loads selected profile and updates GUI elements"""
@@ -176,12 +182,21 @@ class ProfilesPanel:
             messagebox.showerror("Error", f"Failed to save profile '{profile_name}': {e}")
 
     def load_profile_from_gui(self, event=None):
-        """Loads selected profile and updates GUI elements"""
-        profile_name = self.selected_profile_var.get()
-        if not profile_name or profile_name == "No profiles found":
+        """Loads selected profile and updates GUI elements (legacy) or applies plan (type)."""
+        selected_label = self.selected_profile_var.get()
+        if not selected_label or selected_label == "No profiles found":
             return
 
         try:
+            # Determine record
+            rec = getattr(self, '_profiles_lookup', {}).get(selected_label)
+            if rec and rec.get('kind') == 'type':
+                variant_id = rec.get('id')
+                if hasattr(self, 'training_tab_instance') and hasattr(self.training_tab_instance, 'apply_plan'):
+                    self.training_tab_instance.apply_plan(variant_id=variant_id)
+                return
+            # Fallback to legacy profile
+            profile_name = rec.get('id') if rec else selected_label
             profile_config = load_profile(profile_name)
 
             # Update Runner Panel settings
@@ -389,20 +404,32 @@ class ProfilesPanel:
         return current_config
 
     def update_profile_combobox(self):
-        """Refreshes the list of profiles in the combobox and updates button states."""
-        profiles = list_profiles()
-        self.profile_combobox['values'] = profiles
-        
-        selected_profile = self.selected_profile_var.get()
-        if selected_profile in profiles:
-            self.profile_combobox.set(selected_profile) # Keep current selection if it still exists
-            self.overwrite_button.config(state=tk.NORMAL)
+        """Refresh the list with legacy + type profiles labeled accordingly."""
+        try:
+            records = list_all_training_profiles() or []
+        except Exception:
+            records = []
+        self._profiles_lookup = {}
+        labels = []
+        for rec in records:
+            pid = rec.get('id'); kind = rec.get('kind')
+            label = f"{pid}  ({kind})"
+            labels.append(label)
+            self._profiles_lookup[label] = rec
+        self.profile_combobox['values'] = labels
+
+        current = self.selected_profile_var.get()
+        if current in labels:
+            self.profile_combobox.set(current)
+            # Only legacy profiles can be overwritten directly here
+            is_legacy = (self._profiles_lookup.get(current, {}).get('kind') == 'legacy')
+            self.overwrite_button.config(state=(tk.NORMAL if is_legacy else tk.DISABLED))
             self.delete_button.config(state=tk.NORMAL)
-        elif profiles:
-            self.selected_profile_var.set(profiles[0]) # Select first if current is gone
-            self.overwrite_button.config(state=tk.NORMAL)
+        elif labels:
+            self.selected_profile_var.set(labels[0])
+            is_legacy = (self._profiles_lookup.get(labels[0], {}).get('kind') == 'legacy')
+            self.overwrite_button.config(state=(tk.NORMAL if is_legacy else tk.DISABLED))
             self.delete_button.config(state=tk.NORMAL)
-            # Suppress popup on auto-load during startup
             self._suppress_next_popup = True
             self.load_profile_from_gui()
         else:

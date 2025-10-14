@@ -1,0 +1,665 @@
+Perfect—here’s the **next wave of work orders** ready to paste into Codex. They’re scoped, sequential, and each has targets, code stubs, a quick validation, and a commit line. (Still no AnyKey/kiosk.)
+
+---
+
+# WO-6k — Unify Right Pane Scrolling (single scroll, collapsible sections)
+
+**Goal:** Replace per-section scrollbars with **one** scroll container that holds:
+
+* “Base models (PyTorch)”
+* “Ollama models (GGUF)”
+* “📚 Collections”
+  Each section has a fixed header + toggle; bodies expand/collapse and push each other naturally.
+
+**Files**
+
+* `Data/tabs/models_tab/models_tab.py` (main)
+* *(optional)* `Data/ui/scrollframe.py` (helper)
+
+**Edits**
+
+1. Add a simple scrollframe helper (inline or new file):
+
+```python
+# Data/ui/scrollframe.py
+import tkinter as tk, tkinter.ttk as ttk
+class ScrollFrame(ttk.Frame):
+    def __init__(self, master, *args, **kw):
+        super().__init__(master, *args, **kw)
+        self.canvas = tk.Canvas(self, highlightthickness=0)
+        self.vbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.canvas.yview)
+        self.body = ttk.Frame(self.canvas)
+        self.body_id = self.canvas.create_window((0,0), window=self.body, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.vbar.set)
+        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.vbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.body.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+        self.canvas.bind("<Configure>", lambda e: self.canvas.itemconfig(self.body_id, width=e.width))
+```
+
+2. In `models_tab.py` → in `create_ui()`, **replace** the separate canvases with:
+
+```python
+# Right side: a single ScrollFrame
+from Data.ui.scrollframe import ScrollFrame  # if externalized
+self.right_scroll = ScrollFrame(model_list_frame)
+self.right_scroll.grid(row=1, column=0, columnspan=2, sticky=tk.NSEW, rowspan=6)
+model_list_frame.rowconfigure(1, weight=1)
+
+# Inside right_scroll.body, create three section frames with a header row (Label + Button) and a body frame.
+# Reuse your existing content builders but pack into these bodies instead of separate canvases.
+self.sec_base_hdr  = ttk.Frame(self.right_scroll.body); self.sec_base_hdr.pack(fill=tk.X, pady=(4,0))
+self.sec_base_body = ttk.Frame(self.right_scroll.body); self.sec_base_body.pack(fill=tk.X)
+
+self.sec_oll_hdr   = ttk.Frame(self.right_scroll.body); self.sec_oll_hdr.pack(fill=tk.X, pady=(8,0))
+self.sec_oll_body  = ttk.Frame(self.right_scroll.body); self.sec_oll_body.pack(fill=tk.BOTH, expand=True)
+
+self.sec_col_hdr   = ttk.Frame(self.right_scroll.body); self.sec_col_hdr.pack(fill=tk.X, pady=(8,0))
+self.sec_col_body  = ttk.Frame(self.right_scroll.body); self.sec_col_body.pack(fill=tk.BOTH, expand=True)
+
+# Hook your existing build/populate functions to target these *_body frames.
+```
+
+3. Update toggle handlers to `pack_forget()` / `pack()` the `*_body` frames (no grid row juggling).
+
+**Validation**
+
+* Launch app; expand/collapse each; scroll the whole pane smoothly; no overlapping headers.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/models_tab.py Data/ui/scrollframe.py
+git commit -m "WO-6k: Single right-pane scroll with collapsible sections"
+```
+
+---
+
+# WO-6l — Event Payload Hardening & Model→Types Prefill
+
+**Goal:** Ensure `<<ModelSelected>>` **always** carries valid JSON payload; TypesPanel reliably pre-fills variant names when base/selection changes.
+
+**Files**
+
+* `Data/tabs/models_tab/models_tab.py`
+* `Data/tabs/models_tab/types_panel.py`
+
+**Edits**
+
+1. In both `display_model_info_from_dict` and `display_model_info`, build `payload` **before** use and guard:
+
+```python
+import json
+payload = json.dumps({
+  "model_name": model_name,
+  "model_type": model_type,     # or model_info.get("type","ollama")
+  "is_ollama": False/True
+})
+if getattr(self, "panel_types", None):
+    self.panel_types.event_generate("<<ModelSelected>>", data=payload, when="tail")
+```
+
+2. In `TypesPanel`, ensure:
+
+* `_on_model_selected` parses JSON safely (try/except).
+* Calls `_prefill_variant_name(base, current_type)` when not dirty.
+* Calls `_update_apply_state()`.
+
+**Validation**
+
+* Click different base models → Types tab pre-fills variant instantly.
+* No KeyError/NameError in console.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/models_tab.py Data/tabs/models_tab/types_panel.py
+git commit -m "WO-6l: Hardened ModelSelected payload; reliable Types prefill"
+```
+
+---
+
+# WO-6m — Unify Profiles (Legacy + Type Variants) in Training UI
+
+**Goal:** Profiles dropdown shows **both** legacy profiles and Type Training profiles, labeled clearly.
+
+**Files**
+
+* `Data/config.py`
+* `Data/tabs/training_tab/profiles_panel.py` (or wherever dropdown lives)
+
+**Edits**
+
+1. In `config.py`, add:
+
+```python
+def list_legacy_training_profiles():
+    # enumerate old location, return [{"id":name,"kind":"legacy"}...]
+    ...
+
+def list_type_training_profiles():
+    # enumerate Data/profiles/Training/*.json, return [{"id":variant,"kind":"type"}...]
+    ...
+
+def list_all_training_profiles():
+    return list_legacy_training_profiles() + list_type_training_profiles()
+```
+
+2. In Profiles panel populate:
+
+* Call `list_all_training_profiles()`.
+* Display as `"{id}  (type)"` or `"(legacy)"`.
+* Selecting a **type** profile should call `training_tab.apply_plan(variant_id=id)`.
+
+**Validation**
+
+* Dropdown shows both categories; selecting a type hydrates runner and selections.
+
+**Commit**
+
+```bash
+git add Data/config.py Data/tabs/training_tab/profiles_panel.py
+git commit -m "WO-6m: Unified profiles dropdown (legacy + type variants)"
+```
+
+---
+
+# WO-6n — Adapter/Checkpoint Linkage to Variant
+
+**Goal:** Training outputs (adapters/LoRA/checkpoints) are **traceable** to the variant that produced them.
+
+**Files**
+
+* `Data/training_engine.py`
+* `Data/tabs/models_tab/models_tab.py` (Adapters tab listing)
+
+**Edits**
+
+1. In `training_engine.py`, when constructing output path:
+
+* Include variant id in folder or write a `.variant.json` sidecar:
+
+```python
+def write_variant_sidecar(out_dir, variant_id, base_model):
+    import json, time, os
+    meta = {"variant_id": variant_id, "base_model": base_model, "ts": time.time()}
+    with open(os.path.join(out_dir, ".variant.json"), "w", encoding="utf-8") as f:
+        json.dump(meta, f, indent=2)
+```
+
+2. In Adapters tab, when listing outputs:
+
+* If `.variant.json` exists, show `• adapter_name  [variant_id]`.
+
+**Validation**
+
+* Run/dummy export → sidecar present; UI shows mapping.
+
+**Commit**
+
+```bash
+git add Data/training_engine.py Data/tabs/models_tab/models_tab.py
+git commit -m "WO-6n: Variant linkage for adapters/checkpoints"
+```
+
+---
+
+# WO-6o — Runner “Type Plan Overrides” Toggle
+
+**Goal:** Make it clear which runner settings came from the **Type Plan** and let users opt out (temporarily).
+
+**Files**
+
+* `Data/tabs/training_tab/runner_panel.py`
+
+**Edits**
+
+1. Add a `BooleanVar` and checkbox: “Use Type Plan overrides”.
+2. `load_settings()`:
+
+* Store incoming dict in `self._plan_settings`.
+* If toggle is ON, apply values; if OFF, do nothing.
+
+3. When user toggles:
+
+* Reapply current `self._plan_settings` or revert (no-op) if off.
+
+**Validation**
+
+* Apply plan: settings change.
+* Uncheck toggle: plan settings no longer force UI.
+* Re-check: they re-apply.
+
+**Commit**
+
+```bash
+git add Data/tabs/training_tab/runner_panel.py
+git commit -m "WO-6o: Runner Type Plan overrides toggle"
+```
+
+---
+
+# WO-6p — VariantApplied Event + Cross-Tab Refresh
+
+**Goal:** After `apply_plan`, fire `<<VariantApplied>>` with `{variant_id, base_model}`, let ModelsTab refresh stats/overview automatically.
+
+**Files**
+
+* `Data/tabs/training_tab/training_tab.py`
+* `Data/tabs/models_tab/models_tab.py`
+
+**Edits**
+
+1. In `apply_plan` (end):
+
+```python
+import json
+payload = json.dumps({"variant_id": self.active_trainee_name, "base_model": base})
+self.event_generate("<<VariantApplied>>", data=payload, when="tail")
+```
+
+2. In ModelsTab `create_ui()`:
+
+```python
+self.bind("<<VariantApplied>>", self._on_variant_applied)
+
+def _on_variant_applied(self, evt):
+    import json
+    data = json.loads(getattr(evt, "data", "{}") or "{}")
+    v = data.get("variant_id")
+    if v:
+        self.refresh_variant_stats(v)
+        # optionally select the variant in Collections list
+```
+
+**Validation**
+
+* Apply plan → Models stats refresh without manual action.
+
+**Commit**
+
+```bash
+git add Data/tabs/training_tab/training_tab.py Data/tabs/models_tab/models_tab.py
+git commit -m "WO-6p: VariantApplied event and ModelsTab auto-refresh"
+```
+
+---
+
+# WO-6q — Hot-Reload Type Catalog & Schemas
+
+**Goal:** Add a “Reload Types” button to Types panel to re-read `Data/type_catalog.json` and related schemas without restart.
+
+**Files**
+
+* `Data/tabs/models_tab/types_panel.py`
+* `Data/config.py` (expose a simple `load_type_catalog()` if not already)
+
+**Edits**
+
+* Add button “Reload Types”.
+* On click: re-read catalog, rebuild `self.type_ids`, repopulate listbox, keep current base/type if possible.
+
+**Validation**
+
+* Edit catalog JSON → click reload → list updates.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/types_panel.py Data/config.py
+git commit -m "WO-6q: Hot-reload for Type catalog and schemas"
+```
+
+---
+
+# WO-6r — Robust JSON IO + Schema Validation Guardrails
+
+**Goal:** Fewer crashes; better error logs around profiles/schemas load/save.
+
+**Files**
+
+* `Data/config.py`
+
+**Edits**
+
+* Wrap all `_read_json()` calls with try/except; on failure log file path + brief message and **fallback to {}**.
+* Before saving profiles, ensure directories exist.
+* When schema missing, skip validation with a warning, don’t block saves.
+
+**Validation**
+
+* Temporarily break a schema file → save profile still works, warns once.
+
+**Commit**
+
+```bash
+git add Data/config.py
+git commit -m "WO-6r: Harden JSON IO and graceful schema validation fallbacks"
+```
+
+---
+
+# WO-6s — Variant Badges/Color Editor
+
+**Goal:** Edit a variant’s badges/color from UI (Collections context menu).
+
+**Files**
+
+* `Data/tabs/models_tab/models_tab.py`
+* `Data/config.py` (helpers to update and persist)
+
+**Edits**
+
+1. Config helpers:
+
+```python
+def update_variant_visuals(variant_id:str, badges:list[str], color:str):
+    mp = load_model_profile(variant_id) or {}
+    mp["badges"] = badges or []
+    mp["color"] = color or ""
+    save_model_profile(variant_id, mp)
+```
+
+2. Collections menu → “Edit Badges/Color…”
+
+* Show a simple dialog with a comma-separated badges field and a color entry (hex).
+* On save: call `update_variant_visuals`, `refresh_collections_panel()`.
+
+**Validation**
+
+* Set `badges=["RAG","LoRA"]`, `color="#5ac8fa"`; Collections shows dot + badges.
+
+**Commit**
+
+```bash
+git add Data/config.py Data/tabs/models_tab/models_tab.py
+git commit -m "WO-6s: Edit variant badges and color from Collections"
+```
+
+---
+
+# WO-6t — GGUF/Ollama Sidecar Readback for Badges/Color
+
+**Goal:** If a GGUF (Ollama) model has a `.variant.json` sidecar, reflect variant badges/color in the Ollama models listing.
+
+**Files**
+
+* `Data/tabs/models_tab/models_tab.py`
+
+**Edits**
+
+* When building Ollama list, look for `{model}.variant.json` alongside the artifact (or where you store metadata). If present, read `variant_id` → query `config.get_variant_badge_color(variant_id)` and annotate the label (dot + badges).
+
+**Validation**
+
+* Place a sidecar, refresh → see markers next to Ollama models.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/models_tab.py
+git commit -m "WO-6t: Display variant badges/colors for Ollama models via sidecar"
+```
+
+---
+
+# WO-6u — Batch Smoke & Debug Switch
+
+**Goal:** One command to sanity-check the whole bridge; add an env flag for verbose logs.
+
+**Files**
+
+* `Data/config.py` (debug flag read)
+* New file `wo6_batch_smoke.py`
+
+**Edits**
+
+1. In `config.py`:
+
+```python
+import os
+DEBUG_MODE = os.environ.get("TRAINER_DEBUG","0") in ("1","true","True")
+def dprint(*a, **k): 
+    if DEBUG_MODE: print(*a, **k)
+```
+
+Use `dprint` in new/critical paths.
+
+2. `wo6_batch_smoke.py` (create variants, upsert training profiles, list collections, request apply_plan via minimal headless harness or just config verifications)
+
+**Validation**
+
+```bash
+TRAINER_DEBUG=1 python3 wo6_batch_smoke.py
+```
+
+**Commit**
+
+```bash
+git add Data/config.py wo6_batch_smoke.py
+git commit -m "WO-6u: Batch smoke test and debug mode"
+```
+
+---
+
+# WO-6v — Fix Event Payload + Import Aliases (cfg→C)
+
+**Goal:** Eliminate the undefined `payload` bug and mixed `cfg/C` imports so Types prefill and Training hydration are reliable.
+
+**Files**
+
+* `Data/tabs/models_tab/models_tab.py`
+* `Data/tabs/training_tab/training_tab.py`
+
+**Edits**
+
+1. In `models_tab.py`, in both `display_model_info_from_dict` and `display_model_info`:
+
+```python
+# BEFORE emitting event, always rebuild payload:
+import json
+payload = json.dumps({
+    "model_name": model_name,
+    "model_type": model_type_or_fallback,  # e.g. model_info.get("type","ollama")
+    "is_ollama": True_or_False,
+})
+if getattr(self, "panel_types", None):
+    self.panel_types.event_generate("<<ModelSelected>>", data=payload, when="tail")
+```
+
+2. In `training_tab.py`:
+
+* Ensure imports use a **single alias**:
+
+```python
+from Data import config as C
+```
+
+* Replace any `cfg.` usages with `C.` (e.g., inside `apply_plan`).
+
+**Validation**
+
+* Select a base model → Types tab pre-fills without errors.
+* Apply a variant → no NameError/KeyError in console.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/models_tab.py Data/tabs/training_tab/training_tab.py
+git commit -m "WO-6v: Fix event payload build and unify config alias (cfg→C)"
+```
+
+---
+
+# WO-6w — Collections Labels: Show Class Level + Clearer Format
+
+**Goal:** Label each saved variant as:
+`<base> ▸ <variant>  [type=<type_id> | class=<level>]`
+
+**Files**
+
+* `Data/config.py`
+* `Data/tabs/models_tab/models_tab.py`
+
+**Edits**
+
+1. `config.py` add helper:
+
+```python
+def get_variant_display_meta(variant_id:str)->dict:
+    mp = load_model_profile(variant_id) or {}
+    tp = load_training_profile(variant_id) or {}
+    t  = mp.get("assigned_type") or mp.get("type_id","")
+    cls = (tp.get("class_level") or
+           tp.get("runner_settings",{}).get("class_level") or
+           "")
+    return {"base_model": mp.get("base_model",""), "type_id": t, "class_level": cls}
+```
+
+2. In `models_tab.py::refresh_collections_panel()`:
+
+```python
+meta = C.get_variant_display_meta(it.get("variant_id",""))
+label = f"{meta['base_model']} ▸ {it.get('variant_id','?')}  [type={meta['type_id'] or '-'} | class={meta['class_level'] or '-'}]"
+self.collections_list.insert(tk.END, label)
+```
+
+**Validation**
+
+* Saved variants show both `type` and `class`.
+
+**Commit**
+
+```bash
+git add Data/config.py Data/tabs/models_tab/models_tab.py
+git commit -m "WO-6w: Collections labels include type and class level"
+```
+
+---
+
+# WO-6x — ProfilesChanged Event & Auto-Refresh (Collections + Profiles UI)
+
+**Goal:** Any save/upsert triggers a global refresh of Collections and Training Profiles UIs.
+
+**Files**
+
+* `Data/tabs/models_tab/types_panel.py`
+* `Data/tabs/models_tab/models_tab.py`
+* `Data/tabs/training_tab/profiles_panel.py` (or the dropdown owner)
+
+**Edits**
+
+1. In `types_panel.py` (after successful save/upsert):
+
+```python
+# after saving model/training profiles:
+import json
+payload = json.dumps({"source":"types_panel","variant_id": trainee_name})
+self.event_generate("<<ProfilesChanged>>", data=payload, when="tail")
+```
+
+2. In `models_tab.py::create_ui()`:
+
+```python
+self.bind("<<ProfilesChanged>>", lambda e: self.refresh_collections_panel())
+```
+
+3. In Profiles dropdown owner:
+
+```python
+self.bind("<<ProfilesChanged>>", lambda e: self.refresh_profiles_dropdown())
+```
+
+**Validation**
+
+* Apply Type Plan → Collections updates instantly; Training profiles dropdown refreshes.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/types_panel.py Data/tabs/models_tab/models_tab.py Data/tabs/training_tab/profiles_panel.py
+git commit -m "WO-6x: Global ProfilesChanged event and auto-refresh wiring"
+```
+
+---
+
+# WO-6y — Training ModelSelection Is Variant-Aware
+
+**Goal:** When `apply_plan` runs, **set** the base model selector from the training profile so the runner uses the correct base.
+
+**Files**
+
+* `Data/tabs/training_tab/training_tab.py`
+* `Data/tabs/training_tab/model_selection_panel.py`
+
+**Edits**
+
+1. In `model_selection_panel.py`, add safe setter:
+
+```python
+def set_base_model(self, name:str):
+    try:
+        # if you already have an entry widget or combobox:
+        self.base_model_var.set(name)
+        self._on_base_model_changed(name)  # if exists
+    except Exception:
+        pass
+```
+
+2. In `training_tab.py::apply_plan` (after loading tp):
+
+```python
+base = tp.get("base_model") or ""
+if hasattr(self, "model_selection_panel") and hasattr(self.model_selection_panel, "set_base_model"):
+    self.model_selection_panel.set_base_model(base)
+```
+
+**Validation**
+
+* Apply plan → the ModelSelection base reflects the variant’s base.
+
+**Commit**
+
+```bash
+git add Data/tabs/training_tab/training_tab.py Data/tabs/training_tab/model_selection_panel.py
+git commit -m "WO-6y: Apply plan wires base model into ModelSelection"
+```
+
+---
+
+# WO-6z — Variant→Stats/Skills Indicator (Minimal)
+
+**Goal:** When a Collection variant is selected or `apply_plan` fires, show a banner/label indicating the **active variant**, and prefer variant-specific stats if present.
+
+**Files**
+
+* `Data/tabs/models_tab/models_tab.py`
+* `Data/config.py` *(optional for locating stats paths)*
+
+**Edits**
+
+1. Add a small label near Overview:
+   `Active Variant: <variant_id>` (update it in `_on_collection_pick` and on `<<VariantApplied>>`).
+
+2. (Optional) In `config.py`, provide:
+
+```python
+def get_variant_stats_path(variant_id:str)->str:
+    # return a path if you store per-variant metrics; else return ""
+```
+
+3. In the place where skills are computed/rendered, if path exists, read it; else fall back to base stats.
+
+**Validation**
+
+* Selecting a Collection variant updates the “Active Variant” label.
+
+**Commit**
+
+```bash
+git add Data/tabs/models_tab/models_tab.py Data/config.py
+git commit -m "WO-6z: Active Variant indicator and variant-aware stats hook"
+```
+
+----------------------------------------------------
+----------------------------------------------------
