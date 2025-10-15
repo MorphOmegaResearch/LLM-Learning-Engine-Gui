@@ -3183,7 +3183,7 @@ class {class_name}:
 
         canvas.bind("<Configure>", lambda e: canvas.itemconfig(canvas_window, width=e.width))
 
-        # Header
+        # Header + Blueprint selector toolbar
         header_section = ttk.Frame(content_frame)
         header_section.pack(fill=tk.X, padx=10, pady=10)
         ttk.Label(
@@ -3191,13 +3191,233 @@ class {class_name}:
             text="🗺️ OpenCode Trainer System Architecture",
             font=("Arial", 14, "bold"),
             foreground='#4db8ff'
-        ).pack(anchor=tk.W)
+        ).grid(row=0, column=0, columnspan=4, sticky=tk.W)
         ttk.Label(
             header_section,
             text="Complete End-to-End Integrated Training Pipeline",
             font=("Arial", 10),
             foreground='#888888'
-        ).pack(anchor=tk.W)
+        ).grid(row=1, column=0, columnspan=4, sticky=tk.W, pady=(0,4))
+
+        # Blueprint selector row
+        header_section.columnconfigure(1, weight=1)
+        ttk.Label(header_section, text='Blueprint:', style='CategoryPanel.TLabel').grid(row=2, column=0, sticky=tk.W, padx=(0,6))
+        self.bp_select_var = tk.StringVar()
+        self.bp_selector = ttk.Combobox(header_section, textvariable=self.bp_select_var, state='readonly')
+        self.bp_selector.grid(row=2, column=1, sticky=tk.EW)
+        ttk.Button(header_section, text='Update Blueprint', style='Select.TButton', command=lambda: self._clone_increment_blueprint()).grid(row=2, column=2, padx=6)
+        ttk.Button(header_section, text='Edit', style='Action.TButton', command=lambda: self._open_blueprint_editor()).grid(row=2, column=3)
+
+        # Blueprint preview area
+        preview_frame = ttk.LabelFrame(content_frame, text='📄 Blueprint Preview', style='TLabelframe')
+        preview_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0,10))
+        preview_frame.columnconfigure(0, weight=1)
+        preview_frame.rowconfigure(0, weight=1)
+        self.bp_preview = scrolledtext.ScrolledText(preview_frame, wrap=tk.WORD, font=("Arial", 9), bg="#1e1e1e", fg="#dcdcdc")
+        self.bp_preview.grid(row=0, column=0, sticky=tk.NSEW)
+
+        # Helper methods for blueprints
+        def _registry_path():
+            return Path('extras/blueprints/blueprint_registry.txt')
+
+        def _list_blueprints_from_fs():
+            base = Path('extras/blueprints')
+            files = []
+            try:
+                for p in sorted(base.glob('Trainer_Blue_Print_*.txt')):
+                    files.append(p.name)
+            except Exception:
+                pass
+            return files
+
+        def _read_registry():
+            rp = _registry_path()
+            if rp.exists():
+                try:
+                    return [ln.strip() for ln in rp.read_text().splitlines() if ln.strip() and not ln.strip().startswith('#')]
+                except Exception:
+                    return []
+            # bootstrap registry with FS scan
+            return _list_blueprints_from_fs()
+
+        def _write_registry(names):
+            try:
+                Path('extras/blueprints').mkdir(parents=True, exist_ok=True)
+                _registry_path().write_text('\n'.join(names) + '\n')
+            except Exception:
+                pass
+
+        def _set_preview(text):
+            try:
+                self.bp_preview.config(state=tk.NORMAL)
+                self.bp_preview.delete('1.0', tk.END)
+                self.bp_preview.insert(tk.END, text)
+                self.bp_preview.config(state=tk.DISABLED)
+            except Exception:
+                pass
+
+        def _load_selected_into_preview():
+            sel = self.bp_select_var.get().strip()
+            if not sel:
+                _set_preview('')
+                return
+            path = Path('extras/blueprints')/sel
+            try:
+                txt = path.read_text()
+            except Exception as e:
+                txt = f"Failed to load {path}: {e}"
+            _set_preview(txt)
+
+        def _parse_version_from_name(name):
+            import re
+            m = re.search(r'v(\d+)\.(\d+)', name)
+            if not m:
+                return None
+            return int(m.group(1)), int(m.group(2))
+
+        def _bump_minor(v):
+            if not v:
+                return (2, 1)
+            return (v[0], v[1] + 1)
+
+        def _update_content_version(text, new_ver_tuple):
+            new_ver = f"{new_ver_tuple[0]}.{new_ver_tuple[1]}"
+            lines = text.splitlines()
+            out = []
+            from datetime import date
+            today = date.today().isoformat()
+            for ln in lines:
+                if ln.strip().startswith('Version:'):
+                    out.append(f"  Version: {new_ver}")
+                elif 'Blueprint v' in ln:
+                    # e.g., "OpenCode Trainer System - Blueprint v2.0"
+                    import re
+                    out.append(re.sub(r'Blueprint v\d+\.\d+', f'Blueprint v{new_ver}', ln))
+                elif ln.strip().startswith('Date:'):
+                    out.append(f"  Date: {today}")
+                else:
+                    out.append(ln)
+            return '\n'.join(out) + ('\n' if text.endswith('\n') else '')
+
+        def _ensure_registry_seeded():
+            names = _read_registry()
+            if not names:
+                names = _list_blueprints_from_fs()
+            if not names:
+                # create seed with v2.0 if missing
+                seed = 'Trainer_Blue_Print_v2.0.txt'
+                if (Path('extras/blueprints')/seed).exists():
+                    names = [seed]
+            _write_registry(names)
+            return names
+
+        def _refresh_selector(select_name=None):
+            names = _ensure_registry_seeded()
+            self.bp_selector['values'] = names
+            # default to last entry if none selected
+            if select_name and select_name in names:
+                self.bp_select_var.set(select_name)
+            elif not self.bp_select_var.get() and names:
+                self.bp_select_var.set(names[-1])
+            _load_selected_into_preview()
+
+        # Bind events and expose handlers on self
+        self._refresh_blueprint_selector = _refresh_selector
+        self._load_blueprint_into_preview = _load_selected_into_preview
+        self._read_blueprint_registry = _read_registry
+        self._write_blueprint_registry = _write_registry
+        self._parse_bp_version = _parse_version_from_name
+        self._bump_bp_minor = _bump_minor
+        self._update_content_version = _update_content_version
+
+        try:
+            self.bp_selector.bind('<<ComboboxSelected>>', lambda e: _load_selected_into_preview())
+        except Exception:
+            pass
+
+        # Public methods: clone/update and editor
+        def _clone_increment_blueprint():
+            names = _read_registry()
+            sel = self.bp_select_var.get().strip() or (names[-1] if names else '')
+            if not sel:
+                messagebox.showinfo('Update Blueprint', 'No blueprint selected.')
+                return
+            src = Path('extras/blueprints')/sel
+            if not src.exists():
+                messagebox.showerror('Update Blueprint', f'Source file not found: {src}')
+                return
+            v = _parse_version_from_name(sel)
+            new_v = _bump_minor(v)
+            base = 'Trainer_Blue_Print'
+            new_name = f"{base}_v{new_v[0]}.{new_v[1]}.txt"
+            dst = Path('extras/blueprints')/new_name
+            if dst.exists():
+                messagebox.showerror('Update Blueprint', f'Target exists: {dst.name}')
+                return
+            try:
+                text = src.read_text()
+                updated = _update_content_version(text, new_v)
+                dst.write_text(updated)
+            except Exception as e:
+                messagebox.showerror('Update Blueprint', f'Failed to clone: {e}')
+                return
+            # Update registry
+            names.append(new_name)
+            _write_registry(names)
+            # Refresh selector and preview to new file
+            _refresh_selector(select_name=new_name)
+            messagebox.showinfo('Update Blueprint', f'Created {new_name}')
+
+        def _open_blueprint_editor():
+            sel = self.bp_select_var.get().strip()
+            if not sel:
+                messagebox.showinfo('Edit Blueprint', 'No blueprint selected.')
+                return
+            path = Path('extras/blueprints')/sel
+            top = tk.Toplevel(self.root); top.title(f'Edit: {sel}')
+            frm = ttk.Frame(top, padding=8); frm.pack(fill=tk.BOTH, expand=True)
+            frm.columnconfigure(0, weight=1); frm.rowconfigure(0, weight=1)
+            txt = scrolledtext.ScrolledText(frm, wrap=tk.WORD, font=("Arial", 9), bg='#1e1e1e', fg='#dcdcdc')
+            txt.grid(row=0, column=0, sticky=tk.NSEW)
+            btns = ttk.Frame(frm); btns.grid(row=1, column=0, sticky=tk.E)
+            def _save():
+                try:
+                    path.write_text(txt.get('1.0', tk.END))
+                    # refresh preview
+                    _load_selected_into_preview()
+                    messagebox.showinfo('Save', 'Blueprint saved.')
+                except Exception as e:
+                    messagebox.showerror('Save Failed', str(e))
+            def _copy():
+                try:
+                    self.root.clipboard_clear()
+                    self.root.clipboard_append(txt.get('1.0', tk.END))
+                    messagebox.showinfo('Copied', 'Blueprint copied to clipboard.')
+                except Exception:
+                    pass
+            ttk.Button(btns, text='Copy to Clipboard', style='Select.TButton', command=_copy).pack(side=tk.RIGHT, padx=4)
+            ttk.Button(btns, text='Save', style='Action.TButton', command=_save).pack(side=tk.RIGHT, padx=4)
+            try:
+                txt.insert(tk.END, path.read_text())
+            except Exception as e:
+                txt.insert(tk.END, f'Failed to open {path}: {e}')
+
+        # Attach methods to instance for button callbacks
+        self._clone_increment_blueprint = _clone_increment_blueprint
+        self._open_blueprint_editor = _open_blueprint_editor
+
+        # Seed registry file if missing and load selector
+        try:
+            Path('extras/blueprints').mkdir(parents=True, exist_ok=True)
+            # Ensure registry includes v2.0 at least
+            reg = _ensure_registry_seeded()
+            if not reg:
+                # create registry pointing to v2.0 if exists
+                if (Path('extras/blueprints')/'Trainer_Blue_Print_v2.0.txt').exists():
+                    _write_registry(['Trainer_Blue_Print_v2.0.txt'])
+            self._refresh_blueprint_selector()
+        except Exception:
+            pass
 
         # Overview Section
         overview_section = ttk.LabelFrame(content_frame, text="📋 System Overview", style='TLabelframe')
