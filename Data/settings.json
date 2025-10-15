@@ -96,44 +96,42 @@
         "done": false
       },
       {
-        "text": "onboard local ai tech support - sends bug from debug and relating blueprints to a local model of the users choosing",
-        "done": false
-      },
-      {
-        "text": "onboard tech support available during initial launch crash , add enable/disable local tech support check box in settings tab",
-        "done": false
-      },
-      {
-        "text": "local tech support conformers and option for api calling models from listed available externally owned models , auth keys preset for ease of use",
-        "done": false
-      },
-      {
-        "text": "todo list upgrade, double click listed items to open a popup file viewer , event chain addition Create->task/bug/workorder->description->contents->save/edit buttons internal -> remove external \"edit todo button\"",
-        "done": false
+        "text": "onboard local ai tech support",
+        "done": false,
+        "priority": "low",
+        "details": "sends bug from debug and relating blueprints to a local model of the users choosing\nonboard tech support available during initial launch crash , add enable/disable local tech support check box in settings tab\nlocal tech support conformers and option for api calling models from listed available externally owned models , auth keys preset for ease of use"
       },
       {
         "text": "test \"Show thinking\" feature/quick action",
         "done": false
       },
       {
-        "text": "project/rag training , criteria for master class promotions is hybrid type specific project/rag benchmarks and data-sets toward",
-        "done": false
+        "text": "project/rag training",
+        "done": false,
+        "priority": "low",
+        "details": "criteria for master class promotions is hybrid type specific project/rag benchmarks and data-sets toward"
       },
       {
-        "text": "symbiote hybrid-types, start with vehicle diag, drone simulator, ect",
-        "done": false
+        "text": "symbiote hybrid-types",
+        "done": false,
+        "priority": "low",
+        "details": "start with vehicle diag, drone simulator, multi-pc with kernendes"
       },
       {
-        "text": "Training Games - Results and stats gathered where possible for model training using games like solitare , chess, ect working up to more complex games including minecraft and role playing games",
-        "done": false
+        "text": "Training Games",
+        "done": false,
+        "priority": "low",
+        "details": "Play games with llm models ,Results and stats gathered where possible for model training using games like solitare , chess, ect working up to more complex games including minecraft and role playing games"
       },
       {
         "text": "auto / manual temp options , auto tied to training mode",
         "done": false
       },
       {
-        "text": "Agents panel and orchestrator tools + orchestrator type creation and data set generator alignment",
-        "done": false
+        "text": "Agents panel and orchestrator tools",
+        "done": false,
+        "priority": "low",
+        "details": "orchestrator type creation and data set generator alignment"
       }
     ],
     "bugs": [
