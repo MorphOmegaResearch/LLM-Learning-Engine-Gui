@@ -1,0 +1,2 @@
+FROM /home/commander/Desktop/Trainer/exports/gguf/Qwen2.5-0.5b-Instruct-merged-training_Tools_Qwen2.5-0.5b_20251009_201739.Q5_K_M.gguf
+PARAMETER stop "</s>"
