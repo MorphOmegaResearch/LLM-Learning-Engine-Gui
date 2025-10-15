@@ -1,0 +1,112 @@
+# Complete Project File Tree - All Relevant Locations
+
+## Primary Project Directory
+```
+~/crewai-orchestrator/
+├── .venv/                          # Python virtual environment
+│   ├── bin/python                  # Python interpreter
+│   ├── lib/python3.*/site-packages/ # Installed packages
+│   └── pyvenv.cfg                  # Environment config
+├── .env                            # Environment variables (LITELLM_MODEL, LITELLM_TIMEOUT)
+├── orchestrator_fast.py            # Bounded multi-agent runner
+├── orchestrator_min.py             # Minimal test crew
+├── orchestrator_cli.py             # CLI version (had Typer issues)
+├── crew_ok_test.py                 # Sanity test (contains CREW_OK)
+├── supervisor_0.py                 # Console TUI (settings pane pending)
+├── quick_crew_test.py              # HTTP API-based sanity test
+├── ops/                            # Operator control scripts
+│   ├── swap_model.sh               # Model switching + env sync
+│   ├── stop_models.sh              # Unload all Ollama runners
+│   ├── run_sanity.sh               # 3-stage sanity battery
+│   └── proxy_up.sh                 # LiteLLM proxy launcher (legacy)
+├── profiles/                       # Resource/capability profiles
+│   ├── fast.yaml                   # phi3:mini-fast profile
+│   ├── ultralight.yaml             # tinyllama profile
+│   └── deterministic.yaml          # phi3:mini-ok profile
+├── run_artifacts/                  # Global logs and artifacts
+│   ├── litellm.config.yaml         # Proxy model list + aliases
+│   ├── litellm.log                 # Proxy request logs
+│   ├── litellm.pid                 # Proxy process ID
+│   ├── crew_ok.log                 # Crew sanity test logs
+│   ├── crew_ok_result.txt          # Last sanity raw result
+│   ├── plan_smoke.log              # 10-line plan test logs
+│   ├── run_fast.log                # Bounded crew run logs
+│   ├── min_run.log                 # Minimal crew logs
+│   ├── min_result.txt              # Minimal crew raw result
+│   ├── sanity.txt                  # Original sanity output
+│   └── ui_settings.yaml            # (TO CREATE) Supervisor settings
+├── runs/                           # (PLANNED) Per-run timestamped folders
+│   └── YYYY-MM-DD_HH-MM-SS/        # Individual run directories
+│       ├── config.json             # Run configuration
+│       ├── trace.log               # Full execution log
+│       └── artifacts/              # Run-specific outputs
+│           ├── problem_card.md
+│           ├── option_matrix.md
+│           ├── run_guide.md
+│           ├── decision_sheet.md
+│           └── rpir_log.md
+└── launchers/                      # Desktop integration scripts
+    ├── studio_local_fast.sh        # Studio with phi3:mini-fast
+    ├── studio_local_tiny.sh        # Studio with tinyllama
+    └── studio_local_ok.sh          # Studio with phi3:mini-ok
+```
+
+## CrewAI Studio Installation
+```
+~/Desktop/CrewAI-Studio/
+├── app/
+│   ├── app.py                      # Main Streamlit application
+│   └── (other app files...)
+├── .streamlit/                     # Streamlit configuration
+├── requirements.txt                # Python dependencies
+├── README.md                       # Installation/usage docs
+└── (various repo files...)
+```
+
+## System Integration Points
+```
+~/.local/share/applications/        # Desktop launchers
+├── crewai-studio-local.desktop     # Fast preset launcher
+├── crewai-studio-tiny.desktop      # Tiny preset launcher
+└── crewai-studio-ok.desktop        # Deterministic preset launcher
+
+~/Desktop/                          # Desktop shortcuts (optional copies)
+├── crewai-studio-local.desktop
+└── (other launcher copies...)
+
+~/Modelfile                         # Ollama model definitions (temp file)
+~/.ollama/                          # Ollama data directory (large blobs)
+```
+
+## Runtime Service Endpoints
+```
+http://127.0.0.1:11434              # Ollama API
+http://127.0.0.1:4000               # LiteLLM proxy (no /v1)
+http://127.0.0.1:4000/v1            # OpenAI-compatible endpoint
+http://127.0.0.1:8501               # CrewAI Studio (Streamlit)
+```
+
+## Ollama Model Registry
+```
+Accessible via: ollama list
+- phi3:mini-fast     # Default bounded runs
+- phi3:mini-ok       # Deterministic sanity (CREW_OK only)
+- tinyllama          # Ultralight fallback
+- phi3:mini          # Base model (if still present)
+```
+
+## Critical Configuration Files
+```
+~/crewai-orchestrator/.env          # LITELLM_MODEL, LITELLM_TIMEOUT
+~/crewai-orchestrator/run_artifacts/litellm.config.yaml  # Proxy model list
+```
+
+## Log Monitoring Points
+```
+~/crewai-orchestrator/run_artifacts/litellm.log    # Proxy requests
+~/crewai-orchestrator/run_artifacts/crew_ok.log    # Sanity tests
+~/crewai-orchestrator/run_artifacts/run_fast.log   # Crew executions
+systemctl status ollama                             # Ollama service status
+ps aux | grep litellm                               # Proxy process status
+ollama ps                                           # Active model sessions
+```

@@ -2,7 +2,7 @@
 
 - **System Mode:** GUI (Tkinter)
 - **Active Version:** v1.9f — Mode Integration & UX Improvements
-- **Entry Point:** `Data/interactive_trainer_gui.py`
+- **Entry Point:** `Data/interactive_trainer_gui_NEW.py`
 - **Legacy Systems:** CLI/TUI version manager (archived in `/Artifacts/` and `/experiments/`)
 - **Do Not Use:** `/version` or TUI commands — superseded by GUI build
 
@@ -31,7 +31,7 @@ Files in `/Artifacts/` and `experiments/v1.2old_sometoollogic/` are **historical
 ```
 Active System (GUI v1.9f)
 ├── Data/
-│   ├── interactive_trainer_gui.py   ← Main entry point
+│   ├── interactive_trainer_gui_NEW.py   ← Main entry point
 │   ├── training_engine.py           ← Training pipeline
 │   ├── evaluation_engine.py         ← Benchmarking
 │   ├── config.py                    ← Central configuration

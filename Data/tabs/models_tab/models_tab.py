@@ -47,6 +47,7 @@ from config import (
     load_baseline_report,
     MODELS_DIR,
     TRAINING_DATA_DIR)
+from logger_util import log_message
 
 
 class ModelsTab(BaseTab):
@@ -307,14 +308,13 @@ class ModelsTab(BaseTab):
         self.ollama_ui = {}
 
         self.populate_model_list()
+        # Ensure default collapsed layout on launch
+        if bool(self.collections_expanded.get()):
+            self._toggle_collections_group()
         self.refresh_collections_panel() # Call after UI is built
-
-        # WO-6j: Restore UI state (Collections expansion) if available
+        # Bind auto-export event from Custom Code
         try:
-            import config as C
-            ui_state = (C.load_ui_state() or {}).get('models_tab', {})
-            if bool(ui_state.get('collections_expanded', False)) and not self.collections_expanded.get():
-                self._toggle_collections_group()
+            self.root.bind("<<RequestAutoExportReEval>>", self._on_request_auto_export_reeval)
         except Exception:
             pass
 
@@ -449,33 +449,64 @@ class ModelsTab(BaseTab):
             assigned_names = [n for n in all_names if n in assigned_tags]
             unassigned_names = [n for n in all_names if n not in assigned_tags]
 
-            # Assigned header
-            row = ttk.Frame(self.ollama_buttons_frame)
-            row.pack(fill=tk.X, padx=5, pady=2)
+            # Assigned group wrapped in its own section frame to preserve order on toggle
             key = 'Assigned'
-            self.ollama_expanded[key] = self.ollama_expanded.get(key, True)
+            # Default collapsed on launch
+            self.ollama_expanded[key] = self.ollama_expanded.get(key, False)
+            assigned_section = ttk.Frame(self.ollama_buttons_frame)
+            assigned_section.pack(fill=tk.X)
+            row = ttk.Frame(assigned_section)
+            row.pack(fill=tk.X, padx=5, pady=2)
             arrow_btn = ttk.Button(row, text=('▼' if self.ollama_expanded[key] else '▶'), width=2,
                                    command=lambda b=key: self._toggle_ollama_group(b), style='Select.TButton')
             arrow_btn.pack(side=tk.LEFT, padx=(0,5))
             ttk.Label(row, text='Assigned', style='Config.TLabel', foreground='#51cf66').pack(side=tk.LEFT)
-            cont = ttk.Frame(self.ollama_buttons_frame)
-            self.ollama_ui[key] = { 'arrow': arrow_btn, 'container': cont }
+            cont = ttk.Frame(assigned_section)
+            self.ollama_ui[key] = { 'arrow': arrow_btn, 'container': cont, 'section': assigned_section }
             for n in sorted(assigned_names):
-                ttk.Button(cont, text=f"   🔶 {n} • assigned", command=lambda name=n: self.display_model_info({'name':name,'type':'ollama'}), style='Select.TButton').pack(fill=tk.X, padx=25, pady=1)
+                # Row with color chip + button for easy spotting
+                rowf = ttk.Frame(cont)
+                rowf.pack(fill=tk.X, padx=10, pady=1)
+                try:
+                    color = self._get_variant_color_for_gguf(n)
+                except Exception:
+                    color = None
+                if color:
+                    chip = tk.Label(rowf, text='  ', bg=color)
+                    chip.pack(side=tk.LEFT, padx=(15,6), pady=2)
+                else:
+                    spacer = tk.Label(rowf, text='')
+                    spacer.pack(side=tk.LEFT, padx=(21,6))
+                btn_style = 'Select.TButton'
+                if color:
+                    try:
+                        from tkinter import ttk as _ttk
+                        st = _ttk.Style()
+                        style_name = f"ColorButton_{color.replace('#','')}\.TButton"
+                        try:
+                            st.lookup(style_name, 'foreground')
+                        except Exception:
+                            st.configure(style_name, foreground=color)
+                        btn_style = style_name
+                    except Exception:
+                        btn_style = 'Select.TButton'
+                ttk.Button(rowf, text=f"🔶 {n} • assigned", command=lambda name=n: self.display_model_info({'name':name,'type':'ollama'}), style=btn_style).pack(side=tk.LEFT, fill=tk.X, expand=True)
             if self.ollama_expanded[key] and assigned_names:
                 cont.pack(fill=tk.X)
 
-            # Unassigned header
-            row2 = ttk.Frame(self.ollama_buttons_frame)
-            row2.pack(fill=tk.X, padx=5, pady=2)
+            # Unassigned group wrapped in its own section frame to preserve order on toggle
             key2 = 'Unassigned'
             self.ollama_expanded[key2] = self.ollama_expanded.get(key2, False)
+            unassigned_section = ttk.Frame(self.ollama_buttons_frame)
+            unassigned_section.pack(fill=tk.X)
+            row2 = ttk.Frame(unassigned_section)
+            row2.pack(fill=tk.X, padx=5, pady=2)
             arrow_btn2 = ttk.Button(row2, text=('▼' if self.ollama_expanded[key2] else '▶'), width=2,
                                    command=lambda b=key2: self._toggle_ollama_group(b), style='Select.TButton')
             arrow_btn2.pack(side=tk.LEFT, padx=(0,5))
             ttk.Label(row2, text='Unassigned', style='Config.TLabel', foreground='#61dafb').pack(side=tk.LEFT)
-            cont2 = ttk.Frame(self.ollama_buttons_frame)
-            self.ollama_ui[key2] = { 'arrow': arrow_btn2, 'container': cont2 }
+            cont2 = ttk.Frame(unassigned_section)
+            self.ollama_ui[key2] = { 'arrow': arrow_btn2, 'container': cont2, 'section': unassigned_section }
             for n in sorted(unassigned_names):
                 ttk.Button(cont2, text=f"   🔶 {n} • inference-only", command=lambda name=n: self.display_model_info({'name':name,'type':'ollama'}), style='Select.TButton').pack(fill=tk.X, padx=25, pady=1)
             if self.ollama_expanded[key2] and unassigned_names:
@@ -553,6 +584,26 @@ class ModelsTab(BaseTab):
         controls_frame.grid(row=0, column=0, sticky=tk.EW, padx=10, pady=10)
         controls_frame.columnconfigure(1, weight=1)
 
+        # Parent Base Display (above Selected Model)
+        self.eval_parent_label = ttk.Label(
+            controls_frame,
+            text="Base-Model: unavailable",
+            font=("Arial", 9, "bold"),
+            style='Config.TLabel',
+            foreground='#cccccc'
+        )
+        self.eval_parent_label.grid(row=0, column=0, columnspan=3, sticky=tk.W, padx=5, pady=(0,0))
+
+        # Lineage label (under parent)
+        self.eval_lineage_label = ttk.Label(
+            controls_frame,
+            text="Lineage: unavailable",
+            font=("Arial", 8),
+            style='Config.TLabel',
+            foreground='#aaaaaa'
+        )
+        self.eval_lineage_label.grid(row=1, column=0, columnspan=3, sticky=tk.W, padx=5, pady=(0,4))
+
         # Selected Model Display
         self.selected_model_label_eval = ttk.Label(
             controls_frame,
@@ -561,7 +612,14 @@ class ModelsTab(BaseTab):
             style='Config.TLabel',
             foreground='#61dafb'
         )
-        self.selected_model_label_eval.grid(row=0, column=0, columnspan=3, sticky=tk.W, padx=5, pady=5)
+        self.selected_model_label_eval.grid(row=2, column=0, columnspan=3, sticky=tk.W, padx=5, pady=5)
+
+        # Class color chip next to Selected model
+        try:
+            self.eval_class_chip = tk.Label(controls_frame, text='  ', bg='#444444')
+            self.eval_class_chip.grid(row=2, column=3, sticky=tk.W, padx=(0,6))
+        except Exception:
+            self.eval_class_chip = None
 
         # Source display (Ollama/PyTorch)
         self.eval_source_label = ttk.Label(
@@ -571,10 +629,10 @@ class ModelsTab(BaseTab):
             style='Config.TLabel',
             foreground='#bbbbbb'
         )
-        self.eval_source_label.grid(row=0, column=2, sticky=tk.E, padx=5, pady=5)
+        self.eval_source_label.grid(row=2, column=2, sticky=tk.E, padx=5, pady=5)
 
         # Test suite dropdown
-        ttk.Label(controls_frame, text="Test Suite:", style='Config.TLabel').grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
+        ttk.Label(controls_frame, text="Test Suite:", style='Config.TLabel').grid(row=3, column=0, sticky=tk.W, padx=5, pady=5)
         self.test_suite_var = tk.StringVar()
         
         available_suites = get_test_suites()
@@ -587,7 +645,7 @@ class ModelsTab(BaseTab):
             state="readonly",
             width=20
         )
-        self.test_suite_combo.grid(row=1, column=1, sticky=tk.EW, padx=5, pady=5)
+        self.test_suite_combo.grid(row=3, column=1, sticky=tk.EW, padx=5, pady=5)
         self.test_suite_combo.bind('<<ComboboxSelected>>', self._on_suite_changed)
         
         if available_suites:
@@ -603,7 +661,7 @@ class ModelsTab(BaseTab):
             variable=self.use_system_prompt_var,
             command=self._toggle_system_prompt_controls,
             style='Config.TCheckbutton'
-        ).grid(row=2, column=0, sticky=tk.W, padx=5, pady=5)
+        ).grid(row=4, column=0, sticky=tk.W, padx=5, pady=5)
 
         self.system_prompt_var = tk.StringVar()
         self.system_prompt_combo = ttk.Combobox(
@@ -613,7 +671,7 @@ class ModelsTab(BaseTab):
             state="readonly",
             width=20
         )
-        self.system_prompt_combo.grid(row=2, column=1, sticky=tk.EW, padx=5, pady=5)
+        self.system_prompt_combo.grid(row=4, column=1, sticky=tk.EW, padx=5, pady=5)
         self.system_prompt_combo.set("None") # Default
         self.system_prompt_combo.config(state=tk.DISABLED) # Initially disabled
 
@@ -625,7 +683,7 @@ class ModelsTab(BaseTab):
             variable=self.use_tool_schema_var,
             command=self._toggle_tool_schema_controls,
             style='Config.TCheckbutton'
-        ).grid(row=3, column=0, sticky=tk.W, padx=5, pady=5)
+        ).grid(row=5, column=0, sticky=tk.W, padx=5, pady=5)
 
         self.tool_schema_var = tk.StringVar()
         self.tool_schema_combo = ttk.Combobox(
@@ -635,7 +693,7 @@ class ModelsTab(BaseTab):
             state="readonly",
             width=20
         )
-        self.tool_schema_combo.grid(row=3, column=1, sticky=tk.EW, padx=5, pady=5)
+        self.tool_schema_combo.grid(row=5, column=1, sticky=tk.EW, padx=5, pady=5)
         self.tool_schema_combo.set("None") # Default
         self.tool_schema_combo.config(state=tk.DISABLED) # Initially disabled
 
@@ -646,7 +704,7 @@ class ModelsTab(BaseTab):
             text="Run as Pre-Training Baseline",
             variable=self.run_as_baseline_var,
             style='Config.TCheckbutton'
-        ).grid(row=4, column=0, sticky=tk.W, padx=5, pady=5)
+        ).grid(row=6, column=0, sticky=tk.W, padx=5, pady=5)
 
         # Regression check toggle (compare vs baseline after run)
         self.eval_regression_check_var = tk.BooleanVar(value=False)
@@ -655,7 +713,7 @@ class ModelsTab(BaseTab):
             text="Regression Check (compare vs baseline)",
             variable=self.eval_regression_check_var,
             style='Config.TCheckbutton'
-        ).grid(row=5, column=0, sticky=tk.W, padx=5, pady=2)
+        ).grid(row=7, column=0, sticky=tk.W, padx=5, pady=2)
 
         # Quick regression toggle (sampled subset for faster checks)
         self.eval_quick_regression_var = tk.BooleanVar(value=False)
@@ -664,7 +722,7 @@ class ModelsTab(BaseTab):
             text="Quick Regression (sample ~20%)",
             variable=self.eval_quick_regression_var,
             style='Config.TCheckbutton'
-        ).grid(row=6, column=0, sticky=tk.W, padx=5, pady=2)
+        ).grid(row=8, column=0, sticky=tk.W, padx=5, pady=2)
 
         # Run button (row 4)
         self.run_eval_button = ttk.Button(
@@ -673,7 +731,7 @@ class ModelsTab(BaseTab):
             command=self.run_evaluation,
             style='Action.TButton'
         )
-        self.run_eval_button.grid(row=4, column=2, rowspan=3, sticky=tk.E, padx=10, pady=5)
+        self.run_eval_button.grid(row=6, column=2, rowspan=3, sticky=tk.E, padx=10, pady=5)
 
         # Quick access: open Debug tab (manual only)
         ttk.Button(
@@ -681,7 +739,19 @@ class ModelsTab(BaseTab):
             text="🐞 Debug",
             command=self._focus_settings_debug_tab,
             style='Select.TButton'
-        ).grid(row=4, column=3, rowspan=3, sticky=tk.E, padx=(0,5), pady=5)
+        ).grid(row=6, column=3, rowspan=3, sticky=tk.E, padx=(0,5), pady=5)
+
+        # Auto pipeline toggles and data generation
+        gen_frame = ttk.LabelFrame(controls_frame, text="🧪→📚 Auto Pipeline", style='TLabelframe')
+        gen_frame.grid(row=9, column=0, columnspan=4, sticky=tk.EW, padx=5, pady=6)
+        self.auto_train_after_gen_var = tk.BooleanVar(value=False)
+        self.auto_export_after_train_var = tk.BooleanVar(value=False)
+        self.auto_reeval_after_export_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(gen_frame, text="Auto‑Train after Generate", variable=self.auto_train_after_gen_var, style='Category.TCheckbutton').pack(side=tk.LEFT, padx=8, pady=4)
+        ttk.Checkbutton(gen_frame, text="Auto‑Export (GGUF)", variable=self.auto_export_after_train_var, style='Category.TCheckbutton').pack(side=tk.LEFT, padx=8, pady=4)
+        ttk.Checkbutton(gen_frame, text="Auto‑Re‑Eval", variable=self.auto_reeval_after_export_var, style='Category.TCheckbutton').pack(side=tk.LEFT, padx=8, pady=4)
+
+        ttk.Button(gen_frame, text="📚 Generate Training Set from Last Eval", command=self._generate_training_from_eval_strict, style='Action.TButton').pack(side=tk.RIGHT, padx=8)
 
         # --- Output Frame ---
         output_frame = ttk.LabelFrame(parent, text="Live Output", style='TLabelframe')
@@ -1091,6 +1161,12 @@ class ModelsTab(BaseTab):
                                 self.ollama_models = get_ollama_models()
                                 self.populate_model_list()
                                 self._export_log_append(f"\n✓ Ollama model created: {model_tag}\n")
+                                # Auto re-evaluate if enabled and context exists
+                                try:
+                                    if hasattr(self, 'auto_reeval_after_export_var') and bool(self.auto_reeval_after_export_var.get()):
+                                        self._resume_eval_with_override(model_tag)
+                                except Exception:
+                                    pass
                                 self._close_export_log_window()
                             self.root.after(0, _done)
                         else:
@@ -1381,7 +1457,8 @@ class ModelsTab(BaseTab):
         try:
             ctx = getattr(self, '_last_eval_context', None)
             if not ctx:
-                messagebox.showinfo('Evaluation', f'Installed {tag}. Select it under Ollama Models to evaluate.')
+                # Fallback: compose context from variant/type
+                self._start_eval_with_fallback(tag)
                 return
             self._eval_override_model_name = tag
             self.append_runner_output("\n--- Continuing evaluation with inference model: %s ---\n" % tag)
@@ -1391,6 +1468,68 @@ class ModelsTab(BaseTab):
             t.start()
         except Exception:
             pass
+
+    def _start_eval_with_fallback(self, tag: str):
+        try:
+            import config as C
+            # Resolve variant from tag
+            vid = getattr(self, '_active_variant_id', '') or ''
+            try:
+                if not vid:
+                    lid = C.get_lineage_for_tag(tag)
+                    if lid:
+                        for rec in (C.list_model_profiles() or []):
+                            if rec.get('lineage_id') == lid:
+                                vid = rec.get('variant_id')
+                                break
+            except Exception:
+                pass
+            # Determine type and default suite/prompt/schema
+            type_id = 'tools'
+            try:
+                if vid:
+                    mp = C.load_model_profile(vid) or {}
+                    at = mp.get('assigned_type'); at = at[0] if isinstance(at, list) else at
+                    type_id = (at or 'tools').lower()
+            except Exception:
+                pass
+            mapping = {
+                'coder': ('CoderNovice', 'Tools_JSON_Calls_Conformer', 'json_calls_full'),
+                'tools': ('Tools', 'Tools_JSON_Calls_Conformer', 'json_calls_full'),
+                'researcher': ('ResearcherNovice', 'Tools_JSON_Calls_Conformer', 'json_calls_full'),
+                'workflows': ('Workflows', 'Tools_JSON_Calls_Conformer', 'json_calls_full'),
+                'orchestration': ('ThinkTime', 'Revised_tools', 'think_time'),
+                'thinktime': ('ThinkTime', 'Revised_tools', 'think_time'),
+            }
+            suite, prompt, schema = mapping.get(type_id, ('CoderNovice', 'Tools_JSON_Calls_Conformer', 'json_calls_full'))
+            # Turn on prompt/schema use for this run
+            try:
+                self.use_system_prompt_var.set(True)
+                self.system_prompt_var.set(prompt)
+            except Exception:
+                pass
+            try:
+                self.use_tool_schema_var.set(True)
+                self.tool_schema_var.set(schema)
+            except Exception:
+                pass
+            # Auto set Re‑Eval toggle for this run
+            try:
+                self.auto_reeval_after_export_var.set(True)
+            except Exception:
+                pass
+            # Kick off eval with override to tag
+            self._eval_override_model_name = tag
+            t = threading.Thread(target=self._run_evaluation_thread,
+                                 args=(tag, suite, prompt, schema, False))
+            t.daemon = True
+            t.start()
+            self.append_runner_output(f"\n--- Running fallback evaluation ({suite}) using {prompt}/{schema} with inference {tag} ---\n")
+        except Exception as e:
+            try:
+                messagebox.showinfo('Evaluation', f'Installed {tag}. Select it under Ollama Models to evaluate. ({e})')
+            except Exception:
+                pass
 
     def _update_ui_with_results(self, results):
         """
@@ -1646,14 +1785,21 @@ class ModelsTab(BaseTab):
             suite = self.test_suite_var.get()
             if not suite or suite == 'All':
                 return
-            if not hasattr(self, 'eval_suite_reco_suppressed'):
-                self.eval_suite_reco_suppressed = {}
-            if self.eval_suite_reco_suppressed.get(suite):
-                return
+            # Auto-apply strict suite→prompt/schema mapping (no dialog)
             prompt, schema_options, default_schema = self._recommend_prompt_schema_for_suite(suite)
-            if not prompt and not schema_options:
-                return
-            self._show_suite_recommendation_dialog(suite, prompt, schema_options, default_schema)
+            if prompt:
+                self.use_system_prompt_var.set(True)
+                self.system_prompt_combo.config(state='readonly')
+                from config import list_system_prompts
+                if prompt in list_system_prompts():
+                    self.system_prompt_combo.set(prompt)
+            if schema_options:
+                pick = default_schema or schema_options[0]
+                from config import list_tool_schemas
+                if pick in list_tool_schemas():
+                    self.use_tool_schema_var.set(True)
+                    self.tool_schema_combo.config(state='readonly')
+                    self.tool_schema_combo.set(pick)
         except Exception:
             pass
 
@@ -1664,17 +1810,19 @@ class ModelsTab(BaseTab):
         options = []
         default_schema = None
         # Recommend based on simple mapping
-        if 'orchestration' in suite_lower:
-            prompt = 'Revised_tools'
+        if 'orchestration' in suite_lower or 'thinktime' in suite_lower:
+            # ThinkTime/Orchestration suites expect the think_time tool
+            prompt = 'Revised_tools'  # strict, non-Translator prompt
             options = ['think_time']
             default_schema = 'think_time'
-        elif 'tools' in suite_lower:
-            prompt = 'Revised_tools'
-            options = ['json_calls_full', 'file_ops_compat', 'search_ops']
+        elif 'tools' in suite_lower or 'codernovice' in suite_lower or 'researchernovice' in suite_lower or 'workflows' in suite_lower:
+            # Strict JSON call regime using conformer
+            prompt = 'Tools_JSON_Calls_Conformer'
+            options = ['json_calls_full']
             default_schema = 'json_calls_full'
         elif 'errors' in suite_lower:
-            prompt = 'Revised_tools'
-            options = ['json_calls_full', 'file_ops_compat']
+            prompt = 'Tools_JSON_Calls_Conformer'
+            options = ['json_calls_full']
             default_schema = 'json_calls_full'
         return (prompt, options, default_schema)
 
@@ -2982,6 +3130,32 @@ class ModelsTab(BaseTab):
         except Exception:
             pass
 
+        # Promotion alert for any eligible variants under this base
+        try:
+            import config as C
+            items = C.list_model_profiles() or []
+            elig = []
+            for it in items:
+                if (it.get('base_model') or '') == model_name:
+                    vid = it.get('variant_id')
+                    ok, _tip = self._check_promotion_eligibility(vid)
+                    if ok:
+                        elig.append(vid)
+            if elig:
+                if not hasattr(self, '_promo_alerted_bases'):
+                    self._promo_alerted_bases = set()
+                if model_name not in self._promo_alerted_bases:
+                    messagebox.showinfo('Promotion Unlocked', f"The following variants have earned a promotion to <Skilled>:\n\n- " + "\n- ".join(elig) + "\n\nHybrid Available: <NO>")
+                    self._promo_alerted_bases.add(model_name)
+        except Exception:
+            pass
+
+        # Lineage: Variants and assigned GGUFs for this base
+        try:
+            self._build_lineage_variants_section(model_name, parent_frame=self.overview_tab_frame)
+        except Exception:
+            pass
+
         # --- Populate Adapters Tab ---
         self._populate_adapters_tab(model_info)
 
@@ -3014,6 +3188,11 @@ class ModelsTab(BaseTab):
         if hasattr(self, 'eval_source_label'):
             src = "Trainable (PyTorch)"
             self.eval_source_label.config(text=f"Source: {src}")
+        if hasattr(self, 'eval_parent_label'):
+            if model_type == 'pytorch':
+                self.eval_parent_label.config(text=f"Base-Model: {model_name}")
+            else:
+                self.eval_parent_label.config(text="Base-Model: unavailable")
 
     def display_level_info(self, base_model_name: str, level_data: dict):
         """Display Level overview: base info, adapters in level, eval/skill deltas, and export status."""
@@ -3140,6 +3319,10 @@ class ModelsTab(BaseTab):
             else:
                 cont.pack(fill=tk.X); arrow.config(text='▼')
             self.ollama_expanded[base_name] = not expanded
+            # Update right pane scrollregion for smooth dynamic repositioning
+            if hasattr(self, 'right_canvas'):
+                self.right_frame.update_idletasks()
+                self.right_canvas.configure(scrollregion=self.right_canvas.bbox("all"))
         except Exception:
             pass
 
@@ -3168,6 +3351,171 @@ class ModelsTab(BaseTab):
         except Exception:
             pass
 
+    def _generate_training_from_eval_strict(self):
+        """Generate strict JSONL training examples from the latest eval report and link them to the variant/lineage."""
+        try:
+            import time
+            import config as C
+            # Determine variant id (prefer active variant; else resolve owner from GGUF)
+            vid = getattr(self, '_active_variant_id', '') or (self.current_model_for_stats or '')
+            if not vid:
+                messagebox.showwarning('Generate', 'No active variant. Select a variant first.')
+                return
+            # Load latest eval report for this variant
+            report = C.load_latest_evaluation_report(vid) or {}
+            if not report:
+                messagebox.showwarning('Generate', f'No evaluation report found for {vid}. Run an evaluation first.')
+                return
+            suite = report.get('metadata', {}).get('suite') or 'UnknownSuite'
+            results = report.get('results') or []
+            if not results:
+                messagebox.showwarning('Generate', 'Evaluation report contains no results.')
+                return
+            # Build JSONL examples for failed cases only
+            lines = []
+            fail_count = 0
+            for r in results:
+                if r.get('passed') is True:
+                    continue
+                tc = (r.get('test_case_obj') or {})
+                user_input = tc.get('input') or r.get('test_case') or ''
+                expected_tool = (r.get('expected') or {}).get('tool') or tc.get('expected_tool')
+                expected_args = (r.get('expected') or {}).get('args') or tc.get('expected_args') or {}
+                if not expected_tool or not isinstance(expected_args, dict):
+                    continue
+                tool_json = {"type": "tool_call", "name": expected_tool, "args": expected_args}
+                # Assemble messages in strict format (assistant content is JSON string)
+                entry = {
+                    "messages": [
+                        {"role": "user", "content": user_input},
+                        {"role": "assistant", "content": json.dumps(tool_json, ensure_ascii=False)}
+                    ],
+                    "scenario": f"auto_from_eval::{suite}::{(r.get('skill') or 'unknown')}"
+                }
+                lines.append(json.dumps(entry, ensure_ascii=False))
+                fail_count += 1
+            if not lines:
+                messagebox.showinfo('Generate', 'No failed cases to convert into training data. Great job!')
+                return
+            # Write under Tools category so Training UI picks it up
+            ts = time.strftime('%Y%m%d_%H%M%S')
+            fname = f"auto_{vid}_{suite}_{ts}.jsonl".replace(' ', '_')
+            out_path = Path('Training_Data-Sets') / 'Tools' / fname
+            out_path.write_text("\n".join(lines), encoding='utf-8')
+            # Link to Model Profile
+            try:
+                mp = C.load_model_profile(vid) or {}
+                ads = list(mp.get('auto_datasets') or [])
+                if str(out_path) not in ads:
+                    ads.append(str(out_path))
+                mp['auto_datasets'] = ads
+                C.save_model_profile(vid, mp)
+            except Exception:
+                pass
+            # Refresh Training UI so it sees the new dataset (defaults to selected)
+            try:
+                tt = self.get_training_tab()
+                if tt and hasattr(tt, 'refresh_all_panels'):
+                    tt.refresh_all_panels()
+                    # Auto-select the newly generated dataset in Training tab
+                    try:
+                        if hasattr(tt, 'select_jsonl_path'):
+                            tt.select_jsonl_path(str(out_path), selected=True)
+                    except Exception:
+                        pass
+                    # Persist selections/settings to Training Profile
+                    try:
+                        if hasattr(tt, 'save_active_training_profile'):
+                            tt.save_active_training_profile()
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            # Notify
+            messagebox.showinfo('Generate', f'Created {fail_count} training examples -> {out_path}')
+            # Auto pipeline (best-effort)
+            if bool(getattr(self, 'auto_train_after_gen_var', tk.BooleanVar(value=False)).get()):
+                try:
+                    tt = self.get_training_tab()
+                    if tt and hasattr(tt, 'runner_panel'):
+                        tt.runner_panel.start_runner_training()
+                except Exception:
+                    pass
+        except Exception as e:
+            messagebox.showerror('Generate', f'Failed to generate training set: {e}')
+
+    # --- Lineage variants summary -------------------------------------------
+    def _build_lineage_variants_section(self, base_name: str, parent_frame=None):
+        try:
+            import config as C
+            items = C.list_model_profiles() or []
+            variants = [it.get('variant_id') for it in items if (it.get('base_model') or '') == base_name]
+            if not variants:
+                return
+            frame = ttk.LabelFrame(parent_frame or self.overview_tab_frame, text="Lineage", style='TLabelframe')
+            # Use pack by default in base/trained overview; caller may grid if needed
+            try:
+                frame.pack(fill=tk.X, padx=10, pady=6)
+            except Exception:
+                frame.grid(row=0, column=0, columnspan=2, sticky=tk.EW, padx=5, pady=6)
+            row = 0
+            ttk.Label(frame, text="Variants (Collections):", style='Config.TLabel', font=("Arial", 10, "bold")).grid(row=row, column=0, sticky=tk.W, padx=8, pady=(6,2)); row+=1
+            for vid in sorted(variants):
+                # Ensure lineage id exists (legacy backfill)
+                try:
+                    C.ensure_lineage_id(vid)
+                except Exception:
+                    pass
+                # Class chip and clickable variant button
+                try:
+                    cls = C.get_variant_class(vid)
+                    vrow = ttk.Frame(frame); vrow.grid(row=row, column=0, sticky=tk.W)
+                    chip = tk.Label(vrow, text='  ', bg=self._class_to_color(cls))
+                    chip.pack(side=tk.LEFT, padx=(16,6))
+                    btn = ttk.Button(vrow, text=f"{vid}", style='Select.TButton', command=lambda v=vid: self._open_variant_from_lineage(v))
+                    btn.pack(side=tk.LEFT)
+                except Exception:
+                    ttk.Label(frame, text=f" • {vid}", style='Config.TLabel').grid(row=row, column=0, sticky=tk.W, padx=16, pady=1)
+                row += 1
+                # Assigned GGUF tags via lineage (with legacy fallback)
+                tags = []
+                try:
+                    lid = C.get_lineage_id(vid)
+                    if lid:
+                        tags = C.get_assigned_tags_by_lineage(lid) or []
+                    if not tags:
+                        # Legacy fallback: variant -> [tags]
+                        data = C.load_ollama_assignments() or {}
+                        entry = data.get(vid)
+                        if isinstance(entry, dict):
+                            tags = entry.get('tags') or []
+                        elif isinstance(entry, list):
+                            tags = entry
+                except Exception:
+                    tags = []
+                if tags:
+                    for tg in tags:
+                        trow = ttk.Frame(frame); trow.grid(row=row, column=0, sticky=tk.W)
+                        ttk.Label(trow, text=f"Assigned:", style='Config.TLabel', foreground='#bbbbbb').pack(side=tk.LEFT, padx=(22,6))
+                        ttk.Button(trow, text=tg, style='Select.TButton', command=lambda tag=tg: self.display_model_info({'name':tag,'type':'ollama'})).pack(side=tk.LEFT)
+                        row += 1
+                else:
+                    ttk.Label(frame, text=f"    Assigned: None", style='Config.TLabel', foreground='#bbbbbb').grid(row=row, column=0, sticky=tk.W, padx=22, pady=(0,4)); row+=1
+        except Exception as e:
+            try:
+                log_message(f"MODELS_TAB: Lineage variants section error: {e}")
+            except Exception:
+                pass
+
+    def _open_variant_from_lineage(self, variant_id: str):
+        try:
+            import config as C
+            mp = C.load_model_profile(variant_id) or {}
+            item = {"variant_id": variant_id, "base_model": mp.get('base_model'), "assigned_type": mp.get('assigned_type')}
+            self._on_collection_pick(item)
+        except Exception:
+            pass
+
     # --- Overview Header & Variant Actions ----------------------------------
     def _build_overview_header(self):
         try:
@@ -3177,9 +3525,16 @@ class ModelsTab(BaseTab):
                 return
             header = ttk.Frame(self.overview_tab_frame)
             header.pack(fill=tk.X, padx=10, pady=(6, 0))
-            # Active Variant banner (left)
+            # Active Variant banner (left) with class chip
             if not hasattr(self, 'active_variant_var'):
                 self.active_variant_var = tk.StringVar(value="")
+            try:
+                import config as C
+                cls = C.get_variant_class(vid)
+                chip = tk.Label(header, text='  ', bg=self._class_to_color(cls))
+                chip.pack(side=tk.LEFT, padx=(0,6))
+            except Exception:
+                pass
             ttk.Label(header, textvariable=self.active_variant_var, style='Config.TLabel', foreground='#ffd43b').pack(side=tk.LEFT)
 
             # Parent base summary (center)
@@ -3199,7 +3554,20 @@ class ModelsTab(BaseTab):
             self.btn_create_gguf.pack(side=tk.LEFT, padx=(0,6))
             self.btn_delete_variant = ttk.Button(act, text="Delete Variant", style='Select.TButton', command=self._delete_active_variant)
             self.btn_delete_variant.pack(side=tk.LEFT)
+            # Promotion button (disabled until eligibility met)
+            self.btn_promote = ttk.Button(act, text="Promote to Skilled", style='Action.TButton', command=self._promote_variant)
+            self.btn_promote.pack(side=tk.LEFT, padx=(6,0))
             self._refresh_overview_actions_state()
+            # Attach a simple tooltip on hover explaining why Create is disabled
+            try:
+                self._attach_simple_tooltip(self.btn_create_gguf, lambda: getattr(self, '_create_gguf_tooltip_text', '') or '')
+            except Exception:
+                pass
+            # Tooltip for promotion guidance
+            try:
+                self._attach_simple_tooltip(self.btn_promote, lambda: getattr(self, '_promote_tooltip_text', 'Gather eval/baseline; improve skills; unlock promotion'))
+            except Exception:
+                pass
         except Exception:
             pass
 
@@ -3209,6 +3577,7 @@ class ModelsTab(BaseTab):
             # default states
             state_create = tk.DISABLED
             state_delete = tk.DISABLED
+            state_promote = tk.DISABLED
             if vid:
                 state_delete = tk.NORMAL
                 state_create = tk.NORMAL
@@ -3219,12 +3588,161 @@ class ModelsTab(BaseTab):
                         state_create = tk.DISABLED
                 except Exception:
                     pass
+                # One‑GGUF per Variant: disable Create if an assignment exists
+                try:
+                    import config as C
+                    lid = C.get_lineage_id(vid) or C.ensure_lineage_id(vid)
+                    tags = C.get_assigned_tags_by_lineage(lid)
+                    if tags:
+                        state_create = tk.DISABLED
+                        self._create_gguf_tooltip_text = f"GGUF exists: {', '.join(tags)}. Delete it to re-export."
+                    else:
+                        self._create_gguf_tooltip_text = ''
+                except Exception:
+                    self._create_gguf_tooltip_text = ''
+                # Promotion eligibility
+                try:
+                    eligible, tip = self._check_promotion_eligibility(vid)
+                    state_promote = (tk.NORMAL if eligible else tk.DISABLED)
+                    self._promote_tooltip_text = tip or ''
+                except Exception:
+                    state_promote = tk.DISABLED
             if hasattr(self, 'btn_create_gguf'):
                 self.btn_create_gguf.config(state=state_create)
             if hasattr(self, 'btn_delete_variant'):
                 self.btn_delete_variant.config(state=state_delete)
+            if hasattr(self, 'btn_promote'):
+                self.btn_promote.config(state=state_promote)
         except Exception:
             pass
+
+    # --- Minimal tooltip helper ---------------------------------------------
+    def _attach_simple_tooltip(self, widget, text_getter):
+        tw = {'win': None}
+        def show_tooltip(event=None):
+            try:
+                txt = text_getter() if callable(text_getter) else str(text_getter)
+            except Exception:
+                txt = ''
+            # Only show when disabled and text present
+            try:
+                if str(widget['state']) != 'disabled' or not txt:
+                    return
+            except Exception:
+                if not txt:
+                    return
+            if tw['win'] is not None:
+                return
+            x = widget.winfo_rootx() + 10
+            y = widget.winfo_rooty() + widget.winfo_height() + 6
+            win = tk.Toplevel(widget)
+            win.wm_overrideredirect(True)
+            win.wm_geometry(f"+{x}+{y}")
+            lbl = tk.Label(win, text=txt, bg="#333333", fg="#ffffff", padx=6, pady=3, relief='solid', borderwidth=1, justify=tk.LEFT)
+            lbl.pack()
+            tw['win'] = win
+        def hide_tooltip(event=None):
+            if tw['win'] is not None:
+                try:
+                    tw['win'].destroy()
+                except Exception:
+                    pass
+                tw['win'] = None
+        widget.bind("<Enter>", show_tooltip)
+        widget.bind("<Leave>", hide_tooltip)
+        widget.bind("<Button-1>", hide_tooltip)
+
+    # --- Promotion eligibility and actions ----------------------------------
+    def _check_promotion_eligibility(self, variant_id: str) -> tuple[bool, str]:
+        """Return (eligible, tooltip_text) based on latest eval vs baseline and simple thresholds."""
+        try:
+            from config import load_baseline_report, load_latest_evaluation_report, get_regression_policy
+            baseline = load_baseline_report(variant_id) or {}
+            latest = load_latest_evaluation_report(variant_id) or {}
+            if not baseline or not latest:
+                return (False, "Run a baseline and an evaluation to unlock promotions.")
+            eng = EvaluationEngine(tests_dir=TRAINING_DATA_DIR / 'Test')
+            pol = get_regression_policy() or {}
+            thr = float(pol.get('alert_drop_percent', 5.0))
+            cmp = eng.compare_models(baseline, latest, regression_threshold=thr, improvement_threshold=thr)
+            overall_delta = float(cmp.get('overall', {}).get('delta', '+0.00%').replace('%',''))
+            regressions = cmp.get('regressions') or []
+            try:
+                jvr = float((latest.get('metrics', {}) or {}).get('json_valid_rate', '0%').replace('%',''))
+            except Exception:
+                jvr = 0.0
+            try:
+                svr = float((latest.get('metrics', {}) or {}).get('schema_valid_rate', '0%').replace('%',''))
+            except Exception:
+                svr = 0.0
+            eligible = (overall_delta >= 5.0 and jvr >= 95.0 and svr >= 95.0 and len(regressions) == 0)
+            tip = (
+                f"Overall Δ: {overall_delta:+.2f}% • JSON: {jvr:.1f}% • Schema: {svr:.1f}%\n"
+                + ("No regressions detected." if not regressions else f"Regressions: {len(regressions)}")
+            )
+            return (eligible, tip)
+        except Exception:
+            return (False, "Run a baseline and an evaluation to unlock promotions.")
+
+    def _promote_variant(self):
+        """Create a new Skilled variant from the active variant (novice) when eligibility is met."""
+        try:
+            vid = getattr(self, '_active_variant_id', '') or ''
+            if not vid:
+                return
+            import config as C
+            mp = C.load_model_profile(vid) or {}
+            base = mp.get('base_model') or ''
+            t_id = mp.get('assigned_type') or ''
+            if not base or not t_id:
+                messagebox.showwarning('Promotion', 'Variant profile missing base_model or assigned_type.')
+                return
+            # Derive new skilled variant id
+            base_stub = C.derive_variant_name(base, t_id)  # e.g., Qwen2.5-0.5b_coder
+            skilled_id = f"{base_stub}_skilled"
+            # Avoid collision: append numeric suffix if needed
+            existing = [it.get('variant_id') for it in (C.list_model_profiles() or [])]
+            if skilled_id in existing:
+                i = 2
+                while f"{skilled_id}{i}" in existing:
+                    i += 1
+                skilled_id = f"{skilled_id}{i}"
+            # Build model profile
+            mp_new = {
+                'trainee_name': skilled_id,
+                'base_model': base,
+                'assigned_type': t_id,
+                'class_level': 'skilled',
+                'parent_variant_id': vid,
+            }
+            C.save_model_profile(skilled_id, mp_new)
+            # Ensure lineage id (ULID)
+            C.ensure_lineage_id(skilled_id)
+            # Build training profile by copying stickies from source
+            try:
+                tp_src = C.load_training_profile(vid) or {}
+            except Exception:
+                tp_src = {}
+            tp_new = C.build_training_profile_from_type(skilled_id, base, t_id)
+            # Copy sticky fields
+            try:
+                sp = tp_src.get('selected_prompts') or []
+                ss = tp_src.get('selected_schemas') or []
+                if sp:
+                    tp_new['selected_prompts'] = sp
+                if ss:
+                    tp_new['selected_schemas'] = ss
+            except Exception:
+                pass
+            C.save_training_profile(skilled_id, tp_new)
+            # Refresh Collections and notify
+            try:
+                self.refresh_collections_panel()
+            except Exception:
+                pass
+            messagebox.showinfo('Promotion', f"Skilled variant created: {skilled_id}\n\nYou can export a Skilled GGUF via Levels or Create GGUF when ready.")
+        except Exception as e:
+            messagebox.showerror('Promotion', f"Failed to create Skilled variant: {e}")
 
     def _create_gguf_for_active_variant(self):
         try:
@@ -3247,6 +3765,33 @@ class ModelsTab(BaseTab):
         except Exception as e:
             messagebox.showerror('Create GGUF', str(e))
 
+    def _on_request_auto_export_reeval(self, event):
+        """Handle request to export GGUF for a variant and then re-evaluate automatically."""
+        try:
+            import json as _json, config as C
+            payload = _json.loads(getattr(event, 'data', '{}') or '{}')
+            vid = payload.get('variant_id') or ''
+            if not vid:
+                return
+            mp = C.load_model_profile(vid) or {}
+            base_name = mp.get('base_model')
+            if not base_name:
+                messagebox.showwarning('Auto Export', 'Variant profile missing base_model. Aborting export.')
+                return
+            base_path = self._find_base_path(base_name)
+            if not base_path:
+                messagebox.showwarning('Auto Export', f"Base path not found for '{base_name}'.")
+                return
+            # Select active variant for consistency and enable auto re-eval
+            self._active_variant_id = vid
+            try:
+                self.auto_reeval_after_export_var.set(True)
+            except Exception:
+                pass
+            # Start export with a sane default quant
+            self._run_export_base_to_gguf(base_path, 'q4_k_m', model_tag_override=vid)
+        except Exception as e:
+            print('[ModelsTab] _on_request_auto_export_reeval error:', e)
     def _export_base_to_gguf_dialog_for_variant(self, base_model_name: str, base_model_path, variant_id: str):
         win = tk.Toplevel(self.root); win.title('Export Base to GGUF (Variant)')
         f = ttk.Frame(win); f.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -3367,6 +3912,14 @@ class ModelsTab(BaseTab):
         try:
             import config as C
             items = C.list_model_profiles() or []
+            # Backfill missing lineage_id for legacy profiles
+            try:
+                for it in items:
+                    vid = it.get('variant_id')
+                    if vid:
+                        C.ensure_lineage_id(vid)
+            except Exception:
+                pass
             # Group by type category (assigned_type), then by base
             grouped_by_type = {}
             for it in items:
@@ -3405,10 +3958,19 @@ class ModelsTab(BaseTab):
                     except Exception:
                         cls = "novice"
                     base = it.get('base_model','?')
-                    # Label: Parent-Type<Class> style
-                    label = f"  • {base}-{type_id.title()}<{cls.title()}>"
-                    btn = ttk.Button(cont, text=label, style='Select.TButton', command=lambda item=it: self._on_collection_pick(item))
-                    btn.pack(fill=tk.X, padx=16, pady=1)
+                    # Row with color chip and label button
+                    rowv = ttk.Frame(cont)
+                    rowv.pack(fill=tk.X, padx=10, pady=1)
+                    try:
+                        color = self._class_to_color(cls)
+                        chip = tk.Label(rowv, text='  ', bg=color)
+                        chip.pack(side=tk.LEFT, padx=(6,6), pady=2)
+                    except Exception:
+                        spacer = tk.Label(rowv, text='')
+                        spacer.pack(side=tk.LEFT, padx=(6,6))
+                    label = f"{base}-{type_id.title()}<{cls.title()}>"
+                    btn = ttk.Button(rowv, text=label, style='Select.TButton', command=lambda item=it: self._on_collection_pick(item))
+                    btn.pack(side=tk.LEFT, fill=tk.X, expand=True)
                     btn.bind("<Button-3>", lambda e, item=it: self._open_collections_menu(e, item))
                 if expanded:
                     # Ensure the container appears immediately after its header
@@ -3536,6 +4098,113 @@ class ModelsTab(BaseTab):
         except Exception as e:
             print("[ModelsTab] refresh_variant_stats error:", e)
 
+    # --- Helpers: Variant ⇄ GGUF assignment & eval defaults ------------------
+    def _find_assigned_gguf_for_variant(self, variant_id: str) -> str | None:
+        """Return the first assigned Ollama tag for a variant, if any."""
+        try:
+            from config import load_ollama_assignments
+            d = load_ollama_assignments() or {}
+            lst = d.get(variant_id) or []
+            return (lst[0] if lst else None)
+        except Exception:
+            return None
+
+    def _find_variant_for_gguf(self, tag: str) -> str | None:
+        """Reverse lookup: find a variant that owns this GGUF tag (first match)."""
+        try:
+            from config import load_ollama_assignments
+            d = load_ollama_assignments() or {}
+            for vid, entry in d.items():
+                if vid == 'tag_index':
+                    continue
+                if isinstance(entry, dict):
+                    tags = entry.get('tags') or []
+                else:
+                    tags = entry or []
+                if tag in tags:
+                    return vid
+        except Exception:
+            pass
+        return None
+
+    def _class_to_color(self, level: str) -> str:
+        """Map class level to UI color hex."""
+        lvl = (level or '').strip().lower()
+        return {
+            'novice': '#51cf66',   # green
+            'skilled': '#61dafb',  # blue
+            'expert': '#9b59b6',   # purple
+            'master': '#ffa94d',   # orange
+            'artifact': '#c92a2a', # deep red
+        }.get(lvl, '#bbbbbb')
+
+    def _get_variant_color_for_gguf(self, tag: str) -> str | None:
+        """Return the class color for the variant that owns this GGUF tag, if any."""
+        try:
+            owner = self._find_variant_for_gguf(tag)
+            if not owner:
+                return None
+            import config as C
+            level = C.get_variant_class(owner)
+            return self._class_to_color(level)
+        except Exception:
+            return None
+
+    def _apply_type_driven_eval_defaults(self, variant_id: str):
+        """Populate Evaluation tab controls based on variant's type and training profile."""
+        try:
+            import config as C
+            # 1) Suite selection from assigned_type
+            t_id = None
+            try:
+                mp = C.load_model_profile(variant_id) or {}
+                t_id = (mp.get('assigned_type') or '').lower()
+            except Exception:
+                t_id = None
+            mapping = {
+                'coder': 'CoderNovice',
+                'researcher': 'ResearcherNovice',
+            }
+            preferred = mapping.get(t_id, 'Tools')
+            if hasattr(self, 'test_suite_combo') and hasattr(self, 'test_suite_var'):
+                opts = list(self.test_suite_combo['values']) if isinstance(self.test_suite_combo['values'], tuple) else (self.test_suite_combo['values'] or [])
+                if preferred in opts:
+                    self.test_suite_combo.set(preferred)
+                elif opts:
+                    self.test_suite_combo.set(opts[0])
+
+            # 2) Prompt/Schema toggles and selections from Training Profile
+            try:
+                tp = C.load_training_profile(variant_id) or {}
+            except Exception:
+                tp = {}
+            try:
+                rs = (tp.get('runner_settings') or {})
+                if hasattr(self, 'use_system_prompt_var'):
+                    self.use_system_prompt_var.set(bool(rs.get('use_system_prompt', False)))
+                    self._toggle_system_prompt_controls()
+                if hasattr(self, 'use_tool_schema_var'):
+                    self.use_tool_schema_var.set(bool(rs.get('use_tool_schema', False)))
+                    self._toggle_tool_schema_controls()
+            except Exception:
+                pass
+            try:
+                sp = tp.get('selected_prompts') or []
+                if sp and hasattr(self, 'system_prompt_combo'):
+                    self.system_prompt_combo.config(state='readonly')
+                    self.system_prompt_combo.set(sp[0])
+            except Exception:
+                pass
+            try:
+                ss = tp.get('selected_schemas') or []
+                if ss and hasattr(self, 'tool_schema_combo'):
+                    self.tool_schema_combo.config(state='readonly')
+                    self.tool_schema_combo.set(ss[0])
+            except Exception:
+                pass
+        except Exception:
+            pass
+
     def _on_collection_pick(self, item: dict):
         """When a variant is picked, apply its training profile in Training tab."""
         try:
@@ -3554,12 +4223,78 @@ class ModelsTab(BaseTab):
                 pass
             # Reflect selection in Evaluation tab context
             try:
+                # Determine assigned GGUF and parent base
+                gguf = self._find_assigned_gguf_for_variant(variant)
+                # If multiple assigned tags exist (legacy), let user choose
+                try:
+                    import config as C
+                    lid = C.get_lineage_id(variant)
+                    tags = C.get_assigned_tags_by_lineage(lid) if lid else ([] if not gguf else [gguf])
+                    if tags and len(tags) > 1:
+                        choice = self._choose_gguf_dialog(tags, title=f"Select GGUF for {variant}")
+                        if choice:
+                            gguf = choice
+                except Exception:
+                    pass
+                base_name = None
+                try:
+                    import config as C
+                    mp = C.load_model_profile(variant) or {}
+                    base_name = mp.get('base_model') or None
+                except Exception:
+                    base_name = None
+
+                # Labels: parent above, then selected model shows variant → gguf
+                if hasattr(self, 'eval_parent_label'):
+                    self.eval_parent_label.config(text=f"Base-Model: {base_name}" if base_name else "Base-Model: unavailable")
                 if hasattr(self, 'selected_model_label_eval'):
-                    self.selected_model_label_eval.config(text=f"Selected Model: {variant}")
+                    if gguf:
+                        self.selected_model_label_eval.config(text=f"Selected Model: {variant} → gguf:{gguf}")
+                    else:
+                        self.selected_model_label_eval.config(text=f"Selected Model: {variant}")
                 if hasattr(self, 'eval_source_label'):
-                    self.eval_source_label.config(text="Source: Variant (Profile)")
-                # Also set evaluation target to this variant
+                    if gguf:
+                        self.eval_source_label.config(text=f"Source: Variant → GGUF ({gguf})")
+                        # Use the GGUF for evaluation
+                        self._eval_override_model_name = gguf
+                    else:
+                        self.eval_source_label.config(text="Source: Variant (Profile)")
+                        # Clear any previous override
+                        if hasattr(self, '_eval_override_model_name'):
+                            try:
+                                delattr(self, '_eval_override_model_name')
+                            except Exception:
+                                pass
+                # Use variant as logical selection context
                 self.current_model_for_stats = variant
+                # Update class chip based on variant class
+                try:
+                    import config as C
+                    cls = C.get_variant_class(variant)
+                    if getattr(self, 'eval_class_chip', None) is not None:
+                        self.eval_class_chip.config(bg=self._class_to_color(cls))
+                except Exception:
+                    pass
+                # Update lineage label
+                try:
+                    import config as C
+                    lid = C.get_lineage_id(variant)
+                    short = (lid[:10] + '…') if (lid and len(lid) > 10) else (lid or 'unavailable')
+                    if hasattr(self, 'eval_lineage_label'):
+                        self.eval_lineage_label.config(text=f"Lineage: {short}")
+                except Exception:
+                    pass
+                # Promotion alert if eligible
+                try:
+                    eligible, _t = self._check_promotion_eligibility(variant)
+                    if eligible:
+                        if not hasattr(self, '_promo_alerted_variants'):
+                            self._promo_alerted_variants = set()
+                        if variant not in self._promo_alerted_variants:
+                            messagebox.showinfo('Promotion Unlocked', f"{variant} has earned a promotion.\nClass Available: <Skilled>\nHybrid Available: <NO>")
+                            self._promo_alerted_variants.add(variant)
+                except Exception:
+                    pass
                 # Auto-toggle baseline for fresh variants and select type-specific suite
                 try:
                     from config import load_latest_evaluation_report, get_baseline_report_path, load_model_profile
@@ -3598,8 +4333,20 @@ class ModelsTab(BaseTab):
                             self.test_suite_combo.set(preferred)
                         elif opts:
                             self.test_suite_combo.set(opts[0])
+                        # Update lineage label after suite set as well
+                        try:
+                            if hasattr(self, 'eval_lineage_label'):
+                                short = ( (lid[:10] + '…') if (lid and len(lid) > 10) else (lid or 'unavailable') )
+                                self.eval_lineage_label.config(text=f"Lineage: {short}")
+                        except Exception:
+                            pass
                 except Exception:
                     pass
+            except Exception:
+                pass
+            # Also apply any type-driven defaults (suite, prompt/schema) from the variant
+            try:
+                self._apply_type_driven_eval_defaults(variant)
             except Exception:
                 pass
             # Relay to TrainingTab
@@ -3615,6 +4362,31 @@ class ModelsTab(BaseTab):
         except Exception as e:
             print("[ModelsTab] _on_collection_pick error:", e)
 
+    def _choose_gguf_dialog(self, tags: list[str], title: str = "Select GGUF") -> str | None:
+        try:
+            win = tk.Toplevel(self.root)
+            win.title(title)
+            f = ttk.Frame(win)
+            f.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            ttk.Label(f, text="Choose assigned GGUF:", style='Config.TLabel').grid(row=0, column=0, sticky=tk.W)
+            var = tk.StringVar(value=(tags[0] if tags else ''))
+            combo = ttk.Combobox(f, textvariable=var, values=tags, state='readonly', width=50)
+            combo.grid(row=1, column=0, sticky=tk.EW, pady=(6,0))
+            btns = ttk.Frame(f)
+            btns.grid(row=2, column=0, sticky=tk.E, pady=(10,0))
+            result = {'v': None}
+            def ok():
+                result['v'] = var.get()
+                win.destroy()
+            def cancel():
+                win.destroy()
+            ttk.Button(btns, text='Cancel', command=cancel, style='Select.TButton').pack(side=tk.RIGHT, padx=5)
+            ttk.Button(btns, text='Use', command=ok, style='Action.TButton').pack(side=tk.RIGHT)
+            win.grab_set(); win.wait_window()
+            return result['v']
+        except Exception:
+            return None
+
     def _on_variant_applied(self, evt):
         try:
             import json
@@ -3628,11 +4400,35 @@ class ModelsTab(BaseTab):
                     pass
                 # Also update Evaluation tab labels
                 try:
+                    # Determine assigned GGUF and parent base
+                    gguf = self._find_assigned_gguf_for_variant(vid)
+                    base_name = None
+                    try:
+                        import config as C
+                        mp = C.load_model_profile(vid) or {}
+                        base_name = mp.get('base_model') or None
+                    except Exception:
+                        base_name = None
+                    if hasattr(self, 'eval_parent_label'):
+                        self.eval_parent_label.config(text=f"Base-Model: {base_name}" if base_name else "Base-Model: unavailable")
                     if hasattr(self, 'selected_model_label_eval'):
-                        self.selected_model_label_eval.config(text=f"Selected Model: {vid}")
+                        if gguf:
+                            self.selected_model_label_eval.config(text=f"Selected Model: {vid} → gguf:{gguf}")
+                        else:
+                            self.selected_model_label_eval.config(text=f"Selected Model: {vid}")
                     if hasattr(self, 'eval_source_label'):
-                        self.eval_source_label.config(text="Source: Variant (Profile)")
+                        if gguf:
+                            self.eval_source_label.config(text=f"Source: Variant → GGUF ({gguf})")
+                        else:
+                            self.eval_source_label.config(text="Source: Variant (Profile)")
                     self.current_model_for_stats = vid
+                    # Update class chip based on variant class
+                    try:
+                        cls = C.get_variant_class(vid)
+                        if getattr(self, 'eval_class_chip', None) is not None:
+                            self.eval_class_chip.config(bg=self._class_to_color(cls))
+                    except Exception:
+                        pass
                     self._active_variant_id = vid
                     self._refresh_overview_actions_state()
                     self._render_variant_overview()
@@ -3673,6 +4469,11 @@ class ModelsTab(BaseTab):
                                 self.test_suite_combo.set(preferred)
                             elif opts:
                                 self.test_suite_combo.set(opts[0])
+                        # Also apply prompt/schema defaults from Training Profile
+                        try:
+                            self._apply_type_driven_eval_defaults(vid)
+                        except Exception:
+                            pass
                     except Exception:
                         pass
                 except Exception:
@@ -3762,6 +4563,7 @@ class ModelsTab(BaseTab):
 
             # Try to show linked variant id from sidecar
             variant_note = ""
+            class_level = None
             try:
                 sidecar = Path(str(adapter_path) + ".variant.json")
                 if sidecar.exists():
@@ -3770,6 +4572,22 @@ class ModelsTab(BaseTab):
                     vid = vmeta.get('variant_id')
                     if vid:
                         variant_note = f"  [{vid}]"
+                    class_level = vmeta.get('class_level')
+                    if not class_level and vid:
+                        try:
+                            import config as C
+                            class_level = C.get_variant_class(vid)
+                        except Exception:
+                            class_level = None
+            except Exception:
+                pass
+
+            # Class chip
+            try:
+                if class_level:
+                    chip = tk.Label(adapter_frame, text='  ', bg=self._class_to_color(class_level))
+                    chip.grid(row=0, column=col, sticky=tk.W, padx=(6,2), pady=2)
+                    col += 1
             except Exception:
                 pass
             ttk.Label(adapter_frame, text=f"▶ {adapter_name}{variant_note}", font=("Arial", 10, "bold"), foreground="#51cf66").grid(row=0, column=col, sticky=tk.W, padx=5, pady=2)
@@ -4058,7 +4876,38 @@ class ModelsTab(BaseTab):
                 "adapters": [{"name": p.name} for p in sels],
                 "notes": notes,
             }
-            with open(level_dir / 'manifest.json', 'w') as f:
+            # Enrich with lineage/variant/type/class if derivable from adapter sidecars
+            try:
+                base_dir = Path(base_model_info["path"]).parent
+                vset, lset, tset, cset = set(), set(), set(), set()
+                for p in sels:
+                    sc = Path(str(p) + ".variant.json")
+                    if (base_dir / sc.name).exists():
+                        sc_path = base_dir / sc.name
+                    else:
+                        sc_path = Path(str(base_dir / p.name) + ".variant.json")
+                    if sc_path.exists():
+                        with open(sc_path, 'r', encoding='utf-8') as sf:
+                            meta = json.load(sf)
+                        if meta.get('variant_id'):
+                            vset.add(meta.get('variant_id'))
+                        if meta.get('lineage_id'):
+                            lset.add(meta.get('lineage_id'))
+                        if meta.get('assigned_type'):
+                            tset.add(meta.get('assigned_type'))
+                        if meta.get('class_level'):
+                            cset.add(meta.get('class_level'))
+                if len(vset) == 1:
+                    manifest['variant_id'] = list(vset)[0]
+                if len(lset) == 1:
+                    manifest['lineage_id'] = list(lset)[0]
+                if len(tset) == 1:
+                    manifest['assigned_type'] = list(tset)[0]
+                if len(cset) == 1:
+                    manifest['class_level'] = list(cset)[0]
+            except Exception:
+                pass
+            with open(level_dir / 'manifest.json', 'w', encoding='utf-8') as f:
                 json.dump(manifest, f, indent=2)
             messagebox.showinfo("Saved", f"Level '{level_name}' saved.")
             self._populate_history_tab(base_model_info)
@@ -4078,8 +4927,10 @@ class ModelsTab(BaseTab):
                 mf = d / 'manifest.json'
                 if mf.exists():
                     try:
-                        with open(mf, 'r') as f:
+                        with open(mf, 'r', encoding='utf-8') as f:
                             data = json.load(f)
+                        # Backfill lineage/variant/type/class if missing
+                        self._backfill_level_manifest(base_model_name, d, data)
                         data['name'] = d.name
                         data['path'] = str(d)
                         levels.append(data)
@@ -4088,6 +4939,55 @@ class ModelsTab(BaseTab):
         except Exception:
             return []
         return levels
+
+    def _backfill_level_manifest(self, base_model_name: str, level_dir: Path, data: dict):
+        """If a Level manifest lacks lineage/variant/type/class, derive from adapter sidecars and persist back."""
+        try:
+            needs = []
+            for key in ('variant_id','lineage_id','assigned_type','class_level'):
+                if not data.get(key):
+                    needs.append(key)
+            if not needs:
+                return
+            # Locate base dir to find adapter sidecars
+            base_path = self._find_base_path(base_model_name)
+            if not base_path:
+                return
+            base_dir = Path(base_path).parent
+            sels = [a.get('name') for a in (data.get('adapters') or []) if a.get('name')]
+            if not sels:
+                return
+            vset, lset, tset, cset = set(), set(), set(), set()
+            for an in sels:
+                sc_path = Path(str(base_dir / an) + ".variant.json")
+                if sc_path.exists():
+                    try:
+                        meta = json.loads(sc_path.read_text())
+                        if meta.get('variant_id'):
+                            vset.add(meta.get('variant_id'))
+                        if meta.get('lineage_id'):
+                            lset.add(meta.get('lineage_id'))
+                        if meta.get('assigned_type'):
+                            tset.add(meta.get('assigned_type'))
+                        if meta.get('class_level'):
+                            cset.add(meta.get('class_level'))
+                    except Exception:
+                        continue
+            changed = False
+            if 'variant_id' in needs and len(vset) == 1:
+                data['variant_id'] = list(vset)[0]; changed = True
+            if 'lineage_id' in needs and len(lset) == 1:
+                data['lineage_id'] = list(lset)[0]; changed = True
+            if 'assigned_type' in needs and len(tset) == 1:
+                data['assigned_type'] = list(tset)[0]; changed = True
+            if 'class_level' in needs and len(cset) == 1:
+                data['class_level'] = list(cset)[0]; changed = True
+            if changed:
+                mf = level_dir / 'manifest.json'
+                with open(mf, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2)
+        except Exception:
+            pass
 
     def _levels_open_folder(self, base_model_name: str, level_name: str):
         try:
@@ -4603,6 +5503,14 @@ class ModelsTab(BaseTab):
         self.current_model_for_stats = model_name
         self.populate_stats_display()  # Load stats for this model
 
+        # Lineage (Variants & Assignments) for this model's parent base (if determinable)
+        try:
+            base_for_variants = parent_base or ''
+            if base_for_variants:
+                self._build_lineage_variants_section(base_for_variants, parent_frame=self.overview_tab_frame)
+        except Exception:
+            pass
+
         # Behavior indicators for GGUF (if evaluated)
         try:
             from config import get_model_behavior_profile
@@ -4616,11 +5524,66 @@ class ModelsTab(BaseTab):
         except Exception:
             pass
 
-        # Update Selected Model Label in Evaluation Tab
+        # Update Selected Model + Parent Labels in Evaluation Tab
+        owner_variant = None
+        try:
+            owner_variant = self._find_variant_for_gguf(model_name)
+        except Exception:
+            owner_variant = None
+        # Parent base derivation via owner variant (if any)
+        parent_base = None
+        if owner_variant:
+            try:
+                import config as C
+                mp = C.load_model_profile(owner_variant) or {}
+                parent_base = mp.get('base_model') or None
+            except Exception:
+                parent_base = None
+        if hasattr(self, 'eval_parent_label'):
+            self.eval_parent_label.config(text=f"Base-Model: {parent_base}" if parent_base else "Base-Model: unavailable")
         if hasattr(self, 'selected_model_label_eval'):
-            self.selected_model_label_eval.config(text=f"Selected Model: {model_name}")
+            if owner_variant:
+                self.selected_model_label_eval.config(text=f"Selected Model: {owner_variant} → gguf:{model_name}")
+            else:
+                self.selected_model_label_eval.config(text=f"Selected Model: {model_name}")
         if hasattr(self, 'eval_source_label'):
             self.eval_source_label.config(text="Source: Ollama (GGUF)")
+
+        # Class chip: derive from owner variant if present
+        try:
+            if owner_variant and getattr(self, 'eval_class_chip', None) is not None:
+                import config as C
+                cls = C.get_variant_class(owner_variant)
+                self.eval_class_chip.config(bg=self._class_to_color(cls))
+        except Exception:
+            pass
+        # Lineage label
+        try:
+            import config as C
+            lid = None
+            if owner_variant:
+                lid = C.get_lineage_id(owner_variant)
+            if not lid:
+                lid = C.get_lineage_for_tag(model_name)
+            short = (lid[:10] + '…') if (lid and len(lid) > 10) else (lid or 'unavailable')
+            if hasattr(self, 'eval_lineage_label'):
+                self.eval_lineage_label.config(text=f"Lineage: {short}")
+        except Exception:
+            pass
+
+        # If this GGUF is assigned to a variant, use that variant to prefill per-type eval settings
+        try:
+            if owner_variant:
+                # Populate suite + prompt/schema defaults similar to selecting from Collections
+                self._apply_type_driven_eval_defaults(owner_variant)
+                # Explicit GGUF selection: ensure no stale override
+                if hasattr(self, '_eval_override_model_name'):
+                    try:
+                        delattr(self, '_eval_override_model_name')
+                    except Exception:
+                        pass
+        except Exception:
+            pass
 
     def validate_model_name(self):
         """Validate the proposed model name against HuggingFace rules."""
@@ -4888,8 +5851,40 @@ class ModelsTab(BaseTab):
                     try:
                         outdir = Path(gguf_path_emitted).parent if gguf_path_emitted else (Path(__file__).parent.parent.parent / 'exports' / 'gguf')
                         adapter_name = Path(str(adapter_path)).name
-                        # Tag the Ollama model after adapter for uniqueness
+                        # Prefer manifest lineage/variant for tag naming when level_name present
+                        variant_id_for_export = None
+                        lineage_id_for_export = None
+                        if base_model_name and level_name:
+                            try:
+                                clean_base = base_model_name.replace('/','_').replace(':','_')
+                                mfpath = MODELS_DIR / 'archive' / 'levels' / clean_base / level_name / 'manifest.json'
+                                if mfpath.exists():
+                                    mdata = json.loads(mfpath.read_text())
+                                    variant_id_for_export = mdata.get('variant_id')
+                                    lineage_id_for_export = mdata.get('lineage_id')
+                            except Exception:
+                                pass
+                        # Enforce one-GGUF per lineage: if lineage has assigned tags, ask to replace
+                        if lineage_id_for_export:
+                            try:
+                                import config as C
+                                existing_tags = C.get_assigned_tags_by_lineage(lineage_id_for_export)
+                                if existing_tags:
+                                    def _ask_replace():
+                                        return messagebox.askyesno('Assigned Exists', f"A GGUF is already assigned for this variant lineage:\n{', '.join(existing_tags)}\n\nReplace with new export?")
+                                    # Must query UI thread
+                                    ans = []
+                                    self.root.after(0, lambda: ans.append(_ask_replace()))
+                                    while not ans:
+                                        time.sleep(0.05)
+                                    if not ans[0]:
+                                        return
+                            except Exception:
+                                pass
+                        # Tag policy
                         model_tag = f"{adapter_name}:latest"
+                        if variant_id_for_export:
+                            model_tag = f"{variant_id_for_export}:{(quant or 'q4_k_m')}"
                         modelfile = outdir / f"{adapter_name}.Modelfile"
                         gguf_path = gguf_path_emitted or str(outdir / f"{Path(base_model_path).name}-merged-{adapter_name}.{quant or 'q4_k_m'}.gguf")
                         mf = f"FROM {gguf_path}\nTEMPLATE \"{{{{ .Prompt }}}}\"\n"
@@ -4924,6 +5919,13 @@ class ModelsTab(BaseTab):
                                             })
                                             with open(mfpath, 'w') as f:
                                                 _json.dump(man, f, indent=2)
+                                except Exception:
+                                    pass
+                                # Assignment update for variant lineage
+                                try:
+                                    if variant_id_for_export:
+                                        import config as C
+                                        C.add_ollama_assignment(variant_id_for_export, model_tag)
                                 except Exception:
                                     pass
                                 try:
@@ -5161,6 +6163,36 @@ class ModelsTab(BaseTab):
 
             messagebox.showinfo("Delete Successful", f"Model '{model_name}' has been deleted.")
 
+            # If this tag was assigned to a variant lineage, remove the assignment
+            try:
+                import config as C
+                lid = C.get_lineage_for_tag(model_name)
+                if lid:
+                    # Update tag_index by removing this tag
+                    data = C.load_ollama_assignments() or {}
+                    ti = data.get('tag_index') or {}
+                    if model_name in ti:
+                        ti.pop(model_name, None)
+                        data['tag_index'] = ti
+                        # Also remove from any variant entry that lists it
+                        for k, v in list(data.items()):
+                            if k == 'tag_index':
+                                continue
+                            if isinstance(v, dict):
+                                tags = set(v.get('tags') or [])
+                                if model_name in tags:
+                                    tags.discard(model_name)
+                                    v['tags'] = sorted(tags)
+                                    data[k] = v
+                            else:
+                                lst = set(v or [])
+                                if model_name in lst:
+                                    lst.discard(model_name)
+                                    data[k] = sorted(lst)
+                        C.save_ollama_assignments(data)
+            except Exception:
+                pass
+
             # Refresh model list
             self.ollama_models = get_ollama_models()
             self.populate_model_list()
@@ -5179,6 +6211,11 @@ class ModelsTab(BaseTab):
             self.note_name_var.set("")
             self.populate_notes_list()
             self.populate_stats_display()
+            # If a Variant was active, refresh its actions state (may re‑enable Create GGUF)
+            try:
+                self._refresh_overview_actions_state()
+            except Exception:
+                pass
 
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr if e.stderr else str(e)

@@ -24,7 +24,9 @@ class ModelSelectionPanel: # Renamed class
         self.training_tab_instance = training_tab_instance
         
         self.base_model_var = tk.StringVar() # New tk.StringVar for selected model
+        self.variant_var = tk.StringVar()    # Selected variant id
         self.model_info_display = None # Will be scrolledtext widget
+        self._variant_combo = None
 
     def create_ui(self):
         """Create the model selection and information panel UI"""
@@ -44,6 +46,12 @@ class ModelSelectionPanel: # Renamed class
 
         ttk.Button(selection_section, text="Send To Training", command=self.send_model_to_training, style='Action.TButton').grid(row=0, column=2, sticky=tk.E, padx=5)
 
+        # Variant Selection (filtered by base model)
+        ttk.Label(selection_section, text="Variant:", style='Config.TLabel').grid(row=1, column=0, sticky=tk.W, padx=10, pady=(0,8))
+        self._variant_combo = ttk.Combobox(selection_section, textvariable=self.variant_var, values=(), state="readonly", width=40)
+        self._variant_combo.grid(row=1, column=1, sticky=tk.EW, padx=10, pady=(0,8))
+        self._variant_combo.bind("<<ComboboxSelected>>", self._on_variant_selected)
+
         # Model Information Display
         info_section = ttk.LabelFrame(self.parent, text="📊 Model Information", style='TLabelframe')
         info_section.grid(row=1, column=0, sticky=tk.NSEW, padx=10, pady=10)
@@ -59,6 +67,7 @@ class ModelSelectionPanel: # Renamed class
         # Initial display of model info
         self.base_model_var.set(self.ollama_models[0] if self.ollama_models else "")
         self.display_model_info()
+        self.populate_variant_list()  # initial build
 
     def refresh_model_list(self, models: list):
         """Refresh the base model dropdown with a new list of models, preserving selection if possible."""
@@ -81,6 +90,8 @@ class ModelSelectionPanel: # Renamed class
             elif models:
                 combo.set(models[0])
                 self.base_model_var.set(models[0])
+            # Rebuild variant list when models list changes
+            self.populate_variant_list()
         except Exception:
             pass
 
@@ -101,6 +112,11 @@ class ModelSelectionPanel: # Renamed class
 
         selected_model_name = self.base_model_var.get()
         logger_util.log_message(f"MODEL_SELECT: Displaying info for model: {selected_model_name}")
+        # When base model changes, rebuild variant list filtered by base
+        try:
+            self.populate_variant_list()
+        except Exception as e:
+            logger_util.log_message(f"MODEL_SELECT: populate_variant_list error: {e}")
 
         # Find model metadata
         model_meta = None
@@ -255,3 +271,56 @@ class ModelSelectionPanel: # Renamed class
                     self.training_tab_instance.runner_panel.update_training_model_display()
         except Exception as e:
             logger_util.log_message(f"MODEL_SELECT: set_base_model error: {e}")
+
+    # --- New helpers for variant handling ---------------------------------
+    def populate_variant_list(self):
+        """Populate the Variant combobox with variants matching the current base model."""
+        try:
+            from config import list_model_profiles
+            base = (self.base_model_var.get() or '').strip()
+            items = list_model_profiles() or []
+            # Filter by base model name
+            names = [it.get('variant_id') for it in items if (it.get('base_model') or '') == base]
+            # Preserve selection if still valid
+            current = self.variant_var.get()
+            vals = tuple(sorted(names))
+            if self._variant_combo is not None:
+                self._variant_combo['values'] = vals
+                if current in vals:
+                    self._variant_combo.set(current)
+                elif vals:
+                    self._variant_combo.set(vals[0])
+                    self.variant_var.set(vals[0])
+                else:
+                    self._variant_combo.set('')
+                    self.variant_var.set('')
+            # Update runner header lineage/class
+            if getattr(self, 'training_tab_instance', None) and hasattr(self.training_tab_instance, 'runner_panel'):
+                self.training_tab_instance.runner_panel.update_training_model_display()
+        except Exception as e:
+            logger_util.log_message(f"MODEL_SELECT: populate_variant_list error: {e}")
+
+    def set_variant(self, variant_id: str):
+        try:
+            if self._variant_combo is not None:
+                vals = tuple(self._variant_combo['values'])
+                if variant_id and (not vals or variant_id not in vals):
+                    # repopulate to include this variant
+                    self.populate_variant_list()
+                self.variant_var.set(variant_id or '')
+                if variant_id:
+                    self._variant_combo.set(variant_id)
+        except Exception as e:
+            logger_util.log_message(f"MODEL_SELECT: set_variant error: {e}")
+
+    def _on_variant_selected(self, _evt=None):
+        """When user picks a variant, store it on TrainingTab and refresh runner header."""
+        try:
+            vid = self.variant_var.get()
+            if getattr(self, 'training_tab_instance', None):
+                self.training_tab_instance.active_trainee_name = vid
+                if hasattr(self.training_tab_instance, 'runner_panel'):
+                    self.training_tab_instance.runner_panel.update_training_model_display()
+            logger_util.log_message(f"MODEL_SELECT: Variant selected -> {vid}")
+        except Exception as e:
+            logger_util.log_message(f"MODEL_SELECT: _on_variant_selected error: {e}")

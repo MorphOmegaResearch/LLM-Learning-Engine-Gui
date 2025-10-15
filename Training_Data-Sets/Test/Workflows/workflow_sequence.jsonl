@@ -1,5 +1,1 @@
-{"category": "Workflows", "skill": "multi_step_read_then_search", "sequence": [
-  {"input": "Open README.md", "expected_tool": "file_read", "expected_args": {"file_path": "README.md"}, "scoring": "args_subset"},
-  {"input": "Search for TODO in all python files", "expected_tool": "grep_search", "expected_args": {"pattern": "TODO", "file_pattern": "*.py"}, "scoring": "args_subset"}
-]}
-
+{"category": "Workflows", "skill": "multi_step_read_then_search", "sequence": [{"input": "Open README.md", "expected_tool": "file_read", "expected_args": {"file_path": "README.md"}, "scoring": "args_subset"}, {"input": "Search for TODO in all python files", "expected_tool": "grep_search", "expected_args": {"pattern": "TODO", "file_pattern": "*.py"}, "scoring": "args_subset"}]}

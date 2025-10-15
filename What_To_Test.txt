@@ -1,0 +1,19 @@
+ - Export refinement
+      - Save a Level (ensure manifest shows variant_id/lineage_id).
+      - Export to GGUF from Levels:
+          - If an assigned tag exists for that lineage, you should be prompted
+  to replace.
+          - Tag should be variant_id:quant; Assigned updates and gating applies.
+  - Lineage shortcuts
+      - Base Overview → Lineage section:
+          - Variant buttons should open the variant’s Overview (same action
+  as Collections).
+          - Assigned tag buttons should open those GGUF Overviews.
+  - Promotion flow gating
+      - Run baseline + eval for a variant and hit thresholds (Overall Δ ≥ +5.0,
+  JSON/Schema ≥95%, no regressions).
+      - “Promote to Skilled” button enables; tooltip shows metrics.
+      - Clicking Promote creates the Skilled variant and training profile;
+  Collections refreshes.
+------------
+

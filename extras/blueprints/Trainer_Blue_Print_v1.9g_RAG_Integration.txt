@@ -1,0 +1,59 @@
+OpenCode Trainer — RAG Integration Addendum (v1.9g)
+
+Summary
+- Adds full RAG integration: panel-wide controls, chunk-level indexing, BM25+decay ranking, optional context rerank and Pre‑RAG optimization, debug tooling, and training-mode capture + auto-training trigger.
+
+Features
+- Panel RAG Controls
+  - Chat + Projects sidebars: 🧠 / 🧠+ / 🧠++ control L1/L2/L3 retrieval budgets.
+  - Levels persist to custom_code_settings.json.
+  - Projects panel shows single RAG indicator (duplicate removed).
+
+- Retrieval Engine (RagService)
+  - Chunk-level indexing (per-message, last ~64) of rag-enabled sessions.
+  - Global index at Data/rag_index.json; per-project at Data/projects/<project>/rag_index.json.
+  - Ranking: BM25 (configurable k1, b) + time-decay; optional rerank via Context Scorer.
+  - Injection as system message with provenance, capped by L1/L2/L3.
+
+- Pre‑RAG Optimizer (optional)
+  - If enabled, optimize assembled context prior to injection without affecting ranking.
+  - Tries comprehensive API first; falls back to simple optimize if present.
+
+- Debug + Tools
+  - RAG DEBUG setting (Settings → Basic) and quick toggle in Chat sidebar.
+  - “🔍 RAG Details” dialog: run queries; show rank/session/role/index/score/snippets.
+  - “🔍 Preview RAG Index” (Settings → Advanced): view counts by scope, top sessions.
+
+- Training Mode Integration
+  - When Training Mode ON and RAG active, logs retrieval records to Training_Data-Sets/Tools/rag_retrievals.jsonl.
+  - Auto-Training trigger (optional): averages recent top-1 scores; on threshold, emits StartVariantTraining for the active model.
+
+Settings (new)
+- Settings → Basic → Chat Behavior: RAG DEBUG.
+- Settings → Advanced → 🧠 RAG Retrieval:
+  - BM25 k1, BM25 b (0–1), Time Decay (days), Apply Now.
+  - RAG Index Preview (Global or Project scope).
+- Settings → Advanced → 🤖 RAG Auto-Training Trigger:
+  - Enable, Window (turns), Avg Top-1 Score Threshold (0–1).
+
+Flows
+- Retrieval
+  1) RAG ON (per-chat or panel level). 2) RagService refreshes index (scope-aware).
+  3) Query scored (BM25+decay; optional rerank). 4) Context injected (L1/L2/L3 caps).
+  5) Optional Pre‑RAG optimization applied to injected system context.
+
+- Training Mode
+  1) On each turn with RAG ON, log retrieval JSONL record.
+  2) Maintain a sliding window of recent top-1 scores. 3) If enabled and average ≥ threshold, trigger auto-training via StartVariantTraining event.
+
+Notes
+- All RAG features remain useful without enabling auto-training; logs support analysis and dataset creation.
+- Index persistence reduces startup overhead and improves responsiveness.
+
+Files
+- RagService: Data/tabs/custom_code_tab/rag_service.py
+- Chat: Data/tabs/custom_code_tab/sub_tabs/chat_interface_tab.py
+- Projects: Data/tabs/custom_code_tab/sub_tabs/projects_interface_tab.py
+- Settings: Data/tabs/custom_code_tab/sub_tabs/settings_tab.py
+
+End of Addendum

@@ -21,9 +21,9 @@ system blueprint:
     - Parameters save per-mode to mode_settings.json
 
   - Chat Interface Reorganization (Complete)
-    - Mount/Dismount/Clear Chat buttons moved above input area
-    - Quick Mode selector (⚡ Mode) added to top toolbar
-    - Modal dialog with radio buttons for fast mode switching
+    - Mount/Dismount/New Chat/Delete Chat moved to top-right
+    - Quick Actions (⚙) consolidates session tools: 📂 Working Dir, 🔧 Tools, ⏱ Think Time (one‑shot), ⚡ Mode, 📝 Prompt/Schema, 🗒 ToDo, 🏋 Training, 👁 Show Thoughts, 🧠 RAG (per chat), 💾 Save RAG per session, 🗂 Create Project from current chat
+    - Modal dialog with radio buttons for fast mode switching (⚡ Mode)
     - Keyboard shortcuts: Enter to apply, Escape to cancel
     - Auto-focus on OK button for immediate selection
     - System messages confirm mode changes
@@ -101,12 +101,40 @@ system blueprint:
   - Auto-scroll to bottom on new messages
 
   Button Bar (Above Input):
-  - 📌 Mount | 📍 Dismount | 🗑️ Clear Chat | 📂 Load Chat
+  - Bottom-left hosts ⚙ Quick Actions and indicator strip (⏱, 📂, 🔧, 🗒, ⚡, 📝, 👁, 🧠, 💾)
+  - Top-right hosts 📌 Mount | 📍 Dismount | 🆕 New Chat | 🗑 Delete Chat
 
   Input Area:
   - Text input (left)
   - Send/Stop buttons (right)
   - Instructions: "Press Enter to send • Shift+Enter for new line"
+  - Left of input: ⚙ Quick Actions and indicator strip (⏱, 📂, 🔧, 🗒, ⚡, 📝, 👁, 🧠, 💾)
+
+  ### Conversations Sidebar (Categorized)
+  - Replaced flat list with categorized Treeview: Latest (Mon..Sun with Today first, limited to 15), Week, Month, Year
+  - Single-click shows a Quick View popup near the list with:
+    • Model header color‑coded with <Class> (falls back to <Unassigned>)
+    • Parent Model: <...>
+    • Latest 2 user/assistant pairs
+    • Configuration (mode, temp, prompt/schema, working dir, training mode, session tools)
+  - Double‑click opens the selected chat
+
+  ### Show Thoughts (Quick Action)
+  - 👁 toggle streams incremental output into the chat as grey italic “thoughts” while awaiting the final answer
+  - Final response remains parsed for tools and saved normally
+
+  ### RAG Controls
+  - Chat: per‑chat 🧠 RAG (default OFF) and 💾 Save RAG per session (default OFF)
+  - If Save is ON and RAG changed, user is prompted on New Chat/opening another chat to persist the new setting to session metadata
+  - Projects: RAG default ON; indicator 🧠 shows when active
+
+  ### Create Project (Quick Action)
+  - 🗂 “Create Project from this chat” prompts for a project name, saves current chat and metadata to Data/projects/<name>, switches to Projects tab, and selects it
+
+  ### Projects Tab (NEW)
+  - Left tree shows Projects → conversations; bottom actions: Open Chat, Delete Chat, Rename Project
+  - Default RAG ON for project chats; indicators include 🧠 and 🗂 (Project: name)
+  - Auto‑project creation (optional) when chatting in Projects with no project selected
 
   ═══════════════════════════════════════════════════════════════════════
 
@@ -198,6 +226,105 @@ system blueprint:
   - Visual feedback on value changes
   - Min/max enforcement with clamping
   - Step-based increments for usability
+
+═══════════════════════════════════════════════════════════════════════
+
+## v1.9f Addendum — Variant System, Collections, GGUF, Evaluation
+
+Overview
+- Adds Type→Variant workflow, Collections improvements, novice test suites, and a CPU‑only GGUF export pipeline with Ollama automation and live logs.
+
+Variant Workflow
+- Types tab: Apply Type Plan saves Model Profile (Data/profiles/Models) and Training Profile (Data/profiles/Training).
+- Collections (right pane): Type‑grouped headers with expand/collapse; variants listed as Parent‑Type<Class>.
+- Selecting a Variant:
+  - Updates Overview banner “Active Variant: …” and shows parent recap.
+  - Training tab hydrates (scripts/prompts/schemas + runner settings) and sets base model.
+  - Evaluation tab targets Variant; fresh variants auto‑toggle Pre‑Training Baseline.
+  - Auto‑select novice suite per type: coder→CoderNovice, researcher→ResearcherNovice.
+
+Novice Suites
+- Training_Data‑Sets/Test/CoderNovice/* and ResearcherNovice/*
+- Single‑step, read‑only tools (file_read, file_search, grep_search); no think_time.
+- Populates per‑tool, per‑difficulty, per‑policy, skills; fits “novice” scope.
+
+Collections & Right Pane UX
+- Unified scroll with hover scrolling; removed filter bar clutter.
+- Type headers expand in place; variants render directly beneath their header.
+- Right pane is resizable via a draggable gutter.
+
+GGUF Export for Variants
+- “Create GGUF for Variant” in Overview when a Variant is active.
+- CPU‑only, offline export:
+  - Tries Unsloth CPU path; falls back to llama.cpp convert_hf_to_gguf.py via safe wrapper.
+  - Resolves GGUF path robustly (quant casing tolerance).
+- Modelfile uses absolute FROM path.
+- Ollama automation:
+  - Auto‑start ollama serve if not running; retry create once.
+  - “Tag exists” treated as success; records assignment.
+  - Assigned vs Unassigned sections in Ollama list; assignments recorded in Data/ollama_assignments.json.
+- Live export log window shows exporter + Ollama outputs; remains open on success for review.
+
+Testing (validated)
+
+═══════════════════════════════════════════════════════════════════════
+
+## v1.9g — Quick Actions, Per‑Chat Tools, Pane Locks, Auto‑Training Loop
+
+Overview
+- Adds Quick Actions gear in Chat (bottom‑left), per‑chat Tools overrides with scrollable UI, movable/lockable side panes (left Conversations and right Models), a fully hands‑free Auto‑Training loop from Custom Code, and improved model mounting + Active Model visuals.
+
+UI: Quick Actions (⚙️)
+- Main popup (compact, anchored above the gear button):
+  - 📂 Change Working Directory
+  - 🔧 Manage Tools → opens Tools view
+  - 🏋️ Training Mode button with colored state (green ON, red OFF)
+- Tools view (enlarged popup, scrollable):
+  - Lists all Tools from the Tools tab; checkboxes pre‑populated from Tools tab selections
+  - Save persists a per‑chat override (does not change system defaults)
+  - Hover tooltips show descriptions; Back (⬅) returns to compact view
+  - On Save, Chat logs a diff summary (Enabled/Disabled; changes vs defaults)
+
+Per‑Chat Tool Overrides
+- get_tool_schemas() prefers session overrides over backend defaults
+- Chat auto‑save persists session_tools in conversation metadata
+- Loading a conversation restores session_tools automatically
+
+Side Pane Locks + Defaults
+- Left Conversations and Right Models are resizable via sash and have lock buttons (🔒/🔓)
+- Clicking lock captures the current width, enforces on resize, and persists to custom_code_settings.json
+- On launch, both panes start locked using the last saved widths (serve as defaults)
+- While locked, drag/hover resizing is disabled and cursors show as non‑resizable
+
+Active Model + Mounting
+- Active Model label colors by class (novice green, skilled blue, expert purple, master orange, artifact red)
+- Mount button shows red (not mounted) → green (mounted)
+- Mount resolves the model from internal state; if missing, falls back to the Active Model label
+- Preflight checks report clear errors (no model selected, ollama missing, stderr/stdout on failure)
+
+Auto‑Training Loop (Custom Code → Training → Models)
+- When Training Mode is ON:
+  - After tool calls, failed/refusal cases produce strict JSONL in Tools/ with scenario tags
+  - Training tab selects the dataset automatically and saves the Training Profile
+  - If auto‑start training is ON (Training tab → Settings): training begins immediately
+  - Runner emits start/progress/complete events; a popup shows progress; “View Logs” focuses Runner
+  - On completion, export + re‑eval can run automatically (Models tab handler); fallback strict context used if necessary
+  - Promotion remains threshold‑gated
+
+Notes for Blueprint consumers
+- Quick Actions centralizes common actions; we removed the top‑bar Change Dir and moved Training toggle into the popup
+- Tools checked in Quick Actions override the system/type defaults for that chat only
+- Pane locks define your launch defaults; use lock→unlock to set and test widths, then relaunch locked
+
+- Apply Type Plan → profiles saved; Collections updated under Type.
+- Variant selection → Evaluation target set; novice suite auto‑selected; baseline auto‑toggled if fresh.
+- GGUF export → .gguf written; tag created under Assigned when Ollama available or auto‑started.
+- Skills/Baselines/Compare refresh on run.
+
+Testing (unverified/edge)
+- Unsloth CPU path for all bases (fallback via llama.cpp proven); some archs may need extra converter flags.
+- Ollama auto‑start on all environments (service policies may require manual start).
+
   - Suffix labels (e.g., "tokens") for clarity
   - Dropdowns prevent invalid input
   - Reset button per mode preserves originals

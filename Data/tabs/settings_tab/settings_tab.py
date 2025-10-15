@@ -41,6 +41,10 @@ class SettingsTab(BaseTab):
         self.settings = self.load_settings()
         # Lazy terminal init flag
         self.terminal_initialized = False
+        # Internal flag to suppress reorder mode popups during programmatic changes
+        self._suppress_reorder_popup = False
+        # Internal mapping from (tab_name, panel_header_text) -> file path (if resolvable)
+        self.panel_file_map = {}
 
     def create_ui(self):
         """Create the settings tab UI with side menu and sub-tabs"""
@@ -141,6 +145,22 @@ class SettingsTab(BaseTab):
         selected_tab_index = self.settings_notebook.index(self.settings_notebook.select())
         selected_tab_text = self.settings_notebook.tab(selected_tab_index, "text")
 
+        # Auto-enable Arrow reordering when opening Tab Manager (without popups)
+        if selected_tab_text == "Tab Manager":
+            try:
+                self._suppress_reorder_popup = True
+                self.reorder_mode.set('arrow')
+                self._on_reorder_mode_changed()
+                # Ensure tree reflects live tab instances (panels) once Tab Manager is shown
+                try:
+                    self.refresh_tabs_tree()
+                except Exception:
+                    pass
+            except Exception:
+                pass
+            finally:
+                self._suppress_reorder_popup = False
+
         if selected_tab_text == "Debug":
             self.help_menu_frame.grid_remove()
             # Lazy-initialize terminal when Debug is selected
@@ -218,17 +238,18 @@ class SettingsTab(BaseTab):
         self.help_menu_frame.grid(row=0, column=0, sticky='nsew')
         self.help_menu_frame.columnconfigure(0, weight=1)
         self.help_menu_frame.rowconfigure(1, weight=1)
+        self.help_menu_frame.rowconfigure(2, weight=0)
 
         ttk.Label(self.help_menu_frame, text="🆘 Help Menu",
                  font=("Arial", 11, "bold"), style='CategoryPanel.TLabel').grid(
             row=0, column=0, pady=5, sticky=tk.W, padx=5
         )
 
-        paned_window = ttk.PanedWindow(self.help_menu_frame, orient=tk.VERTICAL)
-        paned_window.grid(row=1, column=0, sticky='nsew', padx=5, pady=5)
+        self.help_paned = ttk.PanedWindow(self.help_menu_frame, orient=tk.VERTICAL)
+        self.help_paned.grid(row=1, column=0, sticky='nsew', padx=5, pady=5)
 
-        tree_container = ttk.Frame(paned_window)
-        paned_window.add(tree_container, weight=1)
+        tree_container = ttk.Frame(self.help_paned)
+        self.help_paned.add(tree_container, weight=1)
         tree_container.columnconfigure(0, weight=1)
         tree_container.rowconfigure(0, weight=1)
 
@@ -250,16 +271,78 @@ class SettingsTab(BaseTab):
         
         self.populate_help_tree()
 
-        help_text_frame = ttk.Frame(paned_window, style='Category.TFrame')
-        paned_window.add(help_text_frame, weight=1)
-        help_text_frame.columnconfigure(0, weight=1)
-        help_text_frame.rowconfigure(0, weight=1)
+        # Help text pane is created but not added until a topic is selected
+        self.help_text_frame = ttk.Frame(self.help_paned, style='Category.TFrame')
+        self.help_text_frame.columnconfigure(0, weight=1)
+        self.help_text_frame.rowconfigure(0, weight=1)
 
         self.help_display = scrolledtext.ScrolledText(
-            help_text_frame, wrap=tk.WORD, state=tk.DISABLED, font=("Arial", 9),
+            self.help_text_frame, wrap=tk.WORD, state=tk.DISABLED, font=("Arial", 9),
             bg="#1e1e1e", fg="#d4d4d4", relief='flat', padx=5, pady=5
         )
         self.help_display.grid(row=0, column=0, sticky='nsew')
+
+        # --- ToDo List Section (as a pane under the help content) ---
+        self.todo_section = ttk.Frame(self.help_paned, style='Category.TFrame')
+        self.help_paned.add(self.todo_section, weight=1)
+        self.todo_section.columnconfigure(0, weight=1)
+
+        # Header with dynamic counts, centered
+        self.todo_header_var = tk.StringVar(value="ToDo-List: 0 Tasks | 0 Bugs | 0 Work-Orders | 0 Notes | 0 Completed | High 0 | Med 0 | Low 0")
+        header_row = ttk.Frame(self.todo_section, style='Category.TFrame')
+        header_row.grid(row=0, column=0, sticky=tk.EW, pady=(4, 0))
+        header_row.columnconfigure(0, weight=0)
+        header_row.columnconfigure(1, weight=1)
+        # Show-on-launch checkbox (no label)
+        self.todo_show_on_launch = tk.BooleanVar(value=self.settings.get('todo_show_on_launch', False))
+        cb = ttk.Checkbutton(header_row, variable=self.todo_show_on_launch, command=self._on_todo_show_on_launch_changed)
+        cb.grid(row=0, column=0, sticky=tk.W, padx=(0,8))
+        ttk.Label(header_row, textvariable=self.todo_header_var, font=("Arial", 11, "bold"), style='CategoryPanel.TLabel', anchor='center', justify='center').grid(row=0, column=1, sticky=tk.EW)
+
+        # Action buttons row
+        buttons_row = ttk.Frame(self.todo_section)
+        buttons_row.grid(row=1, column=0, sticky=tk.EW, pady=(6, 6))
+        buttons_row.columnconfigure(0, weight=1)
+        buttons_row.columnconfigure(1, weight=1)
+        buttons_row.columnconfigure(2, weight=1)
+        buttons_row.columnconfigure(3, weight=1)
+        self.todo_btn_create = ttk.Button(buttons_row, text="➕ Create Todo", command=self.todo_create, style='Action.TButton')
+        self.todo_btn_create.grid(row=0, column=0, padx=3, sticky=tk.EW)
+        self.todo_btn_mark = ttk.Button(buttons_row, text="✔ Mark Complete", command=self.todo_mark_complete, style='Select.TButton')
+        self.todo_btn_mark.grid(row=0, column=1, padx=3, sticky=tk.EW)
+        self.todo_btn_edit = ttk.Button(buttons_row, text="✏️ Edit Todo", command=self.todo_edit, style='Select.TButton')
+        self.todo_btn_edit.grid(row=0, column=2, padx=3, sticky=tk.EW)
+        self.todo_btn_delete = ttk.Button(buttons_row, text="🗑 Delete Todo", command=self.todo_delete, style='Select.TButton')
+        self.todo_btn_delete.grid(row=0, column=3, padx=3, sticky=tk.EW)
+
+        # Tree for Tasks/Bugs/Completed with checkbox-like glyphs
+        tree_wrap = ttk.Frame(self.todo_section)
+        tree_wrap.grid(row=2, column=0, sticky='nsew')
+        self.todo_section.rowconfigure(2, weight=1)
+        tree_scroll = ttk.Scrollbar(tree_wrap, orient="vertical")
+        tree_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        self.todo_tree = ttk.Treeview(tree_wrap, columns=("done",), show='tree headings')
+        self.todo_tree.heading('#0', text='Item')
+        self.todo_tree.heading('done', text='Done')
+        self.todo_tree.column('done', width=60, anchor=tk.CENTER, stretch=False)
+        self.todo_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.todo_tree.configure(yscrollcommand=tree_scroll.set)
+        tree_scroll.config(command=self.todo_tree.yview)
+        # Styles for completed
+        self.todo_tree.tag_configure('completed', foreground='#8a8a8a', font=('Arial', 9, 'italic'))
+        # Bind click to toggle checkbox in 'done' column
+        self.todo_tree.bind('<Button-1>', self._on_todo_click, add=True)
+
+        # Initialize storage and populate
+        if not hasattr(self, 'todos'):
+            self.todos = { 'tasks': [], 'bugs': [], 'work_orders': [], 'notes': [], 'completed': [] }
+        else:
+            # Backfill new categories if missing
+            self.todos.setdefault('work_orders', [])
+            self.todos.setdefault('notes', [])
+        self.todo_tree.bind('<<TreeviewSelect>>', self._on_todo_selection_changed)
+        self._wire_todo_button_hover()
+        self.refresh_todo_view()
 
         # --- Terminal Frame (created here, but hidden) ---
         self.terminal_frame = ttk.Frame(self.right_panel, style='Category.TFrame')
@@ -273,6 +356,36 @@ class SettingsTab(BaseTab):
             self.help_tree.delete(item)
 
         self.help_structure = {
+            "Automation Guide": {
+                "description": "How to drive common workflows with minimal clicks using Quick Actions, saved orders, and defaults.",
+                "sub_tabs": {
+                    "Quick Actions": "Use ⚙ at bottom-left in Chat to access: Working Dir, Tools, Think Time (one-shot), Mode, Prompt/Schema, Temperature (Manual/Auto), and ToDo. The icon grid wraps and auto-hides when clicking away.",
+                    "Indicators": "Next to ⚙: ⏱ ThinkTime pending • 📂 Working dir (hover shows path) • 🔧 Enabled tools (hover lists) • 🌡 Temp (value + Manual/Auto) • 🗒 ToDo popup active • ⚡ Mode • 📝 Prompt/Schema.",
+                    "Save Tab Order": "In Settings → Tab Manager, Arrow mode lets you reorder tabs/panels. Click 'Save Tab Order' to persist both main tabs and per-tab panel order.",
+                    "Show ToDo on Launch": "Enable the checkbox left of the ToDo header under Help & Guide to display ToDo on startup. ToDo v2 supports categories (Tasks, Bugs, Work-Orders, Notes, Completed) and priorities (High/Medium/Low) with color coding.",
+                }
+            },
+            "Manual Guide": {
+                "description": "Detailed, step-by-step usage for manual workflows and training.",
+                "sub_tabs": {
+                    "System Prompt & Tool Schema": "From Quick Actions → 📝 open the unified manager. Top toggles switch between System Prompt and Tool Schema. 'Select & Apply' remounts the model if mounted.",
+                    "Temperature": "Click 🌡 to choose Manual (adjust slider in popup and Save) or Auto (uses training stats). Mode and value persist per session and are shown in the bottom indicator.",
+                    "Think Time": "From Quick Actions → ⏱ set min/max seconds for the next input only. A ⏱ indicator appears while pending.",
+                    "Chat Sessions": "Use 🆕 New Chat; 🗑 Delete Chat; ✏️ Rename Chat (Chat tab and Projects). History supports load/export/delete.",
+                }
+            },
+            "Project Blueprint v2": {
+                "description": "High-level system plan and current state.",
+                "sub_tabs": {
+                    "Overview": "See extras/blueprints/Trainer_Blue_Print_v2.0.txt for the v2 plan, roadmap, dependencies, and acceptance for v2.1.",
+                }
+            },
+            "Git & Branching": {
+                "description": "Local Git workflow and branches used for docs/blueprints.",
+                "sub_tabs": {
+                    "START_HERE": "Read START_HERE.md for setup, branching (docs/blueprint-v2), and commit conventions.",
+                }
+            },
             "Beginner’s Guide": {
                 "description": "A step‑by‑step path from a fresh PyTorch model to a verified skillset: datasets → baseline → training → export → evaluation → compare.",
                 "sub_tabs": {
@@ -356,6 +469,14 @@ class SettingsTab(BaseTab):
         else: # It's a main tab
             main_tab_text = self.help_tree.item(item_id, 'text')
             help_text = self.help_structure.get(main_tab_text, {}).get("description", help_text)
+
+        # Ensure help text pane is visible (add to paned if not already present)
+        try:
+            panes = [str(p) for p in getattr(self.help_paned, 'panes')()] if hasattr(self, 'help_paned') else []
+            if hasattr(self, 'help_text_frame') and str(self.help_text_frame) not in panes:
+                self.help_paned.insert(1, self.help_text_frame, weight=1)
+        except Exception:
+            pass
 
         self.help_display.config(state=tk.NORMAL)
         self.help_display.delete(1.0, tk.END)
@@ -572,9 +693,41 @@ Data Dir: {DATA_DIR}
         parent.columnconfigure(0, weight=1)
         parent.rowconfigure(0, weight=1)
 
-        # Main container
-        container = ttk.Frame(parent)
-        container.grid(row=0, column=0, sticky=tk.NSEW, padx=10, pady=10)
+        # Scrollable root for entire Tab Manager panel
+        scroll_root = ttk.Frame(parent)
+        scroll_root.grid(row=0, column=0, sticky=tk.NSEW)
+        scroll_root.columnconfigure(0, weight=1)
+        scroll_root.rowconfigure(0, weight=1)
+
+        canvas = tk.Canvas(scroll_root, borderwidth=0, highlightthickness=0)
+        vscroll = ttk.Scrollbar(scroll_root, orient="vertical", command=canvas.yview)
+        canvas.configure(yscrollcommand=vscroll.set)
+        canvas.grid(row=0, column=0, sticky=tk.NSEW)
+        vscroll.grid(row=0, column=1, sticky=tk.NS)
+
+        # Inner container that actually holds the content
+        container = ttk.Frame(canvas)
+        # Create window for inner frame
+        canvas_window = canvas.create_window((0, 0), window=container, anchor="nw")
+
+        # Configure resizing behavior
+        def _on_container_configure(event=None):
+            try:
+                canvas.configure(scrollregion=canvas.bbox("all"))
+                # Keep inner frame width synced to canvas width for nice layout
+                canvas.itemconfigure(canvas_window, width=canvas.winfo_width())
+            except Exception:
+                pass
+
+        container.bind("<Configure>", _on_container_configure)
+        canvas.bind("<Configure>", _on_container_configure)
+
+        # Mouse wheel on hover for the canvas area (bind_all only while hovering)
+        try:
+            self._bind_mousewheel_to_canvas_hover(canvas, hover_widgets=[canvas, container])
+        except Exception:
+            pass
+
         container.columnconfigure(0, weight=1)
         container.rowconfigure(1, weight=1)
 
@@ -682,6 +835,12 @@ Data Dir: {DATA_DIR}
         self.tabs_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         tree_scroll.config(command=self.tabs_tree.yview)
 
+        # Mouse wheel on hover for the structure tree (bind to both tree and its container)
+        try:
+            self._bind_mousewheel_to_tree(self.tabs_tree, tree_container)
+        except Exception:
+            pass
+
         # Configure tree columns
         self.tabs_tree.heading('#0', text='Structure')
 
@@ -721,6 +880,20 @@ Data Dir: {DATA_DIR}
             style='Config.TLabel'
         )
         self.selected_info_label.pack(pady=10)
+
+        # Panel selector UI (appears when a tab is selected)
+        self.panel_select_container = ttk.Frame(editor_frame)
+        ttk.Label(self.panel_select_container, text="Select Panel:", style='Config.TLabel').pack(side=tk.LEFT, padx=(0,8))
+        self.panel_selector = ttk.Combobox(self.panel_select_container, state='readonly', width=28)
+        self.panel_selector.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.panel_selector.bind('<<ComboboxSelected>>', self._on_panel_combo_changed)
+        # Initially hidden
+        self.panel_select_container.pack_forget()
+        # Panel selection indicator
+        self.panel_selected_label = ttk.Label(editor_frame, text="", style='Config.TLabel')
+        self.panel_selected_label.pack(pady=(4,10))
+        # Track which tab drives the panel selector
+        self.current_tab_for_panel_selector = None
 
         # Action buttons
         actions_frame = ttk.Frame(editor_frame)
@@ -778,6 +951,81 @@ Data Dir: {DATA_DIR}
         self.move_left_button.pack_forget()
         self.move_right_button.pack_forget()
 
+    def _bind_mousewheel_to_tree(self, tree_widget, container_widget=None):
+        """Enable mouse wheel scrolling on hover for Treeview (Linux/Windows/Mac)."""
+        import platform
+        system = platform.system()
+
+        targets = [tree_widget]
+        if container_widget is not None:
+            targets.append(container_widget)
+
+        if system == "Linux":
+            def _on_up(event):
+                tree_widget.yview_scroll(-1, "units")
+                return "break"
+            def _on_down(event):
+                tree_widget.yview_scroll(1, "units")
+                return "break"
+            for w in targets:
+                w.bind("<Button-4>", _on_up, add=True)
+                w.bind("<Button-5>", _on_down, add=True)
+        else:
+            def _on_wheel(event):
+                try:
+                    delta = int(-1 * (event.delta / 120))
+                except Exception:
+                    delta = -1
+                tree_widget.yview_scroll(delta, "units")
+                return "break"
+            for w in targets:
+                w.bind("<MouseWheel>", _on_wheel, add=True)
+
+    def _bind_mousewheel_to_canvas_hover(self, canvas_widget, hover_widgets=None):
+        """Enable scrolling the Tab Manager canvas with the mouse wheel while hovering.
+
+        Uses bind_all only during hover to capture wheel events anywhere over the
+        scrollable area (including inner child widgets), but allows inner widgets
+        like the Treeview to consume events by returning "break" first.
+        """
+        import platform
+        system = platform.system()
+
+        if hover_widgets is None:
+            hover_widgets = [canvas_widget]
+
+        # Handlers that scroll the canvas
+        if system == "Linux":
+            def _wheel_up(event):
+                canvas_widget.yview_scroll(-1, "units")
+                return "break"
+            def _wheel_down(event):
+                canvas_widget.yview_scroll(1, "units")
+                return "break"
+            def _enable(_e=None):
+                canvas_widget.bind_all("<Button-4>", _wheel_up)
+                canvas_widget.bind_all("<Button-5>", _wheel_down)
+            def _disable(_e=None):
+                canvas_widget.unbind_all("<Button-4>")
+                canvas_widget.unbind_all("<Button-5>")
+        else:
+            def _wheel_any(event):
+                try:
+                    delta = int(-1 * (event.delta / 120))
+                except Exception:
+                    delta = -1
+                canvas_widget.yview_scroll(delta, "units")
+                return "break"
+            def _enable(_e=None):
+                canvas_widget.bind_all("<MouseWheel>", _wheel_any)
+            def _disable(_e=None):
+                canvas_widget.unbind_all("<MouseWheel>")
+
+        # Attach enter/leave to both the canvas and inner container
+        for w in hover_widgets:
+            w.bind("<Enter>", _enable, add=True)
+            w.bind("<Leave>", _disable, add=True)
+
     def create_new_tab(self):
         """Create a new tab with user specifications"""
         from tab_generator import TabGenerator
@@ -813,6 +1061,8 @@ Data Dir: {DATA_DIR}
         # Clear existing tree
         for item in self.tabs_tree.get_children():
             self.tabs_tree.delete(item)
+        # Reset panel file mapping
+        self.panel_file_map = {}
 
         tabs_dir = DATA_DIR / "tabs"
         if not tabs_dir.exists():
@@ -867,70 +1117,95 @@ Data Dir: {DATA_DIR}
                 self._add_tab_to_tree(tab_dir, built_in_tabs)
 
     def _add_tab_to_tree(self, tab_dir, built_in_tabs):
-        """Helper function to add a single tab and its contents to the treeview."""
-        tab_dir_name = tab_dir.name
-        
+        """Add a single tab node and its live panel headers, hiding raw files."""
+        tab_name = tab_dir.name
+
         # Determine display name and icon
-        if tab_dir_name in built_in_tabs:
-            tab_info = built_in_tabs[tab_dir_name]
+        if tab_name in built_in_tabs:
+            tab_info = built_in_tabs[tab_name]
             tab_display_name = tab_info['display']
             icon = tab_info['icon']
         else:
-            # Custom tab
             tab_display_name = tab_dir.name.replace('_tab', '').replace('_', ' ').title()
             icon = '📂'
 
-        # Add tab as root node
+        # Add tab as root node (store tab_name, not path)
         tab_node = self.tabs_tree.insert(
-            '',
-            'end',
+            '', 'end',
             text=f"{icon} {tab_display_name}",
-            values=(str(tab_dir), 'tab'),
+            values=(tab_name, 'tab'),
             tags=('tab',)
         )
 
-        # Find main tab file
-        if tab_dir_name in built_in_tabs and built_in_tabs[tab_dir_name]['main_file']:
-            main_file = tab_dir / built_in_tabs[tab_dir_name]['main_file']
-        else:
-            main_file = tab_dir / f"{tab_dir.name}.py"
+        # Add panel headers from the live notebook (if available)
+        instance = None
+        try:
+            if self.tab_instances and tab_name in self.tab_instances:
+                instance = self.tab_instances[tab_name]['instance']
+        except Exception:
+            instance = None
 
-        if main_file.exists():
-            self.tabs_tree.insert(
-                tab_node,
-                'end',
-                text=f"📄 {main_file.name}",
-                values=(str(main_file), 'main_file'),
-                tags=('file',)
-            )
+        notebook = None
+        if instance is not None:
+            # Known notebook attributes by tab
+            for attr in (
+                'training_notebook',    # TrainingTab
+                'sub_notebook',         # CustomCodeTab
+                'settings_notebook',    # SettingsTab
+                'model_info_notebook',  # ModelsTab
+                'models_notebook'       # Fallback (older naming)
+            ):
+                nb = getattr(instance, attr, None)
+                if nb is not None:
+                    notebook = nb
+                    break
 
-        # Find all panel files
-        if tab_dir_name in built_in_tabs and built_in_tabs[tab_dir_name]['panels']:
-            # Use predefined panel list for built-in tabs
-            panel_files = [tab_dir / p for p in built_in_tabs[tab_dir_name]['panels']
-                          if (tab_dir / p).exists()]
-        else:
-            # Auto-detect panels for custom tabs and built-in tabs without predefined list
-            panel_files = sorted([f for f in tab_dir.glob("*.py")
-                                 if f.name not in ['__init__.py', main_file.name]])
+        if notebook is not None:
+            try:
+                tab_ids = notebook.tabs()
+                for i, tid in enumerate(tab_ids):
+                    try:
+                        header = notebook.tab(tid, 'text')
+                    except Exception:
+                        header = f"Panel {i+1}"
 
-        for panel_file in panel_files:
-            # Determine panel type/label
-            if 'panel' in panel_file.stem.lower():
-                icon = '🔧'
-            else:
-                icon = '📦'
+                    # Record potential file mapping for known tabs
+                    file_path = self._resolve_panel_file(tab_name, header, tab_dir)
+                    if file_path:
+                        self.panel_file_map[(tab_name, header)] = file_path
 
-            self.tabs_tree.insert(
-                tab_node,
-                'end',
-                text=f"{icon} {panel_file.name}",
-                values=(str(panel_file), 'panel'),
-                tags=('panel',)
-            )
+                    self.tabs_tree.insert(
+                        tab_node,
+                        'end',
+                        text=f"🔧 {header}",
+                        values=(f"{tab_name}|{header}", 'panel_header'),
+                        tags=('panel',)
+                    )
+            except Exception:
+                pass
 
-        # Expand the tab node by default so panels are visible
+        # Expand by default
         self.tabs_tree.item(tab_node, open=True)
+
+    def _resolve_panel_file(self, tab_name, header_text, tab_dir):
+        """Best-effort mapping from panel header to its source file for built-in tabs."""
+        try:
+            if tab_name == 'training_tab':
+                mapping = {
+                    'Runner': 'runner_panel.py',
+                    'Script Manager': 'category_manager_panel.py',
+                    'Model Selection': 'model_selection_panel.py',
+                    'Profiles': 'profiles_panel.py',
+                    'Summary': 'summary_panel.py',
+                }
+                fn = mapping.get(header_text)
+                if fn:
+                    p = tab_dir / fn
+                    return p if p.exists() else None
+            # Custom Code panels are all in custom_code_tab.py; skip mapping to file
+        except Exception:
+            pass
+        return None
 
     def on_tree_select(self, event):
         """Handle tree item selection"""
@@ -939,6 +1214,9 @@ Data Dir: {DATA_DIR}
             if hasattr(self, 'move_left_button'):
                 self.move_left_button.config(state=tk.DISABLED)
                 self.move_right_button.config(state=tk.DISABLED)
+            # Hide panel selector
+            self.panel_select_container.pack_forget()
+            self.panel_selected_label.config(text="")
             return
 
         item = selection[0]
@@ -950,34 +1228,140 @@ Data Dir: {DATA_DIR}
                 self.move_right_button.config(state=tk.DISABLED)
             return
 
-        file_path, item_type = values
-        self.selected_tree_item = {'path': Path(file_path), 'type': item_type}
+        raw_key, item_type = values
+        # Decode selection meta
+        if item_type == 'tab':
+            tab_name = raw_key
+            self.selected_tree_item = {'type': 'tab', 'tab_name': tab_name, 'path': Path(DATA_DIR) / 'tabs' / tab_name}
+        elif item_type == 'panel_header':
+            # raw_key = "tab_name|header"
+            try:
+                tab_name, header = raw_key.split('|', 1)
+            except ValueError:
+                tab_name, header = raw_key, ''
+            info = {'type': 'panel_header', 'tab_name': tab_name, 'panel_header': header}
+            file_path = self.panel_file_map.get((tab_name, header))
+            if file_path:
+                info['path'] = file_path
+            self.selected_tree_item = info
+        else:
+            # Fallback to previous behavior
+            self.selected_tree_item = {'path': Path(raw_key), 'type': item_type}
 
         # Update info label and button states
-        if item_type == 'tab' and self.reorder_mode.get() == 'arrow':
-            self.selected_info_label.config(
-                text=f"Tab: {Path(file_path).name}"
-            )
+        if item_type in ('tab', 'panel_header') and self.reorder_mode.get() == 'arrow':
+            # Always persist Tab label at the top
+            tab_name_for_label = self.selected_tree_item.get('tab_name') if item_type == 'panel_header' else self.selected_tree_item.get('tab_name')
+            self.selected_info_label.config(text=f"Tab: {tab_name_for_label}")
             if hasattr(self, 'move_left_button'):
                 self.move_left_button.config(state=tk.NORMAL)
                 self.move_right_button.config(state=tk.NORMAL)
+            # Show and sync panel selector
+            if item_type == 'tab':
+                self._show_panel_selector(self.selected_tree_item.get('tab_name'))
+            else:
+                header = self.selected_tree_item.get('panel_header')
+                self._show_panel_selector(self.selected_tree_item.get('tab_name'), preselect=header)
+                # Show panel indicator separately
+                self.panel_selected_label.config(text=f"Panel: {header}")
         else:
             if hasattr(self, 'move_left_button'):
                 self.move_left_button.config(state=tk.DISABLED)
                 self.move_right_button.config(state=tk.DISABLED)
-            
             if item_type == 'tab':
-                 self.selected_info_label.config(
-                    text=f"Tab: {Path(file_path).name}"
-                )
-            elif item_type == 'panel':
-                self.selected_info_label.config(
-                    text=f"Panel: {Path(file_path).name}"
-                )
-            elif item_type == 'main_file':
-                self.selected_info_label.config(
-                    text=f"Main File: {Path(file_path).name}"
-                )
+                self.selected_info_label.config(text=f"Tab: {self.selected_tree_item.get('tab_name')}")
+                self._show_panel_selector(self.selected_tree_item.get('tab_name'))
+            elif item_type == 'panel_header':
+                # Persist Tab label and show panel indicator below
+                self.selected_info_label.config(text=f"Tab: {self.selected_tree_item.get('tab_name')}")
+                header = self.selected_tree_item.get('panel_header')
+                self._show_panel_selector(self.selected_tree_item.get('tab_name'), preselect=header)
+                self.panel_selected_label.config(text=f"Panel: {header}")
+
+    def _get_tab_notebook(self, tab_name):
+        """Return the ttk.Notebook for the given tab instance, if any."""
+        try:
+            if not self.tab_instances or tab_name not in self.tab_instances:
+                return None
+            instance = self.tab_instances[tab_name]['instance']
+            for attr in (
+                'training_notebook',
+                'sub_notebook',
+                'settings_notebook',
+                'model_info_notebook',
+                'models_notebook'
+            ):
+                nb = getattr(instance, attr, None)
+                if nb is not None:
+                    return nb
+        except Exception:
+            return None
+        return None
+
+    def _get_panel_headers(self, tab_name):
+        """List of panel header texts for the tab's notebook."""
+        nb = self._get_tab_notebook(tab_name)
+        if nb is None:
+            return []
+        headers = []
+        try:
+            for tid in nb.tabs():
+                try:
+                    headers.append(nb.tab(tid, 'text'))
+                except Exception:
+                    headers.append('')
+        except Exception:
+            pass
+        return headers
+
+    def _show_panel_selector(self, tab_name, preselect=None):
+        """Populate and show the panel selector for a given tab."""
+        headers = [h for h in self._get_panel_headers(tab_name) if h]
+        if not headers:
+            self.panel_select_container.pack_forget()
+            self.panel_selected_label.config(text="")
+            self.current_tab_for_panel_selector = None
+            return
+        self.current_tab_for_panel_selector = tab_name
+        # Update combobox values and selection
+        try:
+            self.panel_selector['values'] = headers
+        except Exception:
+            pass
+        if preselect and preselect in headers:
+            self.panel_selector.set(preselect)
+            self.panel_selected_label.config(text=f"Panel: {preselect}")
+        else:
+            # No preselect: leave empty until user picks
+            try:
+                self.panel_selector.set("")
+            except Exception:
+                pass
+            self.panel_selected_label.config(text="")
+        # Show container
+        self.panel_select_container.pack(fill=tk.X, padx=10)
+
+        # Do not change selected_tree_item here unless preselect used
+        if preselect and preselect in headers:
+            selected_header = preselect
+            info = {'type': 'panel_header', 'tab_name': tab_name, 'panel_header': selected_header}
+            file_path = self.panel_file_map.get((tab_name, selected_header))
+            if file_path:
+                info['path'] = file_path
+            self.selected_tree_item = info
+
+    def _on_panel_combo_changed(self, event=None):
+        """Handle selection change from the panel combobox."""
+        tab_name = self.current_tab_for_panel_selector
+        if not tab_name:
+            return
+        header = self.panel_selector.get()
+        self.panel_selected_label.config(text=f"Panel: {header}")
+        info = {'type': 'panel_header', 'tab_name': tab_name, 'panel_header': header}
+        file_path = self.panel_file_map.get((tab_name, header))
+        if file_path:
+            info['path'] = file_path
+        self.selected_tree_item = info
 
     def add_new_panel(self):
         """Add a new panel to selected tab"""
@@ -1065,7 +1449,7 @@ class {class_name}:
             messagebox.showerror("Error", f"Failed to create panel: {e}")
 
     def edit_selected_panel(self):
-        """Open selected panel file in default editor"""
+        """Open selected panel file in default editor (when resolvable)."""
         if not self.selected_tree_item:
             messagebox.showwarning(
                 "No Selection",
@@ -1076,15 +1460,23 @@ class {class_name}:
             )
             return
 
-        if self.selected_tree_item['type'] not in ['panel', 'main_file']:
+        stype = self.selected_tree_item.get('type')
+        if stype not in ['panel', 'main_file', 'panel_header']:
             messagebox.showwarning(
                 "Invalid Selection",
-                f"Cannot edit {self.selected_tree_item['type']}.\n\n"
+                f"Cannot edit {stype}.\n\n"
                 "Please select a panel file (🔧) or main file (📄)."
             )
             return
 
-        file_path = self.selected_tree_item['path']
+        # For panel_header, we may not have a file path
+        file_path = self.selected_tree_item.get('path')
+        if stype == 'panel_header' and not file_path:
+            messagebox.showinfo(
+                "Not Editable",
+                "This panel does not map to a single source file."
+            )
+            return
 
         if not file_path.exists():
             messagebox.showerror(
@@ -1208,6 +1600,12 @@ class {class_name}:
 
             self.reorder_mode.set(settings.get('reorder_mode', 'static')) # Default to static
 
+        # Load ToDos
+        try:
+            self.todos = settings.get('todos', { 'tasks': [], 'bugs': [], 'completed': [] })
+        except Exception:
+            self.todos = { 'tasks': [], 'bugs': [], 'completed': [] }
+
         return settings
 
     def save_settings_to_file(self):
@@ -1269,6 +1667,17 @@ class {class_name}:
                 'auto_rollback': self.policy_auto_rollback.get()
             }
 
+            # If caller populated panel_orders in memory, persist it
+            if 'panel_orders' in self.settings:
+                all_settings['panel_orders'] = self.settings.get('panel_orders', {})
+
+            # Persist ToDos
+            try:
+                all_settings['todos'] = getattr(self, 'todos', { 'tasks': [], 'bugs': [], 'completed': [] })
+                all_settings['todo_show_on_launch'] = bool(self.todo_show_on_launch.get()) if hasattr(self, 'todo_show_on_launch') else False
+            except Exception:
+                pass
+
             with open(self.settings_file, 'w') as f:
                 json.dump(all_settings, f, indent=2)
 
@@ -1278,6 +1687,611 @@ class {class_name}:
         except Exception as e:
             log_message(f"SETTINGS ERROR: Failed to save settings: {e}")
             messagebox.showerror("Save Error", f"Failed to save settings: {e}")
+
+    # --- ToDo List: Handlers ---
+    def refresh_todo_view(self):
+        # Clear tree
+        for item in self.todo_tree.get_children():
+            self.todo_tree.delete(item)
+
+        # Roots
+        tasks_root = self.todo_tree.insert('', 'end', text='🗒 Tasks', open=True)
+        bugs_root = self.todo_tree.insert('', 'end', text='🐞 Bugs', open=True)
+        work_root = self.todo_tree.insert('', 'end', text='📋 Work-Orders', open=True)
+        notes_root = self.todo_tree.insert('', 'end', text='📝 Notes', open=True)
+        completed_root = self.todo_tree.insert('', 'end', text='✅ Completed', open=True)
+
+        # Priority tag styles
+        try:
+            self.todo_tree.tag_configure('prio_high', foreground='#ff5555')
+            self.todo_tree.tag_configure('prio_med', foreground='#ff9900')
+            self.todo_tree.tag_configure('prio_low', foreground='#ffd700')
+            self.todo_tree.tag_configure('completed', foreground='#33cc33', font=('Arial', 9, 'italic'))
+        except Exception:
+            pass
+
+        # Helper to sort by priority
+        def _prio_key(item):
+            p = (item or {}).get('priority','low').lower()
+            return {'high':0, 'medium':1, 'low':2}.get(p, 2)
+
+        # Populate tasks/bugs/work_orders/notes sorted by priority
+        tcount=bcount=wcount=ncount=0
+        ph=pm=pl=0
+        for idx, t in enumerate(sorted(self.todos.get('tasks', []), key=_prio_key)):
+            text = t.get('text', '').strip() or f'Task {idx+1}'
+            done = t.get('done', False)
+            pr = (t.get('priority','low') or 'low').lower()
+            tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else (('prio_low',) if not done else ()))
+            self.todo_tree.insert(tasks_root, 'end', iid=f'task:{idx}', text=text, values=('☑' if done else '☐',), tags=tag)
+            tcount += 1
+            if not done:
+                if pr=='high': ph+=1
+                elif pr=='medium': pm+=1
+                else: pl+=1
+        for idx, b in enumerate(sorted(self.todos.get('bugs', []), key=_prio_key)):
+            text = b.get('text', '').strip() or f'Bug {idx+1}'
+            done = b.get('done', False)
+            pr = (b.get('priority','low') or 'low').lower()
+            tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else (('prio_low',) if not done else ()))
+            self.todo_tree.insert(bugs_root, 'end', iid=f'bug:{idx}', text=text, values=('☑' if done else '☐',), tags=tag)
+            bcount += 1
+            if not done:
+                if pr=='high': ph+=1
+                elif pr=='medium': pm+=1
+                else: pl+=1
+        for idx, w in enumerate(sorted(self.todos.get('work_orders', []), key=_prio_key)):
+            text = w.get('text', '').strip() or f'Work-Order {idx+1}'
+            done = w.get('done', False)
+            pr = (w.get('priority','low') or 'low').lower()
+            tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else (('prio_low',) if not done else ()))
+            self.todo_tree.insert(work_root, 'end', iid=f'work_orders:{idx}', text=text, values=('☑' if done else '☐',), tags=tag)
+            wcount += 1
+            if not done:
+                if pr=='high': ph+=1
+                elif pr=='medium': pm+=1
+                else: pl+=1
+        for idx, n in enumerate(sorted(self.todos.get('notes', []), key=_prio_key)):
+            text = n.get('text', '').strip() or f'Note {idx+1}'
+            done = n.get('done', False)
+            pr = (n.get('priority','low') or 'low').lower()
+            tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else (('prio_low',) if not done else ()))
+            self.todo_tree.insert(notes_root, 'end', iid=f'notes:{idx}', text=text, values=('☑' if done else '☐',), tags=tag)
+            ncount += 1
+            if not done:
+                if pr=='high': ph+=1
+                elif pr=='medium': pm+=1
+                else: pl+=1
+        # Completed (kept grouped by type)
+        ccount = 0
+        for idx, c in enumerate(self.todos.get('completed', [])):
+            text = c.get('text', '').strip() or f'Item {idx+1}'
+            self.todo_tree.insert(completed_root, 'end', iid=f'completed:{idx}', text=text, values=('☑',), tags=('completed',))
+            ccount += 1
+
+        # Update header counts with priority totals
+        self.todo_header_var.set(f"ToDo-List: {tcount} Tasks | {bcount} Bugs | {wcount} Work-Orders | {ncount} Notes | {ccount} Completed | High {ph} | Med {pm} | Low {pl}")
+        # Update buttons state
+        self._apply_todo_button_states()
+
+    def _on_todo_click(self, event):
+        # Toggle checkbox if clicking on the 'done' column for task/bug items
+        region = self.todo_tree.identify('region', event.x, event.y)
+        if region != 'cell':
+            return
+        col = self.todo_tree.identify_column(event.x)
+        if col != '#1':
+            return
+        item = self.todo_tree.identify_row(event.y)
+        if not item or item.startswith('completed:'):
+            return
+        kind, idx_str = item.split(':', 1)
+        try:
+            idx = int(idx_str)
+        except Exception:
+            return
+        lst = self.todos.get(
+            'tasks' if kind == 'task' else (
+                'bugs' if kind == 'bug' else (
+                    'work_orders' if kind == 'work_orders' else (
+                        'notes' if kind == 'notes' else None
+                    )
+                )
+            ),
+            []
+        )
+        if idx < 0 or idx >= len(lst):
+            return
+        lst[idx]['done'] = not bool(lst[idx].get('done', False))
+        # Update cell
+        self.todo_tree.set(item, 'done', '☑' if lst[idx]['done'] else '☐')
+        self.save_settings_to_file()
+
+    def _get_selected_todo(self):
+        sel = self.todo_tree.selection()
+        if not sel:
+            return None
+        item = sel[0]
+        if ':' not in item:
+            return None
+        kind, idx_str = item.split(':', 1)
+        try:
+            idx = int(idx_str)
+        except Exception:
+            return None
+        return kind, idx
+
+    def _is_todo_actionable(self, action):
+        sel = self._get_selected_todo()
+        if not sel:
+            return False
+        kind, idx = sel
+        if action == 'mark':
+            return kind in ('task', 'bug', 'work_orders', 'notes')
+        if action == 'edit':
+            return kind in ('task', 'bug', 'work_orders', 'notes')
+        if action == 'delete':
+            return kind in ('task', 'bug', 'work_orders', 'notes', 'completed')
+        return True
+
+    def _apply_todo_button_states(self):
+        # Enable/disable buttons based on selection
+        for action, btn in (
+            ('mark', self.todo_btn_mark),
+            ('edit', self.todo_btn_edit),
+            ('delete', self.todo_btn_delete),
+        ):
+            actionable = self._is_todo_actionable(action)
+            try:
+                btn.state(['!disabled'] if actionable else ['disabled'])
+            except Exception:
+                pass
+
+    def _on_todo_selection_changed(self, event=None):
+        self._apply_todo_button_states()
+        # Also refresh hover style immediately
+        self._update_todo_button_hover_style()
+
+    def _wire_todo_button_hover(self):
+        # Bind hover events
+        for action, btn in (
+            ('mark', self.todo_btn_mark),
+            ('edit', self.todo_btn_edit),
+            ('delete', self.todo_btn_delete),
+        ):
+            btn.bind('<Enter>', lambda e, a=action: self._on_todo_btn_enter(a))
+            btn.bind('<Leave>', lambda e, a=action: self._on_todo_btn_leave(a))
+
+    def _on_todo_btn_enter(self, action):
+        actionable = self._is_todo_actionable(action)
+        btn = {
+            'mark': self.todo_btn_mark,
+            'edit': self.todo_btn_edit,
+            'delete': self.todo_btn_delete,
+        }.get(action)
+        if not btn:
+            return
+        try:
+            btn.configure(style='Action.TButton' if actionable else 'Select.TButton')
+        except Exception:
+            pass
+
+    def _on_todo_btn_leave(self, action):
+        # Revert to selection-based style
+        self._update_todo_button_hover_style()
+
+    def _update_todo_button_hover_style(self):
+        for action, btn in (
+            ('mark', self.todo_btn_mark),
+            ('edit', self.todo_btn_edit),
+            ('delete', self.todo_btn_delete),
+        ):
+            actionable = self._is_todo_actionable(action)
+            try:
+                btn.configure(style='Action.TButton' if actionable else 'Select.TButton')
+            except Exception:
+                pass
+
+    def _on_todo_show_on_launch_changed(self):
+        # Persist immediately
+        try:
+            self.save_settings_to_file()
+        except Exception:
+            pass
+
+    # Optional popup on launch
+    def show_todo_popup(self):
+        top = tk.Toplevel(self.root)
+        top.title("ToDo List")
+        top.geometry('600x500')
+        try:
+            top.transient(self.root)
+            top.lift()
+            top.attributes('-topmost', True)
+            # Drop always-on-top shortly after so normal stacking resumes
+            self.root.after(500, lambda: top.attributes('-topmost', False))
+            top.focus_force()
+        except Exception:
+            pass
+        # Track active state so other tabs can show an indicator
+        try:
+            self.todo_popup_active = True
+            def _on_close():
+                try:
+                    self.todo_popup_active = False
+                except Exception:
+                    pass
+                try:
+                    top.destroy()
+                except Exception:
+                    pass
+            top.protocol('WM_DELETE_WINDOW', _on_close)
+            top.bind('<Destroy>', lambda e: setattr(self, 'todo_popup_active', False))
+        except Exception:
+            pass
+        frame = ttk.Frame(top)
+        frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
+        frame.columnconfigure(0, weight=1)
+        frame.rowconfigure(1, weight=1)
+        # Header
+        ttk.Label(frame, textvariable=self.todo_header_var, font=("Arial", 12, "bold"), style='CategoryPanel.TLabel').grid(row=0, column=0, sticky=tk.EW, pady=(0,6))
+        # Tree
+        sub = ttk.Frame(frame)
+        sub.grid(row=1, column=0, sticky=tk.NSEW)
+        sub.columnconfigure(0, weight=1)
+        sub.rowconfigure(0, weight=1)
+        scr = ttk.Scrollbar(sub, orient=tk.VERTICAL)
+        scr.pack(side=tk.RIGHT, fill=tk.Y)
+        pop_tree = ttk.Treeview(sub, columns=("done",), show='tree headings')
+        pop_tree.heading('#0', text='Item')
+        pop_tree.heading('done', text='Done')
+        pop_tree.column('done', width=60, anchor=tk.CENTER, stretch=False)
+        pop_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        pop_tree.configure(yscrollcommand=scr.set)
+        scr.config(command=pop_tree.yview)
+
+        # Tag colors for priorities/completed in popup
+        try:
+            pop_tree.tag_configure('prio_high', foreground='#ff5555')
+            pop_tree.tag_configure('prio_med', foreground='#ff9900')
+            pop_tree.tag_configure('prio_low', foreground='#ffd700')
+            pop_tree.tag_configure('completed', foreground='#33cc33', font=('Arial', 9, 'italic'))
+        except Exception:
+            pass
+
+        # Details editor inside popup
+        details = ttk.Frame(frame)
+        details.grid(row=2, column=0, sticky=tk.NSEW)
+        frame.rowconfigure(2, weight=1)
+        details.columnconfigure(1, weight=1)
+        ttk.Label(details, text='Priority', style='CategoryPanel.TLabel').grid(row=0, column=0, sticky=tk.W)
+        pr_var = tk.StringVar(value='low')
+        pr_btns = ttk.Frame(details)
+        pr_btns.grid(row=0, column=1, sticky=tk.W, pady=(0,6))
+        ttk.Radiobutton(pr_btns, text='High', value='high', variable=pr_var).pack(side=tk.LEFT, padx=2)
+        ttk.Radiobutton(pr_btns, text='Medium', value='medium', variable=pr_var).pack(side=tk.LEFT, padx=2)
+        ttk.Radiobutton(pr_btns, text='Low', value='low', variable=pr_var).pack(side=tk.LEFT, padx=2)
+        ttk.Label(details, text='Title', style='CategoryPanel.TLabel').grid(row=1, column=0, sticky=tk.W)
+        title_var = tk.StringVar(value='')
+        title_entry = ttk.Entry(details, textvariable=title_var)
+        title_entry.grid(row=1, column=1, sticky=tk.EW, pady=(0,6))
+        ttk.Label(details, text='Details', style='CategoryPanel.TLabel').grid(row=2, column=0, sticky=tk.W)
+        details_txt = scrolledtext.ScrolledText(details, height=8, wrap=tk.WORD, font=('Arial', 9), bg='#1e1e1e', fg='#dcdcdc')
+        details_txt.grid(row=2, column=1, sticky=tk.NSEW)
+        details.rowconfigure(2, weight=1)
+
+        # Populate from current todos
+        def refresh_pop():
+            for i in pop_tree.get_children():
+                pop_tree.delete(i)
+            troot = pop_tree.insert('', 'end', text='🗒 Tasks', open=True)
+            broot = pop_tree.insert('', 'end', text='🐞 Bugs', open=True)
+            wroot = pop_tree.insert('', 'end', text='📋 Work-Orders', open=True)
+            nroot = pop_tree.insert('', 'end', text='📝 Notes', open=True)
+            croot = pop_tree.insert('', 'end', text='✅ Completed', open=True)
+
+            def _prio_key(item):
+                p = (item or {}).get('priority','low').lower()
+                return {'high':0, 'medium':1, 'low':2}.get(p, 2)
+
+            for idx, t in enumerate(sorted(self.todos.get('tasks', []), key=_prio_key)):
+                pr = (t.get('priority','low') or 'low').lower()
+                tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
+                pop_tree.insert(troot, 'end', iid=f'task:{idx}', text=t.get('text',''), values=('☑' if t.get('done') else '☐',), tags=tag)
+            for idx, b in enumerate(sorted(self.todos.get('bugs', []), key=_prio_key)):
+                pr = (b.get('priority','low') or 'low').lower()
+                tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
+                pop_tree.insert(broot, 'end', iid=f'bug:{idx}', text=b.get('text',''), values=('☑' if b.get('done') else '☐',), tags=tag)
+            for idx, w in enumerate(sorted(self.todos.get('work_orders', []), key=_prio_key)):
+                pr = (w.get('priority','low') or 'low').lower()
+                tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
+                pop_tree.insert(wroot, 'end', iid=f'work_orders:{idx}', text=w.get('text',''), values=('☑' if w.get('done') else '☐',), tags=tag)
+            for idx, n in enumerate(sorted(self.todos.get('notes', []), key=_prio_key)):
+                pr = (n.get('priority','low') or 'low').lower()
+                tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
+                pop_tree.insert(nroot, 'end', iid=f'notes:{idx}', text=n.get('text',''), values=('☑' if n.get('done') else '☐',), tags=tag)
+            for idx, c in enumerate(self.todos.get('completed', [])):
+                pop_tree.insert(croot, 'end', iid=f'completed:{idx}', text=c.get('text',''), values=('☑',), tags=('completed',))
+
+        refresh_pop()
+
+        # Action buttons use existing handlers but with selected item from popup
+        btns = ttk.Frame(frame)
+        btns.grid(row=3, column=0, sticky=tk.EW, pady=(6,0))
+        for i in range(5):
+            btns.columnconfigure(i, weight=1)
+
+        def get_sel_from_pop():
+            sel = pop_tree.selection()
+            if not sel:
+                return None
+            item = sel[0]
+            if ':' not in item:
+                return None
+            kind, idx_str = item.split(':', 1)
+            try:
+                idx = int(idx_str)
+            except Exception:
+                return None
+            return kind, idx
+
+        # Helpers for popup in-place editing
+        def _get_list_for_kind(kind):
+            if kind == 'task':
+                return self.todos.get('tasks', [])
+            if kind == 'bug':
+                return self.todos.get('bugs', [])
+            if kind == 'work_orders':
+                return self.todos.get('work_orders', [])
+            if kind == 'notes':
+                return self.todos.get('notes', [])
+            if kind == 'completed':
+                return self.todos.get('completed', [])
+            return None
+
+        def populate_details_from_sel():
+            sel = get_sel_from_pop()
+            # Reset fields
+            try:
+                pr_var.set('low')
+                title_var.set('')
+                details_txt.delete('1.0', tk.END)
+            except Exception:
+                pass
+            if not sel:
+                return
+            kind, idx = sel
+            lst = _get_list_for_kind(kind)
+            if lst is None or idx < 0 or idx >= len(lst):
+                return
+            item = lst[idx]
+            try:
+                pr_var.set((item.get('priority') or 'low') if kind != 'completed' else (item.get('priority') or 'low'))
+                title_var.set(item.get('text',''))
+                details_txt.insert(tk.END, item.get('details',''))
+            except Exception:
+                pass
+
+        try:
+            pop_tree.bind('<<TreeviewSelect>>', lambda e: populate_details_from_sel())
+        except Exception:
+            pass
+        # Populate details for initial selection if any
+        try:
+            populate_details_from_sel()
+        except Exception:
+            pass
+
+        def create_cb():
+            self.todo_create()
+            self.refresh_todo_view()
+            refresh_pop()
+
+        def mark_cb():
+            sel = get_sel_from_pop()
+            if not sel:
+                messagebox.showinfo("No Selection", "Please select a todo to mark complete.")
+                return
+            # Temporarily mirror selection in main tree for reuse
+            self.todo_tree.selection_set(sel[0] + ':' + str(sel[1]))
+            self.todo_mark_complete()
+            refresh_pop()
+            populate_details_from_sel()
+
+        def edit_cb():
+            sel = get_sel_from_pop()
+            if not sel:
+                messagebox.showinfo("No Selection", "Please select a todo to edit.")
+                return
+            self.todo_tree.selection_set(sel[0] + ':' + str(sel[1]))
+            self.todo_edit()
+            refresh_pop()
+            populate_details_from_sel()
+
+        def delete_cb():
+            sel = get_sel_from_pop()
+            if not sel:
+                messagebox.showinfo("No Selection", "Please select a todo to delete.")
+                return
+            self.todo_tree.selection_set(sel[0] + ':' + str(sel[1]))
+            self.todo_delete()
+            refresh_pop()
+            populate_details_from_sel()
+
+        def save_cb():
+            sel = get_sel_from_pop()
+            if not sel:
+                messagebox.showinfo("No Selection", "Please select a todo to save.")
+                return
+            kind, idx = sel
+            if kind == 'completed':
+                messagebox.showinfo("Read Only", "Completed items are read-only. Delete or recreate to change.")
+                return
+            lst = _get_list_for_kind(kind)
+            if lst is None or idx < 0 or idx >= len(lst):
+                return
+            item = lst[idx]
+            item['priority'] = pr_var.get()
+            item['text'] = (title_var.get() or '').strip()
+            item['details'] = details_txt.get('1.0', tk.END).strip()
+            self.save_settings_to_file()
+            self.refresh_todo_view()
+            refresh_pop()
+            try:
+                pop_tree.selection_set(f"{kind}:{idx}")
+            except Exception:
+                pass
+            populate_details_from_sel()
+
+        ttk.Button(btns, text="➕ Create Todo", command=create_cb, style='Action.TButton').grid(row=0, column=0, padx=3, sticky=tk.EW)
+        ttk.Button(btns, text="✔ Mark Complete", command=mark_cb, style='Select.TButton').grid(row=0, column=1, padx=3, sticky=tk.EW)
+        ttk.Button(btns, text="✏️ Edit Todo", command=edit_cb, style='Select.TButton').grid(row=0, column=2, padx=3, sticky=tk.EW)
+        ttk.Button(btns, text="🗑 Delete Todo", command=delete_cb, style='Select.TButton').grid(row=0, column=3, padx=3, sticky=tk.EW)
+        ttk.Button(btns, text="💾 Save", command=save_cb, style='Action.TButton').grid(row=0, column=4, padx=3, sticky=tk.EW)
+
+    def todo_create(self):
+        # Step 1: Category selection popup
+        top = tk.Toplevel(self.root); top.title('Create ToDo')
+        frm = ttk.Frame(top, padding=8); frm.pack(fill=tk.BOTH, expand=True)
+        ttk.Label(frm, text='Select Category', style='CategoryPanel.TLabel').grid(row=0, column=0, columnspan=5, pady=(0,6))
+        choice = {'cat': None, 'prio': None, 'title': None, 'details': None}
+        def pick(cat): choice['cat']=cat; pick_prio()
+        for i,(label,cat) in enumerate((('Tasks','tasks'),('Bugs','bugs'),('Work-Orders','work_orders'),('Completed','completed'),('Notes','notes'))):
+            ttk.Button(frm, text=label, style='Action.TButton', command=lambda c=cat: pick(c)).grid(row=1, column=i, padx=4, pady=4, sticky=tk.EW)
+        def pick_prio():
+            for w in frm.winfo_children(): w.destroy()
+            if choice['cat']=='completed':
+                choice['prio']='low'
+                enter_title(); return
+            ttk.Label(frm, text='Set Priority', style='CategoryPanel.TLabel').grid(row=0,column=0,columnspan=3,pady=(0,6))
+            def setp(p): choice['prio']=p; enter_title()
+            ttk.Button(frm, text='High', style='Action.TButton', command=lambda: setp('high')).grid(row=1,column=0,padx=4,pady=4,sticky=tk.EW)
+            ttk.Button(frm, text='Medium', style='Action.TButton', command=lambda: setp('medium')).grid(row=1,column=1,padx=4,pady=4,sticky=tk.EW)
+            ttk.Button(frm, text='Low', style='Action.TButton', command=lambda: setp('low')).grid(row=1,column=2,padx=4,pady=4,sticky=tk.EW)
+        def enter_title():
+            for w in frm.winfo_children(): w.destroy()
+            ttk.Label(frm, text='Describe ToDo', style='CategoryPanel.TLabel').grid(row=0,column=0,sticky=tk.W)
+            title_var = tk.StringVar()
+            ent = ttk.Entry(frm, textvariable=title_var, width=48)
+            ent.grid(row=1,column=0,sticky=tk.EW,pady=4)
+            def next_details():
+                choice['title'] = (title_var.get() or '').strip()
+                if not choice['title']:
+                    messagebox.showerror('Create ToDo','Please enter a description.'); return
+                enter_details()
+            ttk.Button(frm, text='Next', style='Action.TButton', command=next_details).grid(row=2,column=0,sticky=tk.E, pady=6)
+            ent.focus_set()
+        def enter_details():
+            for w in frm.winfo_children(): w.destroy()
+            ttk.Label(frm, text='Details', style='CategoryPanel.TLabel').grid(row=0,column=0,sticky=tk.W)
+            txt = scrolledtext.ScrolledText(frm, height=12, wrap=tk.WORD, font=('Arial', 9), bg='#1e1e1e', fg='#dcdcdc')
+            txt.grid(row=1,column=0,sticky=tk.NSEW)
+            frm.rowconfigure(1, weight=1)
+            def save_all():
+                choice['details'] = txt.get('1.0', tk.END).strip()
+                # Build entry and save
+                if choice['cat'] == 'completed':
+                    self.todos.setdefault('completed', []).append({ 'text': choice['title'], 'details': choice['details'], 'type': 'task', 'priority': 'low' })
+                else:
+                    self.todos.setdefault(choice['cat'], []).append({ 'text': choice['title'], 'details': choice['details'], 'priority': choice['prio'], 'done': False })
+                self.save_settings_to_file(); self.refresh_todo_view(); top.destroy()
+            ttk.Button(frm, text='OK', style='Action.TButton', command=save_all).grid(row=2,column=0,sticky=tk.E, pady=6)
+        # Start flow
+        try:
+            top.transient(self.root); top.lift(); top.attributes('-topmost', True); self.root.after(400, lambda: top.attributes('-topmost', False))
+        except Exception:
+            pass
+        # Initialize category selection view
+        # (Callbacks proceed to next steps)
+
+    def todo_mark_complete(self):
+        sel = self._get_selected_todo()
+        if not sel:
+            messagebox.showinfo("No Selection", "Please select a todo (task/bug) to mark complete.")
+            return
+        kind, idx = sel
+        if kind not in ('task', 'bug', 'work_orders', 'notes'):
+            messagebox.showinfo("Invalid Selection", "Select a task or bug, not a category header.")
+            return
+        if not messagebox.askyesno("Mark Complete", "Mark this todo as complete?"):
+            return
+        lst = self.todos.get('tasks' if kind == 'task' else ('bugs' if kind == 'bug' else ('work_orders' if kind=='work_orders' else 'notes')), [])
+        if idx < 0 or idx >= len(lst):
+            return
+        item = lst.pop(idx)
+        self.todos.setdefault('completed', []).append({ 'text': item.get('text', ''), 'type': kind, 'priority': item.get('priority','low'), 'details': item.get('details','') })
+        self.save_settings_to_file()
+        self.refresh_todo_view()
+
+    def todo_edit(self):
+        from tkinter import simpledialog
+        sel = self._get_selected_todo()
+        if not sel:
+            messagebox.showinfo("No Selection", "Please select a todo to edit.")
+            return
+        kind, idx = sel
+        if kind not in ('task', 'bug', 'work_orders', 'notes'):
+            messagebox.showinfo("Invalid Selection", "Select a task or bug to edit.")
+            return
+        lst = self.todos.get('tasks' if kind == 'task' else ('bugs' if kind == 'bug' else ('work_orders' if kind=='work_orders' else 'notes')), [])
+        if idx < 0 or idx >= len(lst):
+            return
+        # Edit popup with priority + title + details
+        item = lst[idx]
+        top = tk.Toplevel(self.root); top.title('Edit ToDo')
+        frm = ttk.Frame(top, padding=8); frm.pack(fill=tk.BOTH, expand=True)
+        ttk.Label(frm, text='Priority', style='CategoryPanel.TLabel').grid(row=0,column=0,sticky=tk.W)
+        pr = tk.StringVar(value=item.get('priority','low'))
+        def setp(v): pr.set(v)
+        btnf = ttk.Frame(frm); btnf.grid(row=0,column=1,sticky=tk.W)
+        ttk.Button(btnf, text='High', style='Action.TButton', command=lambda: setp('high')).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btnf, text='Medium', style='Action.TButton', command=lambda: setp('medium')).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btnf, text='Low', style='Action.TButton', command=lambda: setp('low')).pack(side=tk.LEFT, padx=2)
+        ttk.Label(frm, text='Title', style='CategoryPanel.TLabel').grid(row=1,column=0,sticky=tk.W, pady=(6,0))
+        title_var = tk.StringVar(value=item.get('text',''))
+        ent = ttk.Entry(frm, textvariable=title_var, width=50)
+        ent.grid(row=1,column=1,sticky=tk.EW,pady=(6,0))
+        ttk.Label(frm, text='Details', style='CategoryPanel.TLabel').grid(row=2,column=0,sticky=tk.W, pady=(6,0))
+        txt = scrolledtext.ScrolledText(frm, height=10, wrap=tk.WORD, font=('Arial',9), bg='#1e1e1e', fg='#dcdcdc')
+        txt.grid(row=2,column=1,sticky=tk.NSEW,pady=(6,0))
+        frm.columnconfigure(1, weight=1); frm.rowconfigure(2, weight=1)
+        txt.insert(tk.END, item.get('details',''))
+        def save_edits():
+            item['priority'] = pr.get()
+            item['text'] = (title_var.get() or '').strip()
+            item['details'] = txt.get('1.0', tk.END).strip()
+            self.save_settings_to_file(); self.refresh_todo_view(); top.destroy()
+        ttk.Button(frm, text='Save', style='Action.TButton', command=save_edits).grid(row=3,column=1,sticky=tk.E, pady=6)
+        self.save_settings_to_file()
+        self.refresh_todo_view()
+
+    def todo_delete(self):
+        sel = self._get_selected_todo()
+        if not sel:
+            messagebox.showinfo("No Selection", "Please select a todo to delete.")
+            return
+        kind, idx = sel
+        # Allow deleting from completed too
+        if kind not in ('task', 'bug', 'work_orders', 'notes', 'completed'):
+            messagebox.showinfo("Invalid Selection", "Select an item to delete.")
+            return
+        if not messagebox.askyesno("Confirm Delete", "Delete selected todo?"):
+            return
+        if kind == 'task':
+            lst = self.todos.get('tasks', [])
+        elif kind == 'bug':
+            lst = self.todos.get('bugs', [])
+        elif kind == 'work_orders':
+            lst = self.todos.get('work_orders', [])
+        elif kind == 'notes':
+            lst = self.todos.get('notes', [])
+        else:
+            lst = self.todos.get('completed', [])
+        if idx < 0 or idx >= len(lst):
+            return
+        lst.pop(idx)
+        self.save_settings_to_file()
+        self.refresh_todo_view()
 
     def get_setting(self, key, default=None):
         """Get a setting value"""
@@ -1441,7 +2455,6 @@ class {class_name}:
         reorder_frame.pack(fill=tk.X, padx=10, pady=10)
 
         modes = [
-            ("Static", "static"),
             ("D&D", "dnd"),
             ("Arrow Buttons", "arrow")
         ]
@@ -1456,6 +2469,72 @@ class {class_name}:
                 style='Category.TRadiobutton' # You might need to define this style
             )
             rb.pack(fill=tk.X, padx=10, pady=2, anchor=tk.W)
+
+        # Save button to persist the current tab order
+        ttk.Button(
+            reorder_frame,
+            text="💾 Save Tab Order",
+            command=self.save_tab_order_now,
+            style='Action.TButton'
+        ).pack(fill=tk.X, padx=10, pady=(8, 4))
+
+    def save_tab_order_now(self):
+        """Capture current notebook tab order and persist to settings.json."""
+        if not self.main_gui or not hasattr(self.main_gui, 'notebook') or not self.tab_instances:
+            messagebox.showerror("Error", "Cannot save tab order. Internal components not found.")
+            return
+
+        notebook = self.main_gui.notebook
+        # Build order from current notebook tabs
+        new_tab_order = []
+        for tab_id in notebook.tabs():
+            for name, info in self.tab_instances.items():
+                if str(info['frame']) == tab_id:
+                    new_tab_order.append(name)
+                    break
+
+        if not new_tab_order:
+            messagebox.showerror("Error", "Could not determine current tab order.")
+            return
+
+        # Also capture per-tab panel orders (headers)
+        panel_orders = {}
+        for tab_name, meta in self.tab_instances.items():
+            nb = None
+            inst = meta.get('instance')
+            for attr in (
+                'training_notebook',   # TrainingTab
+                'sub_notebook',        # CustomCodeTab
+                'settings_notebook',   # SettingsTab
+                'model_info_notebook', # ModelsTab
+                'models_notebook'      # Fallback
+            ):
+                nb = getattr(inst, attr, None) if inst is not None else None
+                if nb is not None:
+                    break
+            if nb is None:
+                continue
+            headers = []
+            try:
+                for tid in nb.tabs():
+                    try:
+                        headers.append(nb.tab(tid, 'text'))
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            if headers:
+                panel_orders[tab_name] = headers
+
+        # Update in-memory settings and persist
+        self.settings['tab_order'] = new_tab_order
+        if panel_orders:
+            self.settings['panel_orders'] = panel_orders
+        try:
+            self.save_settings_to_file()
+            messagebox.showinfo("Tab Order Saved", "Tab order saved. Use Quick Restart to apply.")
+        except Exception as e:
+            messagebox.showerror("Save Error", f"Failed to save tab order: {e}")
 
     def _on_tab_visibility_changed(self):
         """Callback when a tab visibility checkbox is toggled."""
@@ -1476,21 +2555,32 @@ class {class_name}:
                 self.move_left_button.pack_forget()
                 self.move_right_button.pack_forget()
 
-        if mode == 'static':
-            self.save_settings_to_file()
-            messagebox.showinfo("Settings Saved", "Tab order and reordering mode have been saved.")
-        else:
-            messagebox.showinfo("Reorder Mode Changed", f"Reorder mode set to '{mode}'.\n\nTab order changes are now temporary.\nSelect 'Static' to save the current order.")
+        # Only show guidance when not programmatically toggled
+        if not getattr(self, '_suppress_reorder_popup', False):
+            if mode in ('arrow', 'dnd'):
+                messagebox.showinfo(
+                    "Reorder Mode",
+                    f"Reorder mode set to '{mode}'.\n\nChanges are temporary until you click 'Save Tab Order'."
+                )
 
     def move_tab(self, direction):
         """Move the selected tab left or right in the order, dynamically."""
         log_message(f"SETTINGS: move_tab called with direction: {direction}")
-        if not self.selected_tree_item or self.selected_tree_item['type'] != 'tab':
-            log_message("SETTINGS: move_tab aborted - no tab selected.")
-            messagebox.showwarning("No Tab Selected", "Please select a tab from the tree to move.")
+        if not self.selected_tree_item:
+            log_message("SETTINGS: move_tab aborted - nothing selected.")
+            messagebox.showwarning("No Selection", "Please select a tab or panel from the tree to move.")
             return
 
-        selected_tab_dir_name = self.selected_tree_item['path'].name
+        if self.selected_tree_item.get('type') == 'panel_header':
+            # Delegate to panel move within the tab's notebook
+            return self._move_panel_within_tab(direction)
+
+        if self.selected_tree_item.get('type') != 'tab':
+            log_message("SETTINGS: move_tab aborted - selection is not a main tab.")
+            messagebox.showwarning("Wrong Selection", "Select a main tab header to reorder tabs.")
+            return
+
+        selected_tab_dir_name = self.selected_tree_item.get('tab_name') or self.selected_tree_item['path'].name
         log_message(f"SETTINGS: Selected tab for move: {selected_tab_dir_name}")
 
         if not self.main_gui or not hasattr(self.main_gui, 'notebook') or not self.tab_instances:
@@ -1546,6 +2636,69 @@ class {class_name}:
 
         # Refresh the tree to show the new order based on the in-memory settings
         self.refresh_tabs_tree()
+
+    def _move_panel_within_tab(self, direction):
+        """Move selected panel header left/right inside its parent tab's notebook."""
+        try:
+            tab_name = self.selected_tree_item.get('tab_name')
+            header = self.selected_tree_item.get('panel_header')
+            if not tab_name or not header:
+                raise ValueError("Missing tab/panel selection")
+
+            if not self.tab_instances or tab_name not in self.tab_instances:
+                messagebox.showerror("Error", "Cannot reorder panels. Tab instance not found.")
+                return
+
+            instance = self.tab_instances[tab_name]['instance']
+            notebook = None
+            for attr in (
+                'training_notebook',
+                'sub_notebook',
+                'settings_notebook',
+                'model_info_notebook',
+                'models_notebook'
+            ):
+                nb = getattr(instance, attr, None)
+                if nb is not None:
+                    notebook = nb
+                    break
+            if notebook is None:
+                messagebox.showerror("Error", "Selected tab has no panels to reorder.")
+                return
+
+            tab_ids = notebook.tabs()
+            current_index = None
+            for idx, tid in enumerate(tab_ids):
+                try:
+                    if notebook.tab(tid, 'text') == header:
+                        current_index = idx
+                        break
+                except Exception:
+                    continue
+            if current_index is None:
+                messagebox.showerror("Error", "Could not locate selected panel in the tab.")
+                return
+
+            new_index = current_index
+            if direction == 'left':
+                if current_index > 0:
+                    new_index = current_index - 1
+                else:
+                    return
+            elif direction == 'right':
+                if current_index < len(tab_ids) - 1:
+                    new_index = current_index + 1
+                else:
+                    return
+
+            tab_id = tab_ids[current_index]
+            notebook.insert(new_index, tab_id)
+
+            # Refresh the tree to reflect the new order
+            self.refresh_tabs_tree()
+        except Exception as e:
+            log_message(f"SETTINGS ERROR: Panel move failed: {e}")
+            messagebox.showerror("Error", f"Failed to reorder panel: {e}")
 
     def refresh_settings_tab(self):
         """Refresh the settings tab - reloads settings from file."""
@@ -2389,6 +3542,21 @@ BEST PRACTICES:
 • Disable for production use after sufficient data collected
 • Use diverse tasks to cover multiple tool types
 • Review Models Tab regularly to check skill improvement
+
+AUTO‑TRAINING (Hands‑Free, Custom Code → Training → Models):
+• Quick Actions (⚙️) → 🏋️ Training Mode ON (button turns green)
+• Failures/refusals generate strict JSONL automatically (Tools/auto_runtime_*.jsonl)
+• Training tab auto‑selects dataset and saves profile
+• If auto‑start is ON (Settings → Training), training begins immediately
+• Progress popup shows run/percent; “View Logs” focuses Runner
+• After training complete, export + re‑eval can run automatically (Models tab handler)
+• Per‑chat Tools: ⚙️ → 🔧 lets you override tool set for this chat (diff summary printed in Chat)
+
+FAILURE MODES & FIXES:
+• Mount failed: Ensure a model is selected (right panel) and Ollama is reachable; errors show stderr/stdout in Chat.
+• No dataset generated: Most recent interaction had no failing/ refusal cases — try a task that exercises tools or enable more tools.
+• No re‑eval context: The system applies a strict fallback (suite/prompt/schema) based on variant type.
+• Pane resizing: If panes disappear, lock widths (🔒) to persist defaults and disable drag.
 
 DATA PRIVACY:
 All data stays local on your machine. Nothing is sent externally."""

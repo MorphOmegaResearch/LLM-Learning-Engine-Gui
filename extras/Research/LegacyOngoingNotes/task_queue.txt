@@ -1,0 +1,3 @@
+- Integrate OMNIPOTENT dry-run summary into workflow confirmation prompt
+- Add persona labels & module status to snapshot metadata + evaluation logs
+- Run evaluation harness for Soldier and Delta modes, record RAM + coherence results

@@ -1,0 +1,94 @@
+system blueprint:
+
+  ---
+
+  🏗️ OpenCode Trainer System - Blueprint v2.0
+
+  Version: 2.0 (UI Refinements + ToDo System + Roadmap)
+  Date: 2025-10-15
+  Status: In Progress
+
+  ---
+
+  Summary
+   - Finalized temperature control refactor: manual/auto persisted per session, legacy header controls removed, bottom quick-indicator authoritative, session Quick View shows Temp Mode.
+   - Conversations quality-of-life: Rename Chat (Chat + Projects), duplicate project indicators fixed.
+   - ToDo system v2: new categories (Work-Orders, Notes), priority (High/Medium/Low) with color coding, multi-step creation flow, inline edit with details, completion moves to green Completed.
+   - Documentation alignment: Help menu updated; START_HERE updated with Git/branching context.
+
+  What’s new in v2.0
+   - Temperature Controls
+     • Default persists last-used mode (manual/auto). Startup applies persisted mode without surprise auto-adjust.
+     • Legacy header temp label/slider removed. Control via Quick Actions popup only.
+     • Quick Indicator reflects "🌡️ Temp: X.Y (Manual/Auto)" and updates reliably.
+     • Metadata saves temp_mode for Chat and Projects; hover Quick View shows Temp Mode.
+   - Conversations Management
+     • Chat: Rename Chat action in left pane.
+     • Projects: Rename Chat within project; updates file name + session_id.
+     • Project indicator duplication resolved (single append per parent cycle).
+   - ToDo System v2
+     • Categories: Tasks, Bugs, Work-Orders, Notes, Completed.
+     • Priority: High (red), Medium (orange), Low (yellow); Completed (green/italic).
+     • Sorted by priority within category; header shows category and priority totals.
+     • Create flow: Category → Priority → Title → Details editor → Save.
+     • Edit: adjust priority/title/details; Mark Complete preserves fields.
+     • Popup: mirrors categories, colors, sorting; includes inline details editor + Save.
+
+  Current Architecture Touchpoints
+   - Chat UI: bottom Quick Actions + indicators; session metadata persistence.
+   - Projects UI: per-project session file ops (rename), indicator lifecycle.
+   - Settings → Help: user-facing docs for Quick Actions, Indicators, ToDo v2, links to this blueprint and START_HERE.
+
+  Roadmap (next milestones)
+   1) Agents Panel + Orchestrator Wiring
+      • Collections → Agents selection pipeline (display + selection sync).
+      • Agent types bound to Type Variant Training Pipeline.
+      • Recommendation engine for per-agent model settings/options; surfaced in Advanced Systems.
+      • Orchestrator tools exposure and gating via UI; logging + telemetry hooks.
+   2) Training Dataset Auto-Generation
+      • Profiles for Type variants; generation recipes (tools/coding/RAG behaviors).
+      • Synthetic data generators with guardrails; provenance metadata.
+      • Storage layout and versioning; dataset diffs for audits.
+   3) Evaluation Suites
+      • Suite registry with schema-aware checks and multi-metric scoring.
+      • Baseline compare across levels; historical trend views.
+      • Automated smoke vs extended runs with resource caps.
+   4) Pipeline Integration
+      • End-to-end wiring from Agents → Profiles → Training → Eval → Compare.
+      • Failure handling, resumable runs, and artifact indexing.
+   5) UX/Docs
+      • Hover quickviews for more components (ToDo details, profile info).
+      • START_HERE Git workflows; CONTRIBUTING and PR templates (local).
+
+  Dependencies & Interfaces
+   - Orchestrator backends: ensure endpoints for tools planning, run lifecycle, and metrics.
+   - Model runners: consistent temperature/mode intake; schema enforcement toggles.
+   - Storage: consistent session metadata shape; per-project session indexing.
+
+  Open Questions
+   - Agent-type → variant mapping: fixed taxonomy or pluggable registry?
+   - Recommendation signals: manual overrides vs automatic telemetry-driven suggestions.
+   - Dataset license tagging and export policy.
+
+  Risks & Mitigations
+   - UI state drift across tabs → centralize indicator state keys (done for temp; extend pattern).
+   - Data loss on rename → atomic writes and backups for project sessions (future: .bak writes).
+   - Priority sprawl in ToDo → filter presets and search (future enhancement).
+
+  Acceptance for v2.1 (proposed)
+   - Agents Panel shows collections, supports selection → agent set, persists.
+   - Orchestrator call path accepts selected agents and variant profiles.
+   - Basic recommendations surface with rationale and "apply" path.
+   - One evaluation suite runs end-to-end from a generated dataset sample.
+
+  File Index (this release)
+   - Data/tabs/custom_code_tab/sub_tabs/chat_interface_tab.py
+   - Data/tabs/custom_code_tab/sub_tabs/projects_interface_tab.py
+   - Data/tabs/settings_tab/settings_tab.py
+   - extras/blueprints/Trainer_Blue_Print_v2.0.txt (this file)
+   - START_HERE.md (Git context updates)
+
+  Changelog
+   - v2.0: Temp refactor finalized; Rename Chat/Projects; ToDo v2; docs/help/git updated.
+   - v1.7e: Baselines + schema-aware eval; runner UX split.
+

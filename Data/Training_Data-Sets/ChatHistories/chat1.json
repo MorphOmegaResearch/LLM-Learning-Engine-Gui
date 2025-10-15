@@ -1,0 +1,46 @@
+{
+  "session_id": "chat1",
+  "model_name": "qwen2.5:0.5b",
+  "chat_history": [
+    {
+      "role": "user",
+      "content": "hey qwen"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! How can I assist you today?"
+    }
+  ],
+  "message_count": 2,
+  "saved_at": "2025-10-15T08:34:32.145553",
+  "metadata": {
+    "mode": "standard",
+    "temperature": 0.1,
+    "system_prompt": "default",
+    "tool_schema": "default",
+    "working_directory": "/home/commander/Desktop/Trainer/The_SandBox",
+    "training_data_collection": false,
+    "model": "qwen2.5:0.5b",
+    "tool_settings": {
+      "enabled_tools": {
+        "file_read": true,
+        "file_write": true,
+        "file_edit": true,
+        "file_copy": true,
+        "file_move": true,
+        "file_delete": true,
+        "file_create": true,
+        "file_fill": true,
+        "grep_search": true,
+        "file_search": true,
+        "directory_list": true,
+        "bash_execute": true,
+        "git_operations": true,
+        "system_info": true,
+        "change_directory": true,
+        "resource_request": true
+      }
+    },
+    "session_tools": null
+  }
+}

@@ -1,0 +1,132 @@
+## ONF - State (Project Status Analysis)
+
+**Current Deployment Status**: CrewAI orchestrator environment is **GREEN** with functional multi-agent crews, model swapping, and Studio GUI. The "Master Installation Script" is **YELLOW** - framework present but incomplete.
+
+**Core Infrastructure**: 
+- ✅ CrewAI + Ollama runtime operational
+- ✅ Model tags (phi3:mini-fast, phi3:mini-ok, tinyllama) validated  
+- ✅ Ops scripts functional (swap_model.sh, stop_models.sh, run_sanity.sh)
+- ✅ LiteLLM proxy bridging Studio to local models
+- ⚠️ Supervisor_0 TUI exists but settings pane not integrated
+- ⚠️ Desktop "0" chat interface not yet implemented
+
+## ONF - Outline (Master Installation Script Assessment)
+
+**Script Structure Analysis**:
+1. Prerequisites validation (partial)
+2. Electron + React application scaffolding 
+3. IPC handlers for CrewAI integration
+4. Desktop launcher creation
+5. Verification procedures
+
+**Critical Gaps Identified**:
+- Incomplete React component definitions (App.js truncated)
+- Missing Node.js/npm dependency verification
+- No Python environment activation handling
+- Incomplete error handling for IPC calls
+
+## ONF - List (Readiness Assessment)
+
+**Ready Components**:
+- Package.json configuration ✅
+- Electron main process setup ✅  
+- Desktop launcher creation ✅
+- Basic IPC structure ✅
+
+**Missing/Incomplete Components**:
+- Full React UI implementation (App.js content truncated)
+- CSS styling definitions (App.css placeholder)
+- Node.js prerequisite installation
+- Python venv activation in Electron context
+- Chat interface implementation
+- Confirmation gating system
+- Progress tracking integration
+
+**Dependencies Not Verified**:
+- Node.js/npm installation status
+- Electron compatibility with Xubuntu 22.04
+- React app integration with CrewAI Python backend
+
+## Technical Assessment
+
+**Backend Integration Concerns**:
+The IPC handlers attempt to spawn Python processes but lack:
+- Virtual environment activation
+- Error handling for import failures  
+- Proper path resolution across platforms
+- Session management for chat continuity
+
+**Frontend Implementation Status**:
+Script creates scaffolding but core UI components are referenced as placeholders, making the application non-functional in current state.
+
+## Plain English Breakdown
+
+**What's Working**: Your current console-based setup is solid. You can run crews, swap models, and use Studio GUI effectively.
+
+**What's Missing**: The desktop chat app ("0" interface) exists as a shell but needs the actual chat interface, confirmation dialogs, and proper connection to your existing CrewAI setup built out.
+
+**Risk Level**: **YELLOW** - The installation script will create files and folders but won't produce a working application without additional development.
+
+## ONF - View (Launch Recommendation)
+
+**NOT READY for production launch**. The Master Installation Script is a development framework requiring completion of:
+
+1. Full React component implementation
+2. Chat interface with confirmation gating
+3. Progress tracking integration  
+4. Proper Python environment bridging
+5. Error handling and recovery
+
+**Alternative Path**: Continue development with current Supervisor_0 TUI while building out the Electron components incrementally.
+
+## ONF - Evaluate
+
+**Evidence Balance Index (EBI)**: 0.65
+- Strong: Existing infrastructure proven functional
+- Weak: Desktop app implementation incomplete
+
+**Decision Risk (DR)**: Medium-High
+- Script execution will succeed but produce non-functional application
+- May create confusion about project status
+
+**Credence Band (CB)**: 0.55-0.75  
+**Gate**: Yellow (pilot/development only)
+
+**Top-3 Disconfirmers**:
+1. React components undefined → app launches but shows blank/broken UI
+2. Python integration fails → IPC calls timeout or error  
+3. Missing dependencies → Electron app won't start
+
+## Decision Sheet
+
+**Recommendation**: **DO NOT LAUNCH** Master Installation Script in current state.
+
+**Rationale**: Script creates scaffolding but missing core implementation details that would result in broken application, potentially disrupting working environment.
+
+**Alternative Actions**:
+1. Complete React UI implementation first
+2. Test IPC Python integration separately  
+3. Implement incremental desktop features in current Supervisor_0
+
+## RPIR - Ledger
+
+**Record**: Commander queried readiness of Master Installation Script for "0" desktop interface
+**Produce**: Technical assessment revealing incomplete implementation despite framework presence
+**Inspect**: Script has structure but lacks functional components for chat interface and confirmation gating
+**Revise**: Recommend completing UI implementation before deployment
+
+## Refinement Prompts for Commander
+
+1. **Priority decision**: Complete Supervisor_0 settings integration first, or focus on Electron desktop app development?
+
+2. **UI preference**: Build chat interface as enhanced Supervisor_0 TUI or commit to full Electron/React implementation?
+
+3. **Integration approach**: Should desktop app wrap existing Python scripts, or reimplement orchestration logic in JavaScript?
+
+4. **Development timeline**: Acceptable timeframe for desktop app completion - sprint (1-2 weeks) or iteration (1-2 months)?
+
+5. **Fallback strategy**: If desktop app development stalls, maintain current TUI+Studio hybrid or pivot to web-based interface?
+
+**N-Score (Assessment Framework)**: SO=4, CD=4, OU=3, R=3, ED=4 → **Stable** analysis, requires implementation work
+
+**Status**: Master Installation Script **NOT READY** - framework present, core implementation missing.

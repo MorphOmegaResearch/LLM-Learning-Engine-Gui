@@ -207,7 +207,7 @@ class TypesPanel(ttk.Frame):
         type_id = self._current_type_id
         trainee_name = (self.name_var.get() or "").strip() or config.derive_variant_name(base_model, type_id)
 
-        # 1) Save Model Profile
+        # 1) Save Model Profile (ensure ULID lineage)
         mp = {
             "trainee_name": trainee_name,
             "base_model": base_model,
@@ -215,6 +215,11 @@ class TypesPanel(ttk.Frame):
             "class_level": "novice",
         }
         config.save_model_profile(trainee_name, mp)
+        try:
+            # Generate and persist lineage_id if missing
+            config.ensure_lineage_id(trainee_name)
+        except Exception:
+            pass
 
         # 2) Upsert Training Profile from Type mapping
         config.upsert_training_profile_for_model(trainee_name, base_model, type_id)
@@ -229,6 +234,7 @@ class TypesPanel(ttk.Frame):
                 "variant_id": trainee_name,
                 "base_model": base_model,
                 "type_id": type_id,
+                "lineage_id": (config.get_lineage_id(trainee_name) or ""),
             })
             self.event_generate("<<TypePlanApplied>>", data=payload, when="tail")
             # WO-6x: Global ProfilesChanged notification

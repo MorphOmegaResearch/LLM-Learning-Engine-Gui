@@ -1,0 +1,62 @@
+{
+  "timestamp": 1758014326.4082131,
+  "summary": {
+    "total": 7,
+    "passed": 3,
+    "warnings": 0,
+    "failed": 3,
+    "memory_used_mb": 0.125,
+    "memory_increase_mb": 0.25
+  },
+  "results": [
+    {
+      "test": "config_structure",
+      "status": "PASS",
+      "details": "All required config sections present",
+      "memory_mb": 0,
+      "timestamp": 1758014313.933269
+    },
+    {
+      "test": "config_training",
+      "status": "PASS",
+      "details": "Training config valid (max: 5GB)",
+      "memory_mb": 0,
+      "timestamp": 1758014313.9332802
+    },
+    {
+      "test": "memory_available",
+      "status": "INFO",
+      "details": "Available: 1.5GB, Used: 4.1GB",
+      "memory_mb": 0,
+      "timestamp": 1758014313.933478
+    },
+    {
+      "test": "memory_constraint",
+      "status": "FAIL",
+      "details": "Insufficient memory: 1.5GB",
+      "memory_mb": 0,
+      "timestamp": 1758014313.9334862
+    },
+    {
+      "test": "orchestrator_integration",
+      "status": "PASS",
+      "details": "All components integrated",
+      "memory_mb": 0.125,
+      "timestamp": 1758014326.3210313
+    },
+    {
+      "test": "vector_launcher_error",
+      "status": "FAIL",
+      "details": "Status command failed: python3: can't open file '/home/commander/open-interpreter-workspace/crewai-orchestrator/vector_index.py': [Errno 2] No such file or directory\n",
+      "memory_mb": 0.0,
+      "timestamp": 1758014326.374573
+    },
+    {
+      "test": "vector_launcher_rebuild",
+      "status": "FAIL",
+      "details": "Rebuild failed: python3: can't open file '/home/commander/open-interpreter-workspace/crewai-orchestrator/vector_index.py': [Errno 2] No such file or directory\n",
+      "memory_mb": 0.0,
+      "timestamp": 1758014326.4072697
+    }
+  ]
+}

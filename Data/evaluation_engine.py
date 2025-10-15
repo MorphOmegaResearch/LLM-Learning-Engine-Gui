@@ -314,6 +314,18 @@ class EvaluationEngine:
         else:
             coherence_raw = max(0.0, min(100.0, 100.0 - arg_err_rate - vio_rate))
 
+        # Try attach lineage id to metadata
+        lineage_id = None
+        try:
+            from config import get_lineage_id, get_lineage_for_tag
+            # If model_name is a variant with a profile, prefer that
+            lineage_id = get_lineage_id(model_name)
+            if not lineage_id and inference_override:
+                # Resolve from GGUF tag → lineage
+                lineage_id = get_lineage_for_tag(inference_override)
+        except Exception:
+            pass
+
         summary = {
             "version": "eval_report_v2",
             "total_tests": total_count,
@@ -347,6 +359,7 @@ class EvaluationEngine:
                 "prompt_name": system_prompt_name or None,
                 "schema_name": tool_schema_name or None,
                 "inference_model": inference_override or model_name,
+                "lineage_id": lineage_id,
                 "sample_fraction": sample_fraction,
                 "scoring": {
                     "policies_used": scoring_counts,

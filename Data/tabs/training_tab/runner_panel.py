@@ -92,6 +92,11 @@ class RunnerPanel:
             self._update_baseline_status_label()
         except Exception:
             pass
+        # Update lineage/class chip
+        try:
+            self._update_lineage_chip()
+        except Exception:
+            pass
 
     def create_ui(self):
         # (UI creation code remains the same as the last version)
@@ -113,6 +118,18 @@ class RunnerPanel:
         ttk.Label(model_display_frame, text="Training Model:", font=("Arial", 10, "bold"), style='Config.TLabel').pack(side=tk.LEFT, padx=(0, 5))
         self.training_model_label = ttk.Label(model_display_frame, text="Not Set", font=("Arial", 10), style='Config.TLabel', foreground='#ff6b6b')
         self.training_model_label.pack(side=tk.LEFT)
+        # Hands-free indicator (reads Custom Code backend settings)
+        try:
+            self._handsfree_label = ttk.Label(header_frame, text="", style='Config.TLabel')
+            self._handsfree_label.pack(side=tk.RIGHT, padx=(6,0))
+            self._update_handsfree_indicator()
+        except Exception:
+            pass
+        # Lineage/class chip and label
+        self.lineage_chip = tk.Label(model_display_frame, text='  ', bg='#444444')
+        self.lineage_chip.pack(side=tk.LEFT, padx=(10,4))
+        self.lineage_label = ttk.Label(model_display_frame, text="Lineage: —", style='Config.TLabel')
+        self.lineage_label.pack(side=tk.LEFT)
 
         self.runner_output = scrolledtext.ScrolledText(output_frame, font=("Courier", 9), wrap=tk.WORD, state=tk.DISABLED, relief='flat', borderwidth=0, highlightthickness=0, bg='#1e1e1e', fg='#00ff00')
         self.runner_output.grid(row=1, column=0, sticky='nsew', padx=5, pady=5)
@@ -258,6 +275,60 @@ class RunnerPanel:
             # Reserve a small note so users know why it's hidden
             note = ttk.Label(controls_frame, text="🛈 Early Stopping disabled (GPU required)", style='Config.TLabel')
             note.grid(row=current_row, column=0, sticky=tk.W, padx=10, pady=5); current_row += 1
+
+    def _update_handsfree_indicator(self):
+        try:
+            from pathlib import Path
+            import json
+            settings_file = Path(__file__).parent.parent.parent / 'custom_code_tab' / 'custom_code_settings.json'
+            auto_start = False; auto_export = True
+            if settings_file.exists():
+                try:
+                    data = json.loads(settings_file.read_text())
+                    auto_start = bool(data.get('auto_start_training_on_runtime_dataset', False))
+                    auto_export = bool(data.get('auto_export_reeval_after_training', True))
+                except Exception:
+                    pass
+            text = f"Hands-free: Start {'✓' if auto_start else '✗'} • Export+Eval {'✓' if auto_export else '✗'}"
+            if hasattr(self, '_handsfree_label') and self._handsfree_label:
+                self._handsfree_label.config(text=text)
+        except Exception:
+            pass
+
+    def _update_lineage_chip(self):
+        try:
+            vid = getattr(self.training_tab_instance, 'active_trainee_name', '') or ''
+            if not vid:
+                self.lineage_chip.config(bg='#444444')
+                self.lineage_label.config(text='Lineage: —')
+                return
+            import config as C
+            lid = C.get_lineage_id(vid) or ''
+            cls = C.get_variant_class(vid) or 'novice'
+            color_map = {
+                'novice': '#51cf66', 'skilled': '#61dafb', 'expert': '#9b59b6', 'master': '#ffa94d', 'artifact': '#c92a2a'
+            }
+            self.lineage_chip.config(bg=color_map.get(cls.lower(), '#bbbbbb'))
+            short = (lid[:10] + '…') if (lid and len(lid) > 10) else (lid or '—')
+            self.lineage_label.config(text=f'Lineage: {short}')
+            # Novice cue if no adapters yet (scan sidecars)
+            try:
+                from pathlib import Path
+                import json
+                has_adapter = False
+                for p in (Path('Models').glob('training_*')):
+                    sc = Path(str(p) + '.variant.json')
+                    if sc.exists():
+                        data = json.loads(sc.read_text())
+                        if (data.get('variant_id') == vid) or (data.get('lineage_id') == lid and lid):
+                            has_adapter = True
+                            break
+                if not has_adapter:
+                    self.lineage_label.config(text=f'Lineage: {short}  • Novice mode')
+            except Exception:
+                pass
+        except Exception:
+            pass
 
         restart_section = ttk.LabelFrame(controls_frame, text="🔄 Auto-Restart", style='TLabelframe')
         restart_section.grid(row=current_row, column=0, sticky=tk.EW, padx=5, pady=5); current_row += 1
@@ -475,6 +546,20 @@ class RunnerPanel:
 
     def start_runner_training(self):
         log_message("RUNNER: Start button clicked.")
+        # Persist current selections/settings to the active variant's Training Profile
+        try:
+            if hasattr(self.training_tab_instance, 'save_active_training_profile'):
+                self.training_tab_instance.save_active_training_profile()
+        except Exception:
+            pass
+        # Announce start to other tabs
+        try:
+            import json as _json
+            vid = getattr(self.training_tab_instance, 'active_trainee_name', '') or ''
+            payload = _json.dumps({"variant_id": vid})
+            self.parent.event_generate("<<TrainingSessionStarted>>", data=payload, when="tail")
+        except Exception:
+            pass
         # If a profile is selected, confirm with the user before starting
         try:
             prof_var = getattr(self.training_tab_instance, 'selected_profile_var', None)
@@ -541,10 +626,25 @@ class RunnerPanel:
             self.stop_button.config(state=tk.DISABLED)
             self.runner_status_label.config(text="✅ Complete")
             self.script_running = False
+            # Announce completion
+            try:
+                import json as _json
+                vid = getattr(self.training_tab_instance, 'active_trainee_name', '') or ''
+                payload = _json.dumps({"variant_id": vid, "status": "complete"})
+                self.parent.event_generate("<<TrainingSessionComplete>>", data=payload, when="tail")
+            except Exception:
+                pass
             return
 
         current_run_number = self.total_scripts_in_queue - len(self.script_queue) + 1
         self.runner_progress_label.config(text=f"Run {current_run_number} of {self.total_scripts_in_queue}")
+        # Emit progress update event for other tabs (e.g., Custom Code popup)
+        try:
+            import json as _json
+            payload = _json.dumps({"current": current_run_number, "total": self.total_scripts_in_queue})
+            self.parent.event_generate("<<TrainingProgressUpdate>>", data=payload, when="tail")
+        except Exception:
+            pass
         
         selected_category, selected_script = self.script_queue.pop(0)
 
@@ -598,6 +698,20 @@ class RunnerPanel:
         env_vars["RUNNER_MAX_RAM_PERCENT"] = str(self.max_ram_percent_var.get())
         env_vars["RUNNER_ENABLE_BASELINE_TESTS"] = str(self.enable_baseline_tests_var.get())
         env_vars["RUNNER_ENABLE_STAT_SAVING"] = str(self.enable_stat_saving_var.get()) # New: Pass stat saving setting
+        # Variant + lineage context
+        try:
+            active_variant = getattr(self.training_tab_instance, 'active_trainee_name', '') or ''
+            if active_variant:
+                env_vars["TRAINING_VARIANT_ID"] = active_variant
+                try:
+                    import config as C
+                    lid = C.get_lineage_id(active_variant)
+                    if lid:
+                        env_vars["TRAINING_LINEAGE_ID"] = lid
+                except Exception:
+                    pass
+        except Exception:
+            pass
         
         command = [sys.executable, str(script_path)]
         # Optionally run pre-training baseline

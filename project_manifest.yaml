@@ -28,7 +28,7 @@ components:
     - "Data/evaluation_engine.py"
   core:
     - "Data/config.py"
-    - "Data/interactive_trainer_gui.py"
+    - "Data/interactive_trainer_gui_NEW.py"
     - "Data/tool_trainer.py"
     - "Data/training_data_generator.py"
   tracking:

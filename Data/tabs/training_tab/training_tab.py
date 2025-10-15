@@ -202,12 +202,12 @@ class TrainingTab(BaseTab):
         except Exception:
             pass
 
-        # Collapsible section: Training Scripts
-        self.ts_expanded = tk.BooleanVar(value=True)
+        # Collapsible section: Training Scripts (default collapsed)
+        self.ts_expanded = tk.BooleanVar(value=False)
         ts_header = ttk.Frame(menu_frame, style='Category.TFrame')
         ts_header.grid(row=0, column=0, pady=5, sticky=tk.EW, padx=5)
         ts_header.columnconfigure(1, weight=1)
-        self.ts_toggle_btn = ttk.Button(ts_header, text="▼", width=2, style='Select.TButton', command=self._toggle_ts_section)
+        self.ts_toggle_btn = ttk.Button(ts_header, text="▶", width=2, style='Select.TButton', command=self._toggle_ts_section)
         self.ts_toggle_btn.pack(side=tk.LEFT, padx=(0,5))
         ttk.Label(ts_header, text="📋 Training Scripts", font=("Arial", 11, "bold"), style='CategoryPanel.TLabel').pack(side=tk.LEFT)
         self.selection_counter_label = ttk.Label(ts_header, text="", style='CategoryPanel.TLabel')
@@ -217,6 +217,13 @@ class TrainingTab(BaseTab):
         self.ts_content = ttk.Frame(menu_frame, style='Category.TFrame')
         # Place Training Scripts content directly under its header (row 1)
         self.ts_content.grid(row=1, column=0, sticky=tk.NSEW)
+        # Default collapsed on launch
+        try:
+            if not self.ts_expanded.get():
+                self.ts_content.grid_remove()
+                self.ts_toggle_btn.config(text="▶")
+        except Exception:
+            pass
         self.ts_content.columnconfigure(0, weight=1)
 
         buttons_frame = ttk.Frame(self.ts_content)
@@ -273,6 +280,14 @@ class TrainingTab(BaseTab):
         # Append Prompts and Schemas sections (collapsible, as sibling sections)
         self._populate_prompts_and_schemas(menu_frame)
 
+        # Bind global runtime training events
+        try:
+            self.root.bind("<<RuntimeTrainingDataReady>>", self._on_runtime_training_data_ready)
+            self.root.bind("<<StartVariantTraining>>", self._on_start_variant_training)
+            self.root.bind("<<FocusTrainingTab>>", self._on_focus_training_tab)
+        except Exception:
+            pass
+
     def _toggle_ts_section(self):
         try:
             if self.ts_expanded.get():
@@ -289,11 +304,12 @@ class TrainingTab(BaseTab):
     def _populate_prompts_and_schemas(self, parent):
         from config import list_system_prompts, list_tool_schemas
         # Prompts section (collapsible) as sibling of Training Scripts
-        self.prompts_expanded = tk.BooleanVar(value=True)
+        # Default collapsed on launch
+        self.prompts_expanded = tk.BooleanVar(value=False)
         prompts_header = ttk.Frame(parent, style='Category.TFrame')
         # Prompts header in row 2
         prompts_header.grid(row=2, column=0, sticky=tk.EW, padx=5, pady=(5,0))
-        self.prompts_toggle_btn = ttk.Button(prompts_header, text="▼", width=2, style='Select.TButton', command=self._toggle_prompts_section)
+        self.prompts_toggle_btn = ttk.Button(prompts_header, text="▶", width=2, style='Select.TButton', command=self._toggle_prompts_section)
         self.prompts_toggle_btn.pack(side=tk.LEFT, padx=(0,5))
         ttk.Label(prompts_header, text="🧠 Prompts", font=("Arial", 10, "bold"), foreground='#61dafb').pack(side=tk.LEFT)
         self.prompts_selected_count_label = ttk.Label(prompts_header, text="Selected: 0", style='Config.TLabel')
@@ -301,6 +317,13 @@ class TrainingTab(BaseTab):
         self.prompts_content = ttk.Frame(parent, style='Category.TFrame')
         # Prompts content in row 3
         self.prompts_content.grid(row=3, column=0, sticky=tk.EW)
+        # Default collapsed on launch
+        try:
+            if not self.prompts_expanded.get():
+                self.prompts_content.grid_remove()
+                self.prompts_toggle_btn.config(text="▶")
+        except Exception:
+            pass
 
         # Prompts header row (within content)
         prompts_hdr = ttk.Frame(self.prompts_content)
@@ -324,11 +347,12 @@ class TrainingTab(BaseTab):
         self._refresh_prompts_list()
 
         # Schemas section (collapsible) as sibling
-        self.schemas_expanded = tk.BooleanVar(value=True)
+        # Default collapsed on launch
+        self.schemas_expanded = tk.BooleanVar(value=False)
         schemas_header = ttk.Frame(parent, style='Category.TFrame')
         # Schemas header in row 4
         schemas_header.grid(row=4, column=0, sticky=tk.EW, padx=5, pady=(5,0))
-        self.schemas_toggle_btn = ttk.Button(schemas_header, text="▼", width=2, style='Select.TButton', command=self._toggle_schemas_section)
+        self.schemas_toggle_btn = ttk.Button(schemas_header, text="▶", width=2, style='Select.TButton', command=self._toggle_schemas_section)
         self.schemas_toggle_btn.pack(side=tk.LEFT, padx=(0,5))
         ttk.Label(schemas_header, text="🧩 Schemas", font=("Arial", 10, "bold"), foreground='#ffd43b').pack(side=tk.LEFT)
         self.schemas_selected_count_label = ttk.Label(schemas_header, text="Selected: 0", style='Config.TLabel')
@@ -336,6 +360,13 @@ class TrainingTab(BaseTab):
         self.schemas_content = ttk.Frame(parent, style='Category.TFrame')
         # Schemas content in row 5
         self.schemas_content.grid(row=5, column=0, sticky=tk.EW)
+        # Default collapsed on launch
+        try:
+            if not self.schemas_expanded.get():
+                self.schemas_content.grid_remove()
+                self.schemas_toggle_btn.config(text="▶")
+        except Exception:
+            pass
 
         schemas_hdr = ttk.Frame(self.schemas_content)
         schemas_hdr.grid(row=0, column=0, sticky=tk.EW, padx=10, pady=(2,4))
@@ -401,11 +432,11 @@ class TrainingTab(BaseTab):
             row_idx += 1
             header = ttk.Frame(grp_frame)
             header.pack(fill=tk.X)
-            btn = ttk.Button(header, text="▼", width=2, style='Select.TButton', command=lambda g=group: self._toggle_prompt_group(g))
+            btn = ttk.Button(header, text="▶", width=2, style='Select.TButton', command=lambda g=group: self._toggle_prompt_group(g))
             btn.pack(side=tk.LEFT, padx=(0,5))
             ttk.Label(header, text=group, font=("Arial", 10, "bold"), style='CategoryPanel.TLabel').pack(side=tk.LEFT)
             container = ttk.Frame(grp_frame)
-            container.pack(fill=tk.X, padx=10)
+            # Default collapsed on launch (do not pack)
             # Rows
             for name in names:
                 row = ttk.Frame(container)
@@ -461,11 +492,11 @@ class TrainingTab(BaseTab):
             row_idx += 1
             header = ttk.Frame(grp_frame)
             header.pack(fill=tk.X)
-            btn = ttk.Button(header, text="▼", width=2, style='Select.TButton', command=lambda g=group: self._toggle_schema_group(g))
+            btn = ttk.Button(header, text="▶", width=2, style='Select.TButton', command=lambda g=group: self._toggle_schema_group(g))
             btn.pack(side=tk.LEFT, padx=(0,5))
             ttk.Label(header, text=group, font=("Arial", 10, "bold"), style='CategoryPanel.TLabel').pack(side=tk.LEFT)
             container = ttk.Frame(grp_frame)
-            container.pack(fill=tk.X, padx=10)
+            # Default collapsed on launch (do not pack)
             # Rows
             for name in names:
                 row = ttk.Frame(container)
@@ -916,6 +947,138 @@ class TrainingTab(BaseTab):
 
         return selected
 
+    def select_jsonl_path(self, jsonl_path: str, selected: bool = True):
+        """Tick the checkbox for a given JSONL path under Training_Data-Sets.
+        Accepts absolute or relative path; no-op if not found in current UI.
+        """
+        try:
+            if not jsonl_path:
+                return
+            p = Path(jsonl_path)
+            # Normalize to repo-relative under Training_Data-Sets
+            try:
+                root = (DATA_DIR.parent / "Training_Data-Sets").resolve()
+                p = p.resolve()
+                if root in p.parents:
+                    rel = p.relative_to(root)
+                else:
+                    # Allow passing already-relative like "Tools/file.jsonl"
+                    rel = Path(jsonl_path)
+            except Exception:
+                rel = Path(jsonl_path)
+            if len(rel.parts) < 2:
+                return
+            category = rel.parts[0]
+            filename = rel.name
+            varmap = self.jsonl_vars.get(category) or {}
+            var = varmap.get(filename)
+            if var is None:
+                return
+            var.set(bool(selected))
+            # Update selection counter label
+            if hasattr(self, 'update_selection_state'):
+                self.update_selection_state()
+        except Exception:
+            pass
+
+    def save_active_training_profile(self):
+        """Persist current scripts/prompts/schemas and runner settings to this variant's Training Profile."""
+        try:
+            import config as cfg
+            # Resolve active variant id
+            vid = getattr(self, 'active_trainee_name', '') or ''
+            if not vid and hasattr(self, 'model_selection_panel') and hasattr(self.model_selection_panel, 'get_variant'):
+                try:
+                    vid = self.model_selection_panel.get_variant() or ''
+                except Exception:
+                    vid = ''
+            if not vid:
+                return
+
+            try:
+                tp = cfg.load_training_profile(vid) or {}
+            except Exception:
+                tp = {}
+
+            # Base model
+            try:
+                bm = ''
+                if hasattr(self, 'model_selection_panel') and hasattr(self.model_selection_panel, 'base_model_var'):
+                    bm = self.model_selection_panel.base_model_var.get()
+                if bm:
+                    tp['base_model'] = bm
+            except Exception:
+                pass
+
+            # Selections
+            sel = self.get_selected_scripts()
+            script_paths = []
+            try:
+                for it in (sel.get('scripts') or []):
+                    cat = it.get('category') or ''
+                    name = it.get('script') or ''
+                    if name:
+                        script_paths.append(f"{cat}/{name}" if cat else name)
+            except Exception:
+                pass
+            tp['selected_scripts'] = script_paths
+            try:
+                tp['selected_prompts'] = list(self.get_selected_prompts() or [])
+            except Exception:
+                tp['selected_prompts'] = tp.get('selected_prompts') or []
+            try:
+                tp['selected_schemas'] = list(self.get_selected_schemas() or [])
+            except Exception:
+                tp['selected_schemas'] = tp.get('selected_schemas') or []
+
+            # Runner settings
+            rs = dict(tp.get('runner_settings') or {})
+            try:
+                rp = getattr(self, 'runner_panel', None)
+                if rp is not None:
+                    rs.update({
+                        'max_time': rp.max_time_var.get(),
+                        'max_runs': rp.max_runs_var.get(),
+                        'run_delay': rp.run_delay_var.get(),
+                        'save_checkpoints': rp.save_checkpoints_var.get(),
+                        'checkpoint_interval': rp.checkpoint_interval_var.get(),
+                        'early_stop': rp.early_stop_var.get(),
+                        'early_stop_patience': rp.early_stop_patience_var.get(),
+                        'use_mixed_precision': rp.use_mixed_precision_var.get(),
+                        'gradient_accumulation': rp.gradient_accumulation_var.get(),
+                        'warmup_steps': rp.warmup_steps_var.get(),
+                        'max_cpu_threads': rp.max_cpu_threads_var.get(),
+                        'max_ram_percent': rp.max_ram_percent_var.get(),
+                        'auto_restart': rp.auto_restart_var.get(),
+                        'enable_baseline_tests': rp.enable_baseline_tests_var.get(),
+                        'enable_stat_saving': rp.enable_stat_saving_var.get(),
+                        # Core params
+                        'num_epochs': rp.num_epochs_var.get(),
+                        'batch_size': rp.batch_size_var.get(),
+                        'learning_rate': rp.learning_rate_var.get(),
+                        # Eval context toggles
+                        'auto_eval_baseline': rp.auto_eval_baseline_var.get(),
+                        'auto_eval_post': rp.auto_eval_post_var.get(),
+                        'use_system_prompt': rp.use_prompt_for_eval_var.get(),
+                        'use_tool_schema': rp.use_schema_for_eval_var.get(),
+                        # Legacy-friendly aliases
+                        'max_time_min': rp.max_time_var.get(),
+                        'delay_sec': rp.run_delay_var.get(),
+                        'mixed_precision': rp.use_mixed_precision_var.get(),
+                        'gradient_accum': rp.gradient_accumulation_var.get(),
+                        'enable_baseline_skill_tests': rp.enable_baseline_tests_var.get(),
+                        'auto_run_pre_eval': rp.auto_eval_baseline_var.get(),
+                        'auto_run_post_eval': rp.auto_eval_post_var.get(),
+                    })
+            except Exception:
+                pass
+            tp['runner_settings'] = rs
+
+            # Persist
+            cfg.save_training_profile(vid, tp)
+        except Exception as e:
+            print('[TrainingTab] save_active_training_profile error:', e)
+
     def select_all(self):
         """Select all categories and subcategories"""
         for var in self.category_vars.values():
@@ -941,6 +1104,52 @@ class TrainingTab(BaseTab):
         """Refreshes the list of profiles in the combobox"""
         if hasattr(self, 'profiles_panel'):
             self.profiles_panel.update_profile_combobox()
+
+    # --- Runtime training event handlers ---------------------------------
+    def _on_runtime_training_data_ready(self, event):
+        try:
+            import json as _json
+            payload = _json.loads(getattr(event, 'data', '{}') or '{}')
+            p = payload.get('path'); vid = payload.get('variant_id')
+            if p:
+                self.select_jsonl_path(p, selected=True)
+                # Optionally set active trainee for subsequent start
+                if vid:
+                    self.active_trainee_name = vid
+                # Persist selections + runner settings
+                self.save_active_training_profile()
+                # Refresh preview
+                self.update_preview()
+        except Exception as e:
+            print("[TrainingTab] _on_runtime_training_data_ready error:", e)
+
+    def _on_start_variant_training(self, event):
+        try:
+            import json as _json
+            payload = _json.loads(getattr(event, 'data', '{}') or '{}')
+            vid = payload.get('variant_id')
+            if vid:
+                # Hydrate plan to ensure base + selections are in place
+                self.apply_plan(variant_id=vid)
+            if hasattr(self, 'runner_panel'):
+                self.runner_panel.start_runner_training()
+        except Exception as e:
+            print("[TrainingTab] _on_start_variant_training error:", e)
+
+    def _on_focus_training_tab(self, event=None):
+        try:
+            # Select the Training tab in the main notebook if applicable
+            # and switch to Runner sub-tab for live logs
+            if hasattr(self, 'training_notebook'):
+                # Runner tab is index 0
+                self.training_notebook.select(0)
+            # Attempt to raise window focus
+            try:
+                self.root.lift(); self.root.focus_force()
+            except Exception:
+                pass
+        except Exception:
+            pass
 
     def on_tab_changed(self, event=None):
         """Called when user switches between tabs."""
@@ -1191,7 +1400,7 @@ class TrainingTab(BaseTab):
                 print("[TrainingTab] apply_plan called without variant_id/profile")
                 return
 
-            # 0) Base model -> Model Selection panel
+            # 0) Base model -> Model Selection panel + Variant selection
             base_model_name = tp.get("base_model", "")
             try:
                 if hasattr(self, "model_selection_panel") and hasattr(self.model_selection_panel, "set_base_model") and base_model_name:
@@ -1201,6 +1410,10 @@ class TrainingTab(BaseTab):
                     self.config_vars["base_model"].set(base_model_name)
                     if hasattr(self, "runner_panel"):
                         self.runner_panel.update_training_model_display()
+                # Variant combobox: select matching variant
+                if hasattr(self, "model_selection_panel") and hasattr(self.model_selection_panel, "set_variant"):
+                    self.model_selection_panel.populate_variant_list()
+                    self.model_selection_panel.set_variant(variant_id or tp.get("trainee_name") or "")
             except Exception:
                 pass
 

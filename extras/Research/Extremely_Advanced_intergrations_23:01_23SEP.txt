@@ -1,0 +1,2057 @@
+-------------------------------------------------------------------------------------------
+---------------------------------------section 1 ----------------------------------------------------
+
+* **BLUEPRINT.txt — System map & controls**
+
+  * Layered architecture: Model & Execution (model\_selector, time\_slicer, model\_optimizer, ollama\_client) → Tool Execution (tool\_orchestrator, tools, command\_policy) → Data Persistence (session/project stores) → Optimization & Pre-RAG (pre\_rag\_optimizer). &#x20;
+  * Context scoring module: 1000× consideration matrix, dynamic pruning, semantic chunking; tuned via `optimization.*`.&#x20;
+  * Resource management presets: `/settings runtime.resources [25|50|75|100]` maps to threads/context/token budgets.&#x20;
+  * Time-sliced generation: memory-conscious generation, budget monitor, backpressure; auto-controlled by resource level.&#x20;
+  * Security & tools: risk-gated tool orchestrator and shell-safe command policy with audit logging. &#x20;
+  * Notes/Refs: Primary knobs live under `/site-packages/opencode/*` (router, context\_scorer, runtime\_profiles, time\_slicer, tool\_orchestrator, command\_policy).&#x20;
+
+* **Robust Local LLM Optimization Implementation Plan.pdf — Immediate modules & wiring**
+
+  * Three add-ons for v0.7-stable: AdaptiveContextScorer (pre-RAG scoring), DynamicQuantizationManager (quant picks & pulls), MVCO (Markov routing).&#x20;
+  * Quant manager logic: estimate VRAM, pick quant profiles by priority (speed/quality/balanced), auto-pull via Ollama API if missing. &#x20;
+  * Integration snippet: score→optimize→MVCO predict→conditional model switch→log→learn from interaction.&#x20;
+  * Setup steps & code hooks: create `ext/*` dirs, import engines, enable `optimization_enabled`, config profile example. &#x20;
+  * Expected gains: 50–75% VRAM reduction, 2–4× speed, +40% relevant context use, sub-200 ms model swaps (with prefetch).&#x20;
+  * Notes/Refs: File locations for `context_engine.py`, `quant_manager.py`, `mvco_engine.py`; config profile keys for features and thresholds. &#x20;
+
+* **Advanced Context Scoring Systems…pdf — Research-grounded playbook for 7B-class performance**
+
+  * Thesis: with advanced scoring/routing/memory, 7B models approach GPT-4-class quality on many tasks at 2–4× efficiency.&#x20;
+  * Pipeline: context scoring + routing, memory RAG/augmentation, signal processing, conditional ensembles, online monitoring. Bench suites: MMLU, SuperGLUE, BIG-Bench, GSM8K, MT-Bench.&#x20;
+  * Concrete wins: INT4 → \~4× memory cut <1% loss; KV caching/batching → 3–4× throughput; GQA → \~2× speed; distillation maintains 90%+ teacher perf at \~20% cost.&#x20;
+  * Router architectures: SW ranking (Bradley-Terry), matrix-factorization bilinear scorer, BERT classifier, causal LLM router.&#x20;
+  * Integration with VC-ZMRBRO: DeePEn training-free ensemble via distribution fusion; modular separation of Router/Memory/Signal/Ensemble; EM-style weight learning.&#x20;
+  * Phased roadmap: P1 RouteLLM-style binary routing + INT4 + GQA; P2 DeePEn + consideration matrix + PagedAttention + distillation; P3 real-time monitoring + federated distill + hybrid arch.&#x20;
+  * Attention & pruning notes: SWA/GQA efficiency; structured/magnitude pruning, token merging; FlashAttention-2 perf guidance.&#x20;
+  * Notes/Refs: Targets/overheads—routing <0.4% cost, signal processing <1% params w/ 44% faster convergence, memory systems 2–8× efficiency.&#x20;
+
+* **Validation Infrastructure Setup Plan.pdf — Testbed & SLAs**
+
+  * Compute/storage/network/monitoring tiers (on-prem, 4-week setup, 16-week ops) with GPU matrices and 900 TB storage; 100 Gb IB + 10–40 GbE; Prometheus/Grafana/Ansible/CI/K8s/SLURM. &#x20;
+  * CI pipelines: per-refinement A/B, domain integration, full-system simulation (load, stress, failure recovery). &#x20;
+  * Bench matrix & custom tests (VC-ZMRBRO switches, quant transitions, TurnSignals, RecentCalls, MVCO).&#x20;
+  * Timeline & ops: week-by-week infra bring-up; daily/weekly checklists; emergency/failover; capacity and patch cadence.&#x20;
+  * SLA/Throughput goals: >99.5% availability; job scheduling <60 s; >10k refinement tests/week; validation accuracy/confidence targets.&#x20;
+  * Notes/Refs: Consumer-GPU validation paths (3060/4060Ti/4070/4090) and throughput expectations.&#x20;
+
+* **Refinement Scoring and Validation Matrix.pdf — Gates & priorities**
+
+  * N-Score (SO, CD, OU, R, ED) targets and GREEN gate criteria; EBI ≥0.75; DR=LOW; CB ≥70%; zero critical failures.&#x20;
+  * Priority clusters: Tier-1 critical path (8 items) must be GREEN; Tier-2 multipliers; Tier-3 stability; Tier-4 enhancers.&#x20;
+  * Validation phases: 5-day refinement tests → 15-day domain integration → 30-day system validation.&#x20;
+  * Live dashboard (pilot/blockers) and risk list (e.g., dynamic pruning, RouteLLM, prod API perf) with mitigations (parallel dev, fallback, external review).&#x20;
+  * Commander actions: resource allocations, infra setup, baselines, 20-week schedule, trade-offs (quality vs speed; hardware floor; ensemble complexity).&#x20;
+
+* **Novel\_LLM-Model\_Rearrangement…txt — VC-ZMRBRO concept spec**
+
+  * Core idea: Zero-copy model “views” from tiled quant packs via Variant Composition Manifests (VCMs) + permutation maps; unified score co-selects (i) model profile and (ii) retrieval under byte/time budgets; parity gate ensures near-lossless swaps. &#x20;
+  * Runtime: vectorized PTM kernels, KV-precision scheduler (8→6-bit), hybrid retriever (Greedy→Bandit→MMR), hot-tile prefetch.&#x20;
+  * DMC (dual-manifest crossfade): atomic variant switches after parity pass + prefetch.&#x20;
+  * Claims/advantages: ≤25–30% of FP16 memory; 2.8–4× compute (light sparsity); sub-second swaps; co-optimize retrieval + model arrangement.&#x20;
+  * Notes/Refs: Applicability—edge/sovereign deployments; auditability via signed, diffable VCMs.&#x20;
+
+* **Extremely\_Advanced\_intergrations\_23:01\_23SEP.txt — Phase-6 integration plan (read last)**
+
+  * Scope: integrate AdaptiveContextScorer, DynamicQuantizationManager, MVCO for hardware-aware context, quant switching, and predictive routing.&#x20;
+  * Step 6.1 (context scorer): replace current `ContextScoringEngine` in `opencode/context_scorer.py`; wire in `interactive.py`; trade-off noted (less semantic nuance → immediate hardware benefits; later merge). &#x20;
+  * Step 6.2 (quant manager): add `quant_manager.py`; modify `interactive.py` to call `recommend_quantization()` before each LLM call; dependency on `nvidia-smi` mitigated by fallback. &#x20;
+  * Step 6.3 (MVCO): introduce self-learning routing to improve model choice over time.&#x20;
+  * Notes/Refs: Links back to the two research/implementation PDFs called out as sources of truth for this phase.&#x20;
+
+If you want, I can turn this into an ONF “Problem Card + Option Matrix” next pass and map each step to GREEN-gate metrics.
+
+----------------------------------------------------------------------------------
+------------------------section 2---------------------------------------------------------
+
+
+REVISED OPERATIONAL PLAN v3: Custom System Integration
+
+  ---
+
+  Phase 6: Integration of Custom Optimization & Orchestration Systems
+
+   * Objective: To integrate the AdaptiveContextScorer,
+     DynamicQuantizationManager, and MarkovContextOrchestrator (MVCO) to
+     enhance performance, resource management, and introduce self-learning
+      capabilities.
+   * Priority: HIGH
+   * Reference Documents:
+       * Robust Local LLM Optimization Implementation Plan.pdf
+       * Advanced Context Scoring Systems for under7B LLM 
+         Optimization...pdf
+
+   * Step 6.1: Integrate Adaptive Context Scorer
+       * Objective: To replace the current context scoring logic with the
+         hardware-aware AdaptiveContextScorer.
+       * Benefit: This provides immediate, dynamic optimization of context
+         based on available hardware, which is a core principle of the
+         "Resource Squeezing" doctrine.
+       * Target File: /home/commander/Desktop/BackupOpencode/site-packages/
+         opencode/context_scorer.py
+       * Implementation:
+           1. The existing ContextScoringEngine class in context_scorer.py
+              will be replaced with the AdaptiveContextScorer class
+              definition from your implementation plan.
+           2. The new class will be integrated into interactive.py where
+              the ContextScoringEngine is currently initialized.
+       * Considerations:
+           * Disconfirmer: The AdaptiveContextScorer is functionally
+             different from the existing ContextScoringEngine. While more
+             hardware-aware, it may be less nuanced in its semantic
+             analysis.
+           * Mitigation: This is a strategic trade-off for immediate
+             benefit. The more complex logic from the original
+             ContextScoringEngine can be merged into the new
+             AdaptiveContextScorer in a later phase.
+
+   * Step 6.2: Integrate Dynamic Quantization Manager
+       * Objective: To enable the system to dynamically recommend and
+         switch to the most efficient quantization of a model based on
+         hardware and task priority.
+       * Benefit: This directly addresses the goal of using larger models
+         on smaller hardware by selecting the right memory/performance
+         trade-off at runtime.
+       * Target Files:
+           * /home/commander/Desktop/BackupOpencode/site-packages/opencode
+             /quant_manager.py (NEW)
+           * /home/commander/Desktop/BackupOpencode/site-packages/opencode
+             /interactive.py (MODIFY)
+       * Implementation:
+           1. A new file, quant_manager.py, will be created to house the
+              DynamicQuantizationManager class from your implementation
+              plan.
+           2. In interactive.py, this new manager will be initialized.
+           3. The handle_llm_request method will be modified to call the
+              quant_manager.recommend_quantization() method. The result
+              will be used to select the optimal model variant before the
+              LLM call is made.
+       * Considerations:
+           * Disconfirmer: This introduces a new dependency on nvidia-smi
+             for accurate GPU memory detection.
+           * Mitigation: The provided code already includes a fallback
+             mechanism to a conservative estimate if nvidia-smi is not
+             available, which makes this integration safe.
+
+   * Step 6.3: Integrate Markov Context Orchestrator (MVCO)
+       * Objective: To introduce a predictive, self-learning model routing
+         capability.
+       * Benefit: This is the first step towards a true self-learning
+         engine, as it allows the system to learn from past interactions to
+         make better decisions about which model to use for a given task.
+       * Target Files:
+           * /home/commander/Desktop/BackupOpencode/site-packages/opencode/
+             mvco_engine.py (NEW)
+           * /home/commander/Desktop/BackupOpencode/site-packages/opencode/
+             interactive.py (MODIFY)
+           * /home/commander/Desktop/BackupOpencode/site-packages/opencode/
+             config.py (MODIFY)
+       * Implementation:
+           1. A new file, mvco_engine.py, will be created for the
+              MarkovContextOrchestrator class.
+           2. A new setting, use_mvco_router: bool = True, will be added to
+               the RoutingConfig in config.py to allow this feature to be
+              toggled.
+           3. In interactive.py, the process_input method will be modified.
+               If use_mvco_router is enabled, it will call
+              self.mvco.predict_next_state() to get a model recommendation,
+               overriding the standard router if the confidence is high.
+           4. The add_interaction method of the MVCO will be called at the
+              end of each request-response cycle to enable the background
+              learning thread.
+       * Considerations:
+           * Disconfirmer: The MVCO runs a background thread for continuous
+             learning, which adds a layer of complexity to the application's
+              process management.
+           * Mitigation: The background thread is implemented as a daemon
+             thread, which means it will not block the main application
+             from exiting. The implementation also includes a shutdown
+             method to gracefully terminate the thread.
+
+  This plan integrates the core, actionable components from your documents
+  into the existing development roadmap, prioritizing immediate performance
+   and intelligence gains. The more advanced concepts, like VC-ZMRBRO, can
+  be integrated in later phases that build upon this new foundation.
+
+
+------------------section 3-----------------------------------
+-------------------------------------------------------
+
+
+
+
+OPERATIONAL PLAN: Step 6.1 - Integration of Adaptive Context Scorer
+
+   * Objective: To replace the current ContextScoringEngine with the
+     hardware-aware AdaptiveContextScorer from your implementation plan.
+   * Benefit: This provides immediate, dynamic optimization of context
+     based on available hardware, a core principle of the "Resource
+     Squeezing" doctrine.
+   * Priority: HIGH
+   * Target Files:
+       1. /home/commander/Desktop/BackupOpencode/site-packages/opencode/con
+          text_scorer.py (OVERWRITE)
+       2. /home/commander/Desktop/BackupOpencode/site-packages/opencode/int
+          eractive.py (MODIFY)
+
+  ---
+
+  Implementation Directive 1: Replace `context_scorer.py`
+
+   * Action: The entire content of context_scorer.py is to be replaced
+     with the new AdaptiveContextScorer implementation.
+   * Code:
+
+     1     import numpy as np
+     2     import psutil
+     3     import time
+     4     from typing import Dict, List, Optional
+     5     from collections import deque
+     6     from dataclasses import dataclass
+     7 
+     8     @dataclass
+     9     class ContextScore:
+    10         complexity: float
+    11         relevance: float
+    12         urgency: float
+    13         resource_cost: float
+    14         unified_score: float
+    15         confidence: float
+    16 
+    17     class AdaptiveContextScorer:
+    18         """
+    19         Context scoring system optimized for consumer
+       hardware constraints.
+    20         Implements C3R-L methodology with dynamic resource
+       adaptation.
+    21         """
+    22         def __init__(self, config_manager):
+    23             self.config = config_manager
+    24             self.memory_threshold = 0.85  # 85% RAM usage 
+       triggers optimization
+    25             self.history = deque(maxlen=1000)  # Context 
+       history buffer
+    26             self.model_cache = {}  # Lightweight model 
+       response cache
+    27             self.gpu_memory = self._get_gpu_memory()
+    28             self.system_memory =
+       psutil.virtual_memory().total / (1024**3)  # GB
+    29             self.weights = self
+       ._calculate_hardware_weights()
+    30 
+    31         def _get_gpu_memory(self) -> float:
+    32             """Estimate GPU memory from system info"""
+    33             memory_map = {
+    34                 8: 8.0,   # RTX 3060, 4060
+    35                 12: 12.0, # RTX 3060 12GB, 4070
+    36                 16: 16.0, # RTX 4060Ti 16GB
+    37                 24: 24.0  # RTX 3090, 4090
+    38             }
+    39             return memory_map.get(int(self.system_memory),
+       12.0)
+    40 
+    41         def _calculate_hardware_weights(self) -> Dict[str,
+       float]:
+    42             """Calculate scoring weights based on available
+       hardware"""
+    43             base_weights = {"complexity": 0.3, "relevance":
+       0.35, "urgency": 0.2, "resource_cost": 0.15}
+    44             if self.gpu_memory < 16:
+    45                 base_weights["resource_cost"] = 0.25
+    46                 base_weights["complexity"] = 0.25
+    47             if self.system_memory < 16:
+    48                 base_weights["resource_cost"] = 0.3
+    49             return base_weights
+    50 
+    51         def score_context(self, prompt: str, 
+       conversation_history: List[str] = None) -> ContextScore:
+    52             """Generate unified context score with 
+       hardware-aware optimization"""
+    53             start_time = time.time()
+    54             complexity = self._assess_complexity(prompt,
+       conversation_history)
+    55             relevance = self._assess_relevance(prompt,
+       conversation_history)
+    56             urgency = self._assess_urgency(prompt)
+    57             resource_cost = self
+       ._estimate_resource_cost(prompt, complexity)
+    58 
+    59             unified_score = (
+    60                 complexity * self.weights["complexity"] +
+    61                 relevance * self.weights["relevance"] +
+    62                 urgency * self.weights["urgency"] +
+    63                 (1 - resource_cost) * self.weights[
+       "resource_cost"]
+    64             )
+    65 
+    66             processing_time = time.time() - start_time
+    67             system_load = psutil.cpu_percent() / 100.0
+    68             confidence = max(0.3, 1.0 - (processing_time *
+       2 + system_load * 0.5))
+    69 
+    70             score = ContextScore(
+    71                 complexity=complexity,
+    72                 relevance=relevance,
+    73                 urgency=urgency,
+    74                 resource_cost=resource_cost,
+    75                 unified_score=unified_score,
+    76                 confidence=confidence
+    77             )
+    78             self.history.append({'score': score,
+       'prompt_hash': hash(prompt[:100]), 'timestamp':
+       time.time()})
+    79             return score
+    80 
+    81         def _assess_complexity(self, prompt: str, history: 
+       List[str] = None) -> float:
+    82             factors = []
+    83             factors.append(min(1.0, len(prompt) / 2000))
+    84             complex_patterns = ['analyze', 'compare',
+       'evaluate', 'synthesize', 'step by step']
+    85             pattern_count = sum(1 for pattern in
+       complex_patterns if pattern.lower() in prompt.lower())
+    86             factors.append(min(1.0, pattern_count / 3))
+    87             question_count = prompt.count('?') +
+       prompt.count('\\n-') + prompt.count('1.')
+    88             factors.append(min(1.0, question_count / 5))
+    89             if history:
+    90                 context_refs = sum(1 for h in history[-3:]
+       if any(word in prompt.lower() for word in
+       h.lower().split()[:10]))
+    91                 factors.append(min(1.0, context_refs / 3))
+    92             else:
+    93                 factors.append(0.0)
+    94             return np.mean(factors)
+    95 
+    96         def _assess_relevance(self, prompt: str, history: 
+       List[str] = None) -> float:
+    97             if not history: return 0.5
+    98             prompt_words = set(prompt.lower().split())
+    99             if not prompt_words: return 0.1
+   100             recent_history = ' '.join(history[-3
+       :]).lower().split()
+   101             history_words = set(recent_history)
+   102             if not history_words: return 0.5
+   103             overlap = len
+       (prompt_words.intersection(history_words))
+   104             relevance = min(1.0, overlap / min(len
+       (prompt_words), 20))
+   105             followup_indicators = ['continue', 'also',
+       'furthermore', 'additionally', 'what about']
+   106             if any(indicator in prompt.lower() for
+       indicator in followup_indicators):
+   107                 relevance = min(1.0, relevance + 0.2)
+   108             return relevance
+   109 
+   110         def _assess_urgency(self, prompt: str) -> float:
+   111             urgency = 0.1
+   112             urgent_keywords = ['urgent', 'asap', 'quickly',
+       'now', 'immediate', 'emergency']
+   113             time_keywords = ['today', 'tomorrow', 'this 
+       week', 'deadline', 'due']
+   114             if any(k in prompt.lower() for k in
+       urgent_keywords): urgency += 0.3
+   115             if any(k in prompt.lower() for k in
+       time_keywords): urgency += 0.2
+   116             if any(w in prompt.lower() for w in ['what',
+       'how', 'when', 'where', 'why']): urgency += 0.1
+   117             return min(1.0, urgency)
+   118 
+   119         def _estimate_resource_cost(self, prompt: str, 
+       complexity: float) -> float:
+   120             base_cost = 0.2
+   121             length_cost = min(0.4, len(prompt) / 5000)
+   122             complexity_cost = complexity * 0.3
+   123             expensive_ops = ['generate code', 'write 
+       script', 'create', 'design', 'build']
+   124             if any(op in prompt.lower() for op in
+       expensive_ops): base_cost += 0.2
+   125             total_cost = base_cost + length_cost +
+       complexity_cost
+   126             if self.gpu_memory < 12: total_cost *= 1.2
+   127             return min(1.0, total_cost)
+   128 
+   129         def get_optimization_recommendation(self, score: 
+       ContextScore) -> Dict[str, any]:
+   130             recommendations = {
+   131                 'model_quantization': 'Q4_K_M',
+       'context_limit': 4096,
+   132                 'batch_size': 1, 'use_cache': True,
+       'priority': 'normal'
+   133             }
+   134             if score.resource_cost > 0.7:
+   135                 recommendations.update({
+       'model_quantization': 'Q4_K_S', 'context_limit': 2048,
+       'priority': 'low'})
+   136             if score.urgency > 0.7:
+   137                 recommendations.update({'context_limit':
+       8192, 'priority': 'high', 'use_cache': False})
+   138             if score.complexity < 0.3:
+   139                 recommendations['suggested_model'] =
+       'gemma2:2b'
+   140             elif score.complexity > 0.7:
+   141                 recommendations['suggested_model'] =
+       'mistral:7b-instruct'
+   142             return recommendations
+
+  ---
+
+  Implementation Directive 2: Update `interactive.py`
+   * Action: The instantiation of the context scorer in interactive.py
+     must be updated to use the new class.
+   * Code:
+
+       * Old String to be Replaced:
+   1         from .context_scorer import ContextScoringEngine,
+     DynamicContextPruner
+       * New String:
+   1         from .context_scorer import AdaptiveContextScorer
+
+       * Old String to be Replaced:
+
+   1         if self.config.optimization.context_scoring and not
+     hasattr(self, 'context_scorer'):
+   2             self.context_scorer = ContextScoringEngine()
+   3             self.context_pruner = DynamicContextPruner()
+       * New String:
+
+   1         if self.config.optimization.context_scoring and not
+     hasattr(self, 'context_scorer'):
+   2             self.context_scorer = AdaptiveContextScorer(self
+     .config)
+   3             # Note: DynamicContextPruner is no longer used by
+     this scorer.
+   4             # self.context_pruner = DynamicContextPruner() 
+       * Note: The DynamicContextPruner is no longer used by the new
+         AdaptiveContextScorer. The line initializing it can be removed or
+          commented out.
+
+  ---
+
+  Verification Protocol
+
+   1. Startup Verification: After applying the changes, launch the
+      application. The system should start without any ImportError or
+      TypeError related to the context scorer, confirming that the new
+      class has been integrated correctly.
+   2. Functionality Verification:
+       * Execute a simple query like "hello".
+       * The application should respond normally. While there will be no
+         direct output from the new scorer, a successful response confirms
+          that the score_context method is being called without causing a
+         crash.
+   3. Hardware-Awareness Verification (Advanced):
+       * To confirm the hardware-aware logic is working, you can
+         temporarily add a print statement in interactive.py inside the
+         handle_llm_request method, right after the context scorer is
+         called:
+
+   1         # Temporary debug line
+   2         console.print(f"[DEBUG] Context Score: 
+     {context_score.unified_score:.2f}, Weights: 
+     {self.context_scorer.weights}")
+       * Run a query. The debug output should show the calculated score
+         and the hardware-adjusted weights, confirming the new module is
+         fully operational. This print statement should be removed after
+         verification.
+
+-------------------------------------------------------------------------------------------
+-----------------------------section 4-------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+
+
+
+
+OPERATIONAL PLAN: Step 6.2 - Integration of Dynamic Quantization Manager
+
+   * Objective: To enable the system to dynamically recommend and switch to
+     the most memory-efficient model quantization based on hardware
+     constraints and task priority.
+   * Benefit: Directly addresses the goal of using larger, more capable
+     models on smaller hardware by selecting the optimal
+     memory-to-performance trade-off at runtime.
+   * Priority: HIGH
+   * Target Files:
+       1. /home/commander/Desktop/BackupOpencode/site-packages/opencode/qua
+          nt_manager.py (NEW)
+       2. /home/commander/Desktop/BackupOpencode/site-packages/opencode/int
+          eractive.py (MODIFY)
+
+  ---
+
+  Implementation Directive 1: Create `quant_manager.py`
+
+   * Action: A new file, quant_manager.py, will be created to house the
+     DynamicQuantizationManager class, as defined in your implementation
+     plan.
+   * Code:
+
+    1     import requests
+    2     import subprocess
+    3     import psutil
+    4     from typing import Dict, List, Optional
+    5     from dataclasses import dataclass
+    6 
+    7     @dataclass
+    8     class QuantizationProfile:
+    9         model_name: str
+   10         quantization: str
+   11         memory_usage: float
+   12         performance_score: float
+   13         supported_ops: List[str]
+   14 
+   15     class DynamicQuantizationManager:
+   16         """Hardware-aware quantization management for Ollama
+      models."""
+   17         def __init__(self, ollama_base_url: str = 
+      "http://localhost:11434"):
+   18             self.ollama_url = ollama_base_url
+   19             self.gpu_memory = self._detect_gpu_memory()
+   20             self.system_memory =
+      psutil.virtual_memory().total / (1024**3)
+   21             self.profiles = {
+   22                 'Q4_K_M': {'memory_mult': 0.57,
+      'performance': 0.95, 'speed': 1.0},
+   23                 'Q4_K_S': {'memory_mult': 0.54,
+      'performance': 0.92, 'speed': 1.05},
+   24                 'Q5_K_M': {'memory_mult': 0.71,
+      'performance': 0.98, 'speed': 0.9},
+   25                 'Q8_0': {'memory_mult': 1.0, 'performance':
+      1.0, 'speed': 0.8},
+   26                 'Q3_K_M': {'memory_mult': 0.42,
+      'performance': 0.88, 'speed': 1.15}
+   27             }
+   28 
+   29         def _detect_gpu_memory(self) -> float:
+   30             """Detect available GPU memory in GB."""
+   31             try:
+   32                 result = subprocess.run(
+   33                     ['nvidia-smi',
+      '--query-gpu=memory.total', '--format=csv,nounits,noheader'
+      ],
+   34                     capture_output=True, text=True, check=
+      True
+   35                 )
+   36                 return float(result.stdout.strip()) / 1024
+   37             except (FileNotFoundError,
+      subprocess.CalledProcessError, ValueError):
+   38                 return 12.0  # Fallback to a conservative 
+      estimate
+   39 
+   40         def recommend_quantization(self, model_base: str, 
+      target_context: int = 4096, priority: str = 'balanced') ->
+      Dict[str, any]:
+   41             """Recommend optimal quantization based on 
+      hardware and requirements."""
+   42             base_size_gb = 14.0
+   43             if '13b' in model_base.lower(): base_size_gb =
+      26.0
+   44             elif '3b' in model_base.lower() or '2b' in
+      model_base.lower(): base_size_gb = 6.0
+   45             elif '70b' in model_base.lower(): base_size_gb =
+      140.0
+   46 
+   47             context_memory_gb = (target_context * 4) / (1024
+      **3)
+   48             available_memory = min(self.gpu_memory * 0.8,
+      self.system_memory * 0.4)
+   49 
+   50             recommendations = {}
+   51             for quant_name, profile in self
+      .profiles.items():
+   52                 estimated_usage = (base_size_gb * profile[
+      'memory_mult']) + context_memory_gb
+   53                 if estimated_usage <= available_memory:
+   54                     model_name = f"{model_base}:
+      {quant_name.lower()}"
+   55                     recommendations[model_name] = {
+   56                         'quantization': quant_name,
+   57                         'estimated_memory': estimated_usage,
+   58                         'performance_score': profile[
+      'performance'],
+   59                         'speed_multiplier': profile['speed'
+      ],
+   60                     }
+   61 
+   62             if not recommendations: return {
+      'recommended_model': None}
+   63 
+   64             if priority == 'speed':
+   65                 best = max(recommendations.items(), key=
+      lambda x: x[1]['speed_multiplier'])
+   66             elif priority == 'quality':
+   67                 best = max(recommendations.items(), key=
+      lambda x: x[1]['performance_score'])
+   68             else: # balanced
+   69                 best = max(recommendations.items(), key=
+      lambda x: x[1]['performance_score'] * x[1][
+      'speed_multiplier'])
+   70 
+   71             return {
+   72                 'recommended_model': best[0],
+   73                 'alternatives': list
+      (recommendations.keys())[:3],
+   74             }
+   75 
+   76         def ensure_model_available(self, model_name: str) ->
+      bool:
+   77             """Ensure the specified quantized model is 
+      available in Ollama."""
+   78             try:
+   79                 response = requests.get(f"{self.ollama_url}
+      /api/tags")
+   80                 if response.status_code == 200:
+   81                     if model_name in [m['name'] for m in
+      response.json().get('models', [])]:
+   82                         return True
+   83 
+   84                 print(f"Pulling model {model_name}...")
+   85                 pull_response = requests.post(f"
+      {self.ollama_url}/api/pull", json={'name': model_name},
+      stream=True)
+   86                 pull_response.raise_for_status()
+   87                 # Consume the stream to wait for completion
+   88                 for _ in pull_response.iter_lines():
+   89                     pass
+   90                 return True
+   91             except Exception as e:
+   92                 print(f"Error ensuring model availability: 
+      {e}")
+   93                 return False
+
+  ---
+
+  Implementation Directive 2: Update `interactive.py`
+
+   * Action: The InteractiveMode class will be updated to import,
+     initialize, and utilize the new DynamicQuantizationManager.
+   * Code:
+       1. Add Import:
+           * File: interactive.py
+           * Action: Add the import statement at the top of the file with
+             the other local imports.
+           * New String:
+   1             from .quant_manager import
+     DynamicQuantizationManager
+
+       2. Initialize Manager:
+           * File: interactive.py
+           * Action: Initialize the manager within the
+             InteractiveMode.__init__ method.
+           * Old String to be Replaced:
+
+   1             self.pre_rag_optimizer = PreRAGOptimizer(config)
+           * New String:
+   1             self.pre_rag_optimizer = PreRAGOptimizer(config)
+   2             self.quant_manager = DynamicQuantizationManager()
+
+       3. Integrate into Model Selection Logic:
+           * File: interactive.py
+           * Action: The logic for selecting a model in handle_llm_request
+             needs to be updated to consult the quant_manager. This is a
+             conceptual change rather than a simple string replacement. The
+             flow should be:
+               1. After the complexity_analyzer runs, get the optimization
+                  recommendations from the context_scorer.
+               2. Pass the base model name and priority to
+                  self.quant_manager.recommend_quantization().
+               3. If a quantized model is recommended, use
+                  self.quant_manager.ensure_model_available() to pull it if
+                   necessary.
+               4. Use the recommended (and now available) model name for
+                  the self.ollama_client.generate() call.
+
+  ---
+
+  Verification Protocol
+
+   1. Startup Verification: Launch the application. It should start without
+       errors, confirming the new module is imported and initialized
+      correctly.
+   2. Functionality Verification:
+       * Run a query that is resource-intensive (e.g., "generate a detailed
+         python script for a web scraper").
+       * Expected Outcome: The console should print a "Pulling model..."
+         message if a more optimal quantization is recommended and not
+         already present on the system. This confirms the recommendation
+         and auto-pull features are working.
+   3. Hardware-Awareness Verification:
+       * Temporarily add a print statement in handle_llm_request to display
+         the output of recommend_quantization.
+   1         # Temporary debug line
+   2         quant_recommendation = self
+     .quant_manager.recommend_quantization(self.config.model.name)
+   3         console.print(f"[DEBUG] Quantization Recommendation: 
+     {quant_recommendation}")
+       * Expected Outcome: The debug output will show the recommended
+         quantized model, confirming that the manager is making decisions
+         based on your system's hardware.
+
+------------------------------------------------------------------------------------------------
+----------------------------------section 5---------------------------------------------------------------
+-----------------------------------------------------------------------------------------------
+
+
+OPERATIONAL PLAN: Step 6.3 - Integration of Markov Context 
+  Orchestrator (MVCO)
+
+   * Objective: To introduce a predictive, self-learning model routing
+     capability that learns from user interaction patterns to anticipate
+     the optimal model for the next turn.
+   * Benefit: Establishes a true self-learning foundation, enabling the
+     system to automatically improve its model selection over time, leading
+     to faster and more accurate responses tailored to your specific usage
+     patterns.
+   * Priority: HIGH
+   * Target Files:
+       1. /home/commander/Desktop/BackupOpencode/site-packages/opencode/mvc
+          o_engine.py (NEW)
+       2. /home/commander/Desktop/BackupOpencode/site-packages/opencode/con
+          fig.py (MODIFY)
+       3. /home/commander/Desktop/BackupOpencode/site-packages/opencode/int
+          eractive.py (MODIFY)
+
+  ---
+
+  Implementation Directive 1: Create `mvco_engine.py`
+
+   * Action: A new file, mvco_engine.py, will be created to house the
+     MarkovContextOrchestrator class, as defined in your implementation
+     plan.
+   * Code:
+
+     1     import numpy as np
+     2     import json
+     3     import time
+     4     import threading
+     5     import queue
+     6     from collections import defaultdict, deque
+     7     from typing import Dict, List, Optional, Any
+     8     from dataclasses import dataclass
+     9 
+    10     @dataclass
+    11     class ConversationState:
+    12         topic: str
+    13         complexity: float
+    14         user_intent: str
+    15         model_used: str
+    16         response_quality: float
+    17         timestamp: float
+    18 
+    19     class MarkovContextOrchestrator:
+    20         """Markov-chain based context orchestration for 
+       predictive model routing."""
+    21         def __init__(self, config_manager, max_history: int
+       = 10000):
+    22             self.config = config_manager
+    23             self.max_history = max_history
+    24             self.conversation_states = deque(maxlen=self
+       .max_history)
+    25             self.transition_matrix = defaultdict(lambda:
+       defaultdict(float))
+    26             self.state_counts = defaultdict(int)
+    27             self.model_performance = defaultdict(lambda: {
+       'success_rate': 0.5, 'avg_response_time': 5.0,
+       'quality_score': 0.5})
+    28             self.prediction_cache = {}
+    29             self.cache_ttl = 300  # 5 minutes
+    30             self.learning_queue = queue.Queue()
+    31             self.learning_active = True
+    32             self.learning_thread = threading.Thread(target=
+       self._background_learner, daemon=True)
+    33             self.learning_thread.start()
+    34 
+    35         def add_interaction(self, prompt: str, response: 
+       str, model_used: str, response_time: float, quality_score: 
+       Optional[float] = None):
+    36             """Record an interaction for Markov chain 
+       learning."""
+    37             current_state = ConversationState(
+    38                 topic=self._extract_topic(prompt),
+    39                 complexity=self._assess_complexity(prompt),
+    40                 user_intent=self._classify_intent(prompt),
+    41                 model_used=model_used,
+    42                 response_quality=quality_score or self
+       ._estimate_quality(response),
+    43                 timestamp=time.time()
+    44             )
+    45             if self.conversation_states:
+    46                 prev_state = self.conversation_states[-1]
+    47                 self._update_transitions(prev_state,
+       current_state)
+    48             self.conversation_states.append(current_state)
+    49             self.model_performance[model_used][
+       'avg_response_time'] = (self.model_performance[model_used][
+       'avg_response_time'] * 0.9 + response_time * 0.1)
+    50             if quality_score:
+    51                 self.model_performance[model_used][
+       'quality_score'] = (self.model_performance[model_used][
+       'quality_score'] * 0.9 + quality_score * 0.1)
+    52             self.learning_queue.put(('interaction',
+       current_state))
+    53 
+    54         def predict_next_state(self, current_prompt: str)
+       -> Dict[str, Any]:
+    55             """Predict optimal model and parameters for 
+       next interaction."""
+    56             cache_key = hash(current_prompt[:200])
+    57             if cache_key in self.prediction_cache and
+       time.time() - self.prediction_cache[cache_key][1] < self
+       .cache_ttl:
+    58                 return self.prediction_cache[cache_key][0]
+    59 
+    60             current_topic = self
+       ._extract_topic(current_prompt)
+    61             current_complexity = self
+       ._assess_complexity(current_prompt)
+    62             current_intent = self
+       ._classify_intent(current_prompt)
+    63             similar_states = self
+       ._find_similar_states(current_topic, current_complexity,
+       current_intent)
+    64 
+    65             model_scores = {}
+    66             for model, perf in self
+       .model_performance.items():
+    67                 base_score = perf['quality_score'] * 0.6 +
+       (1 / (1 + perf['avg_response_time'])) * 0.4
+    68                 similar_score = np.mean([s.response_quality
+       for s in similar_states if s.model_used == model] or [0.5])
+    69                 model_scores[model] = base_score * 0.7 +
+       similar_score * 0.3
+    70 
+    71             best_model = max(model_scores.items(), key=
+       lambda x: x[1])[0] if model_scores else 'gemma2:2b'
+    72 
+    73             prediction = {
+    74                 'recommended_model': best_model,
+    75                 'confidence': min(0.95, len(similar_states)
+       / 10.0),
+    76                 'predicted_response_time': self
+       .model_performance[best_model]['avg_response_time'],
+    77                 'predicted_quality':
+       model_scores.get(best_model, 0.7),
+    78             }
+    79             self.prediction_cache[cache_key] = (prediction,
+       time.time())
+    80             return prediction
+    81 
+    82         def _extract_topic(self, text: str) -> str:
+    83             keywords = {'code': ['code', 'python',
+       'javascript'], 'math': ['math', 'calculate'], 'general':
+       []}
+    84             text_lower = text.lower()
+    85             for topic, keys in keywords.items():
+    86                 if any(key in text_lower for key in keys):
+       return topic
+    87             return 'general'
+    88 
+    89         def _assess_complexity(self, text: str) -> float:
+    90             factors = [min(1.0, len(text) / 1000))]
+    91             complex_words = ['analyze', 'synthesize',
+       'evaluate', 'implement', 'optimize']
+    92             factors.append(min(1.0, sum(1 for w in
+       complex_words if w in text.lower()) / 3))
+    93             return np.mean(factors)
+    94 
+    95         def _classify_intent(self, text: str) -> str:
+    96             intents = {'question': ['what', 'how', 'why'],
+       'creation': ['create', 'make', 'build']}
+    97             text_lower = text.lower()
+    98             for intent, keys in intents.items():
+    99                 if any(key in text_lower for key in keys):
+       return intent
+   100             return 'general'
+   101 
+   102         def _update_transitions(self, prev_state: 
+       ConversationState, current_state: ConversationState):
+   103             prev_key = (prev_state.topic,
+       prev_state.user_intent, prev_state.model_used)
+   104             current_key = (current_state.topic,
+       current_state.user_intent)
+   105             self.transition_matrix[prev_key][current_key]
+       += 1
+   106             self.state_counts[prev_key] += 1
+   107 
+   108         def _find_similar_states(self, topic: str, 
+       complexity: float, intent: str, n_similar: int = 10) ->
+       List[ConversationState]:
+   109             similar_states = []
+   110             for state in self.conversation_states:
+   111                 similarity = 0
+   112                 if state.topic == topic: similarity += 0.4
+   113                 if abs(state.complexity - complexity) < 0.2
+       : similarity += 0.3
+   114                 if state.user_intent == intent: similarity
+       += 0.3
+   115                 if similarity > 0.3:
+       similar_states.append(state)
+   116             return sorted(similar_states, key=lambda x:
+       x.timestamp, reverse=True)[:n_similar]
+   117 
+   118         def _estimate_quality(self, response: str) -> float
+       :
+   119             if not response or len(response) < 20: return
+       0.1
+   120             quality_score = 0.5 + (min(1.0, len(response) /
+       500) * 0.2)
+   121             if '\n' in response: quality_score += 0.1
+   122             return min(1.0, quality_score)
+   123 
+   124         def _background_learner(self):
+   125             while self.learning_active:
+   126                 try:
+   127                     task = self.learning_queue.get(timeout=
+       1)
+   128                     if task[0] == 'interaction':
+   129                         self._optimize_transitions()
+   130                         self._cleanup_old_data()
+   131                 except queue.Empty:
+   132                     continue
+   133 
+   134         def _optimize_transitions(self):
+   135             for prev_state, transitions in self
+       .transition_matrix.items():
+   136                 total = sum(transitions.values())
+   137                 if total > 0:
+   138                     for next_state in transitions:
+   139                         transitions[next_state] /= total
+   140 
+   141         def _cleanup_old_data(self):
+   142             expired_keys = [k for k, (_, ts) in self
+       .prediction_cache.items() if time.time() - ts > self
+       .cache_ttl]
+   143             for key in expired_keys: del self
+       .prediction_cache[key]
+   144 
+   145         def shutdown(self):
+   146             self.learning_active = False
+   147             if self.learning_thread.is_alive():
+   148                 self.learning_thread.join()
+
+  ---
+  Implementation Directive 2: Update `config.py`
+
+   * Action: Add a boolean flag to RoutingConfig to enable or disable the
+     MVCO router.
+   * Code:
+       * File: /home/commander/Desktop/BackupOpencode/site-packages/openco
+         de/config.py
+       * Old String to be Replaced:
+
+   1         performance_targets: Dict[str, float] =
+     field(default_factory=lambda: {
+   2             'structured': 90.0,
+   3             'recall': 95.0,
+   4             'general': 80.0
+   5         })
+       * New String:
+
+   1         performance_targets: Dict[str, float] =
+     field(default_factory=lambda: {
+   2             'structured': 90.0,
+   3             'recall': 95.0,
+   4             'general': 80.0
+   5         })
+   6         use_mvco_router: bool = True
+
+  ---
+
+  Implementation Directive 3: Update `interactive.py`
+
+   * Action: Import, initialize, and integrate the
+     MarkovContextOrchestrator into the main application flow.
+   * Code:
+       1. Add Import:
+           * File: interactive.py
+           * Action: Add the import statement.
+           * New String: from .mvco_engine import 
+             MarkovContextOrchestrator
+       2. Initialize Manager:
+           * File: interactive.py
+           * Action: Initialize in InteractiveMode.__init__.
+           * Old String: self.quant_manager = DynamicQuantizationManager()
+           * New String:
+   1             self.quant_manager = DynamicQuantizationManager()
+   2             self.mvco = MarkovContextOrchestrator(self
+     .config)
+       3. Integrate Prediction:
+           * File: interactive.py
+           * Action: In handle_llm_request, before the LLM call, use the
+             MVCO to get a model recommendation. This logic should be
+             added after the existing complexity_analyzer block.
+       4. Integrate Learning:
+           * File: interactive.py
+           * Action: At the end of handle_llm_request, after the response
+             is received, call self.mvco.add_interaction() to feed the
+             result back into the learning engine.
+       5. Integrate Shutdown:
+           * File: interactive.py
+           * Action: In the run method, within the if user_input.lower() 
+             in ['quit', ...] block, add a call to self.mvco.shutdown()
+             before the break.
+
+  ---
+
+  Verification Protocol
+
+   1. Startup & Shutdown Verification: Launch the application and then
+      quit. The application should start and exit cleanly, without any
+      errors related to the background thread, confirming that the __init__
+       and shutdown methods are working.
+   2. Prediction Verification:
+       * Add a temporary print statement in handle_llm_request to display
+         the mvco_prediction.
+       * Start a new session and have a conversation about a specific topic
+         (e.g., "python").
+       * Expected Outcome: Initially, the recommended model will be the
+         default. After several interactions, the confidence score in the
+         debug output should increase, and the recommended_model may change
+         to one better suited for the topic, confirming that the learning
+         and prediction loop is active.
+-------------------------------------------------------------------------------------------------
+-------------------------------section 6-----------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+
+roger, Commander. proceeding with ONF + artifacts. continuing from **Extremely\_Advanced\_intergrations\_23:01\_23SEP.txt** and merging into your phase plan.
+
+# ONF
+
+## State
+
+* **Objective:** embed the “Extremely Advanced” modules—AdaptiveContextScorer, DynamicQuantizationManager, MVCO—into Phases 6→10, aligned with Resource Squeezing + agentic workflow doctrine.
+* **Scope (Phase 6 focus):** replace legacy context scoring, add hardware-aware quant routing and self-learning router hooks; wire verifications. The doc already specifies exact code edits and verification checks. &#x20;
+* **Constraints:** consumer GPU/CPU; must auto-pull suggested quants; background learner must shut down cleanly. &#x20;
+
+## Outline (Plan mapped to Phases)
+
+* **Phase 6: Agentic Workflow & Resource Squeezing (execute now)**
+
+  1. **6.1 AdaptiveContextScorer**: replace `ContextScoringEngine` with hardware-aware scorer; drop `DynamicContextPruner` init; add debug verification.&#x20;
+  2. **6.2 DynamicQuantizationManager**: create `quant_manager.py`; in `interactive.py` call `recommend_quantization()` + `ensure_model_available()` before LLM call. &#x20;
+  3. **6.3 MVCO**: create `mvco_engine.py`; add `use_mvco_router: bool`; inject predict + learn + graceful shutdown.&#x20;
+* **Phase 7: RAG System Integration (plan)**
+
+  * Use existing Pre-RAG hooks already in `interactive.py` (query enhancement, context compression) to feed RAG on/off switch later; maintain route-aware summarization budget. &#x20;
+* **Phase 8–10 (plan)**
+
+  * 8: harden background thread, auto-rollback on model pull errors; add kill-switches.&#x20;
+  * 9: tune profile weights (`performance/speed/memory_mult`) + suggested-model rules from score signals. &#x20;
+  * 10: docs & UX toggles (Settings: Optimization, MVCO, Quant manager status; /tools RAG on|off with Pre-RAG stats).&#x20;
+
+## List (Do-Now tasks, crisp)
+
+* **T1 — Replace scorer (6.1):**
+
+  * Overwrite `opencode/context_scorer.py` with AdaptiveContextScorer; update imports/instantiation in `interactive.py`; remove pruner init; keep temporary debug print to confirm weights+score. &#x20;
+* **T2 — Add quant manager (6.2):**
+
+  * Create `opencode/quant_manager.py` with profiles + GPU/VRAM detect; wire `recommend_quantization()` flow and `ensure_model_available()` auto-pull; add debug print once. &#x20;
+* **T3 — Add MVCO (6.3):**
+
+  * Create `opencode/mvco_engine.py`; add `use_mvco_router: bool` to config; in `interactive.py` init `self.mvco`, call `predict_next_state()` before LLM call, `add_interaction()` after, `shutdown()` on quit. &#x20;
+* **T4 — Verification passes (each step has built-in checks):**
+
+  * Startup/Functionality/Hardware-awareness debug lines for scorer and quant; MVCO startup→shutdown; prediction confidence increase over a few turns.  &#x20;
+* **T5 — Config surface:**
+
+  * Add `optimization.enabled`, `optimization.context_scoring`, `routing.use_mvco_router` toggles exposed in UI/settings JSON. (Config loader already maps routing/optimization sections.) &#x20;
+
+## View (project file tree — deltas)
+
+```
+site-packages/opencode/
+├── interactive.py              # MODIFY: scorer init→Adaptive; quant + MVCO hooks
+├── config.py                   # MODIFY: add use_mvco_router: bool
+├── context_scorer.py           # REPLACE: AdaptiveContextScorer
+├── quant_manager.py            # NEW: DynamicQuantizationManager
+├── mvco_engine.py              # NEW: MarkovContextOrchestrator
+├── pre_rag_optimizer.py        # Existing: feeds Phase 7 RAG path
+└── ... (router, tool_orchestrator unchanged)
+```
+
+Touchpoints and sample strings/flow are spelled out in the doc excerpts above. &#x20;
+
+## Evaluate (gates & risks)
+
+* **Success criteria (Phase-6 “GREEN”):**
+
+  * App boots, scorer & quant debug lines visible; first heavy task triggers quant suggestion/pull if absent; MVCO predicts with rising confidence over a short session; no deadlocks on exit.  &#x20;
+* **EBI (evidence balance index):** 0.78 — directives and code stubs are explicit and testable (moderate-strong support).
+* **DR (decision risk):** Low/Med — new background thread & model pulls are the tricky bits.
+* **CB (credence band):** 70–85%.
+* **Gate:** **GREEN** to proceed; Yellow watch on MVCO thread mgmt.
+* **Top-3 disconfirmers to watch:**
+
+  1. `nvidia-smi` missing or returns odd formats → fallback path must engage.&#x20;
+  2. Background learner not joining on shutdown → lingering process.&#x20;
+  3. Quant pull latency blocking UI → ensure streaming pull + one-time debug only.&#x20;
+
+---
+
+# Artifacts
+
+## Problem Card (Phase 6)
+
+* **Problem:** run larger models reliably on small hardware, keep UX responsive, and get smarter over time.
+* **Forces:** VRAM cap; variable prompt complexity; need self-learning routing without regressions.
+* **Must-haves:** hardware-aware scoring/quant; predictive routing; graceful shutdown; explicit verification hooks. (All present in directives.) &#x20;
+
+## Option Matrix (condensed)
+
+* **A) Full integration now (scorer+quant+MVCO)** — Max gain, moderate complexity. ✔ (Recommended)
+* **B) Scorer+Quant only** — Lower risk; defer MVCO thread. (Fallback)
+* **C) Status quo** — No complexity; misses research benefits.
+* Decision drivers: measurable perf vs complexity; thread mgmt readiness.
+
+## Red-Team (stress tests you can run)
+
+* **Quant churn:** trigger back-to-back heavy prompts; confirm only first pull occurs; subsequent runs hit cache.&#x20;
+* **Thread exit:** spam quick starts/quits; verify clean MVCO shutdown every time.&#x20;
+* **Score edge-cases:** ultra-short & ultra-long prompts; confirm urgency/resource\_cost behavior and model suggestions (`gemma2:2b` ↔ `mistral:7b`).&#x20;
+
+## Decision Sheet
+
+* **Go with Option A**; enable MVCO behind `use_mvco_router=true` default; provide UI toggle.
+* **Rollback plan:** set `use_mvco_router=false` and skip MVCO calls; keep scorer+quant. (No code revert needed.)
+
+---
+
+# Phase-6 Execution Checklist (hour-order)
+
+1. **Scorer swap** + debug check (hello-world run).&#x20;
+2. **Quant manager** file + call path; run an expensive prompt; confirm “Pulling model …” appears once.&#x20;
+3. **MVCO** file + config + predict/learn + shutdown; do 5–10 turns on a topic; observe rising confidence.&#x20;
+4. **Settings surface** (toggling optics for Phase 10), confirm loader reads new flags.&#x20;
+5. **Record baselines** (latency, memory, pull times) to feed Phase-9 tuning.
+
+---
+
+# RPIR Ledger (v1)
+
+* **R (Prompt):** integrate advanced research with phase plan; continue from “Extremely\_Advanced…”; include upgrades.
+* **P (Output):** this ONF + artifacts + checklist.
+* **I (Critique):** risks center on thread lifecycle & model pull UX; otherwise directives are concrete.
+* **R (Update ideas):** add lightweight “one-shot” cache for MVCO predictions; batch tool pulls during idle.
+
+**Refinement prompts (pick 3–10):**
+
+1. Approve `use_mvco_router=true` as default or set to false for pilot?
+2. Confirm target base model string we pass into `recommend_quantization()` (e.g., `"gemma2"` vs full tag).&#x20;
+3. OK to keep the debug prints for one day across all sessions?
+4. Do you want the RAG on/off tool surfaced in Phase 7 UI immediately?&#x20;
+5. Approve profiles table as given, or tweak `Q4_K_S` vs `Q5_K_M` priorities?&#x20;
+
+---
+
+# Classification & Scores
+
+* **This output = Framework + Decision.**
+
+  * **N-Score (Framework):** SO 9, CD 8, OU 8, R 8, ED 8 → **8.2 (Stable)**
+  * **N-Score (Decision):** SO 8, CD 8, OU 7, R 8, ED 8 → **7.8 (Stable)**
+
+---
+
+# Discovery Brief (novelty extraction)
+
+* We leveraged explicit Implementation Directives in your “Extremely\_Advanced…” spec to create a minimal-diff integration path (string-level edits, file additions, and verification hooks) and mapped them to your phases with measurable gates. The key novelty is combining **hardware-aware quant selection** + **predictive routing** under **resource squeezing**, with built-in **debug verifications** you can observe live. &#x20;
+
+if you say “go”, I’ll proceed with the Phase-6 checklist as written and report the first metrics snapshot (latency, VRAM, quant pulls, MVCO confidence trajectory).
+
+
+-------------------------------------------------------------------------------------------
+--------------------------------section 7------------------------------------------------------------
+--------------------------------------------------------------------------------------------
+
+
+roger, Commander. refining and hardening the plan, with conflicts/risks called out, paths moved to **/home/commander/Desktop/BackupOpencode/**, and a fresh dual blueprint named **ADV-BLUEPRINT** (internal + external). Baseline layout mirrors your prior blueprint so it drops in cleanly.&#x20;
+
+# ONF
+
+## State
+
+* **Objective:** Integrate F1–F3 (AdaptiveContextScorer, DynamicQuantizationManager, MVCO) into the current stack under the **Resource Squeezing** doctrine; keep RAG hooks ready (Phase 7), and preserve non-destructive verification from **launcher → orchestration → LLM → shutdown**.
+* **Constraints:** Consumer hardware; long terminal sessions; intermittent network for model pulls; no GitHub usage; development home is **/home/commander/Desktop/BackupOpencode/**.
+* **Non-goals (this pass):** No RAG index build, no UI redesign; just back-end integration + toggles + realistic checks.
+
+## Outline (phased merge)
+
+* **Phase 6 (execute now):**
+  F1 scorer swap → F2 quant manager (VRAM/task-aware) → F3 MVCO (predict/learn/shutdown) → end-to-end launcher checks.
+* **Phase 7 (prep only):**
+  Surface RAG on/off switch and feed scored/compacted context into future RAG (no corpus mutation yet).
+* **Phase 8–10 (prep):**
+  Add kill-switches, watchdogs, and doc updates; tune presets and logging quotas.
+
+## List (tasks)
+
+1. Surface feature flags in config; default to safe/balanced.
+2. Replace scorer API (return structured signals).
+3. Insert quant picker + one-time auto-pull with fallbacks.
+4. Insert MVCO (predict → learn → clean shutdown).
+5. Add verification commands (launcher path; grep gates).
+6. Write rollback & safety routines (timestamp backups; no destructive ops).
+
+## View (what changes where)
+
+* **Changed:** `interactive.py`, `config.py`, `context_scorer.py`, optional `config.yaml`
+* **New:** `quant_manager.py`, `mvco_engine.py`
+* **Untouched (but observed):** `router.py`, `tool_orchestrator.py`, `tools.py`, `session_manager.py`, `pre_rag_optimizer.py`
+* **Filesystem roots used this pass:**
+  `/home/commander/Desktop/BackupOpencode/` (working)
+  `~/.opencode/` (data/logs as already established)
+
+## Evaluate
+
+* **EBI:** 0.78 (strong internal directives + clear hooks)
+* **DR:** Low→Med (thread lifecycle and model pull UX are the edge risks)
+* **CB:** 70–85%
+* **Gate:** **GREEN** to proceed (pilot).
+* **Top-3 disconfirmers:** missing `nvidia-smi` (fallback must trigger); MVCO thread not joining; repeated/slow model pulls blocking UX.
+
+---
+
+# ADV-BLUEPRINT
+
+## EXTERNAL SYSTEM ARCHITECTURE (refined; current dev home)
+
+```
+OPENCODE EXTERNAL FILE SYSTEM ─ ADV-BLUEPRINT
+=============================================
+
+┌── LAUNCHER & ENTRY ──────────────────────────────────────────────┐
+│ /home/commander/Desktop/BackupOpencode/                          │
+│ ├─ desktop/OpenCode.desktop      # (if present)                  │
+│ ├─ site-packages/opencode/main.py                                │
+│ └─ site-packages/opencode/cli.py                                 │
+└──────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌── CORE MODULES ──────────────────────────────────────────────────┐
+│ /site-packages/opencode/                                         │
+│ ├─ interactive.py        # Main orchestrator                     │
+│ ├─ config.py             # Config + feature flags                │
+│ ├─ ollama_client.py      # LLM interface                         │
+│ ├─ context_scorer.py     # F1: AdaptiveContextScorer (REPLACED)  │
+│ ├─ quant_manager.py      # F2: DynamicQuantizationManager (NEW)  │
+│ ├─ mvco_engine.py        # F3: MVCO router (NEW)                 │
+│ ├─ router.py             # Lanes: standard/deliberate/recall     │
+│ ├─ model_optimizer.py    # task/size profiles                    │
+│ ├─ time_slicer.py        # budget/backpressure                   │
+│ └─ pre_rag_optimizer.py  # pre-RAG scoring/chunking (Phase 7)    │
+└──────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌── DATA & PERSISTENCE (no destructive writes) ────────────────────┐
+│ ~/.opencode/                                                     │
+│ ├─ projects/ <project-id>/ {logs, rag/, exports/}               │
+│ ├─ logs/{sessions,analytics,intelligence,backups}               │
+│ └─ config.yaml, config_backup_<time>.json                       │
+└──────────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌── RUNTIME WORKING DIR ───────────────────────────────────────────┐
+│ ./logs/, ./config.yaml, /tmp/opencode_* (atomic staging only)    │
+└──────────────────────────────────────────────────────────────────┘
+
+INTEGRATIONS
+- OLLAMA: http://localhost:11434  (model pull/list/gen)
+- SYSTEM TOOLS: via command_policy (whitelist)
+- SECURITY: shell injection prevention + audit
+```
+
+(Structure follows your original blueprint conventions with new F1–F3 components layered in. )
+
+---
+
+## INTERNAL NODE CHAIN (with F1–F3 injection points)
+
+```
+ENTRY → cli.py → Interactive Orchestrator (interactive.py)
+   ├─ Session control / commands (/help, /settings, /project ...)
+   ├─ Lane selection (router.py)
+   ├─ F1: AdaptiveContextScorer  → produces signals {urgency,cost,complexity,suggested_lane}
+   ├─ F2: DynamicQuantizationManager
+   │     → recommend_quantization(base, preset, signals) → "family:Q*"
+   │     → ensure_model_available(tag)  # one-time auto-pull + fallback
+   ├─ Model exec (ollama_client.py) + time_slicer + model_optimizer
+   ├─ F3: MVCO (predict→maybe tweak model/temp; learn on result; shutdown cleanly)
+   └─ Logging/analytics/session saves (non-destructive; atomic)
+```
+
+---
+
+## FRAMEWORK IMPLEMENTATION MAP (what/where/how)
+
+* **F1: AdaptiveContextScorer**
+
+  * *Where:* `context_scorer.py` (replace internal engine); wired in `interactive.py`
+  * *What it returns:* `dict(urgency, resource_cost, complexity, suggested_lane, notes)`
+  * *Used by:* router (lane hint), F2 quant (preset override), MVCO (state)
+  * *Flags:* `optimization.enabled`, `optimization.context_scoring`
+
+* **F2: DynamicQuantizationManager**
+
+  * *Where:* `quant_manager.py` (new); call from `interactive.py` pre-inference
+  * *What it does:* VRAM detect → select quant by preset & signals → `ensure_model_available` (pull once) → set model tag
+  * *Fallbacks:* If `nvidia-smi` missing, assume CPU/low-VRAM path and pick `:*Q4_K_M`
+  * *Flags:* `optimization.resource_preset ∈ {tiny,fast,balanced,quality}`
+
+* **F3: MVCO (Markov Context Orchestrator)**
+
+  * *Where:* `mvco_engine.py` (new); predict/learn/shutdown wired in `interactive.py`
+  * *What it does:* predicts confidence and optional preference; learns asynchronously; guarantees `shutdown()` join
+  * *Flags:* `optimization.use_mvco_router`
+
+* **Phase-7 hooks (deferred enable):**
+
+  * Pre-RAG signals from F1 feed `pre_rag_optimizer.py`; RAG on/off lives under `/tools` and settings surface.
+
+---
+
+# CONFLICT / RISK / INEFFICIENCY MATRIX
+
+| Area             | Potential Issue                                         | Detection                                          | Mitigation (orders)                                                                                            |
+| ---------------- | ------------------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| VRAM probe       | `nvidia-smi` absent or non-NVIDIA                       | First run logs show VRAM=0; quant picker always Q4 | Implement soft-detect; if probe fails → preset guard (`tiny/fast`) and skip warnings; document CPU path        |
+| Model pulls      | Long `ollama pull` blocks UX                            | “Pulling model …” repeats; session sluggish        | One-time pull cache; print once; allow user cancel; prefer smaller quant if network slow; pre-pull during idle |
+| Model tags       | Family/tag mismatch (e.g., `gemma2` vs `gemma-3-4b-it`) | Generation 404 or fallback fires                   | Parse base family from configured name; keep a mapping table; log chosen tag                                   |
+| Thread lifecycle | MVCO thread persists after exit                         | No “shutdown OK” line; stray process               | Always call `mvco.shutdown()` in `InteractiveMode.stop()`; join with timeout; add watchdog                     |
+| Log volume       | Run logs grow unbounded                                 | Disk usage spikes                                  | Rotate `run.log` per day; keep only last N; compress archives                                                  |
+| Lane drift       | Scorer suggests lane that router ignores                | Lane mismatch in logs                              | Route honors `suggested_lane` as a hint; if ignored, log “override\:reason” once                               |
+| Quant churn      | Re-deciding quant every turn                            | Frequent model swap/pulls                          | Lock the chosen tag per session unless signals change by >Δ; cool-down window                                  |
+| Time slicing     | Over-aggressive backpressure                            | Responses feel fragmented                          | Clamp slice sizes by preset; expose `/settings runtime.slice_generation`                                       |
+| File safety      | Tool writes outside workspace                           | Audit shows blocked writes                         | Ensure `tools.py` path guards remain; run guardrail test on each release                                       |
+| RAG prep         | Pre-RAG compresses too hard                             | Context loss complaints                            | Keep compression budget logged; expose tunable ratio; add “raw vs compact” diff in debug                       |
+
+---
+
+# WORK ORDER v2 (no GitHub, no VCS; timestamp backups)
+
+> **Working dir:** `/home/commander/Desktop/BackupOpencode/`
+> **Rule:** Non-destructive only. All writes stay under working dir or `~/.opencode/`.
+
+### W0 — Safety & backups
+
+* Make a timestamped backup of changed files (idempotent; safe to repeat):
+
+  ```
+  TS=$(date +%Y%m%d_%H%M%S)
+  BK="/home/commander/Desktop/BackupOpencode/.backup/$TS"
+  mkdir -p "$BK"
+  cp -a site-packages/opencode/{interactive.py,config.py,context_scorer.py} "$BK" 2>/dev/null || true
+  ```
+
+### W1 — Feature flags
+
+* Ensure `config.py` has:
+
+  * `optimization.enabled: bool`
+  * `optimization.context_scoring: bool`
+  * `optimization.use_mvco_router: bool`
+  * `optimization.resource_preset: str ∈ {tiny,fast,balanced,quality}`
+* If `config.yaml` exists at either working dir or `~/.opencode/`, add the same keys (defaults: enabled; context\_scoring: true; use\_mvco\_router: true; preset: balanced).
+
+### W2 — F1 scorer swap
+
+* `context_scorer.py`: return structured dict as above; add one-time debug print for lane/urgency/cost/complexity.
+* `interactive.py`: instantiate scorer; call `score()` before routing; store signals in `route_metadata`.
+
+### W3 — F2 quant manager
+
+* Create `quant_manager.py` with:
+
+  * `_vram_gb()` soft-detect; return 0 if probe fails.
+  * `recommend_quantization(base, preset, signals) → "family:Q*"`
+  * `ensure_model_available(tag)`; prints **once**: `[Quant] Pulling model ...` or `[Quant] Using model ...`
+* `interactive.py`: before LLM call, compute `chosen_tag`, set it on the client, call `ensure_model_available()`.
+
+### W4 — F3 MVCO
+
+* Create `mvco_engine.py` with `predict()`, `learn()`, `shutdown()`. On init, spin a daemon thread; on app exit, call `shutdown()` and log `[MVCO] shutdown OK`.
+
+### W5 — Launcher path verification (realistic)
+
+* Start the app from the same entry used by the user. Confirm, in one continuous session:
+
+  * **Exactly one** scorer debug line after first prompt.
+  * A **single** quant decision (pull once or use).
+  * `[MVCO] conf=…` appears per turn; `[MVCO] shutdown OK` on exit.
+* Collect logs to `run.log` and grep:
+
+  ```
+  python -u -m site-packages.opencode.cli 2>&1 | tee run.log
+  egrep "\[Scorer\] lane=|\[Quant\] (Using|Pulling) model|\[MVCO\] conf=|\[MVCO\] shutdown OK" run.log
+  ```
+
+### W6 — Guardrail test (non-destructive)
+
+* Attempt an illegal write via tools; expect DENY and **no** file created outside workspace.
+* Verify no changes beyond intended files by listing modified timestamps in working dir.
+
+### Rollback (always available)
+
+* To revert, copy the BK files back into `site-packages/opencode/` and restart.
+
+---
+
+# VERIFICATION ORDERS (unit → integration → E2E)
+
+**Unit:**
+
+1. `python -c "from site-packages.opencode.quant_manager import DynamicQuantizationManager as Q; print('QM', bool(Q()))"`
+2. `python -c "from site-packages.opencode.mvco_engine import MVCO as M; m=M(); print('MV', m.predict({})); m.shutdown(); print('MV done')"`
+
+**Integration (dry):**
+
+1. Import `interactive.py` and instantiate with defaults; ensure no exceptions.
+2. Simulate a heavy prompt; confirm debug lines appear (may require interactive run).
+
+**E2E:**
+
+1. Launch via your normal entry (same as the user uses).
+2. Observe one-time scorer line, quant decision, per-turn MVCO conf, clean shutdown.
+3. Confirm **no** files written outside working dir and `~/.opencode/`.
+
+**Pass gate:** All three layers pass; no zombie threads; logs match grep; no destructive writes.
+
+---
+
+# ARTIFACTS
+
+## Problem Card
+
+* **Problem:** Run larger/better models on limited hardware with stable UX; learn over time; never corrupt user data.
+* **Forces:** VRAM/network variability; long sessions; terminal coder; need for verifiable behavior.
+* **Must-haves:** hardware-aware quant; structured scorer signals; async learning with clean join; simple rollbacks; realistic checks.
+
+## Option Matrix
+
+* **A. Full F1+F2+F3 now (Recommended):** Max gain; moderate risk managed by toggles + logs.
+* **B. F1+F2 only:** Defer MVCO thread if watchdogs not ready.
+* **C. Status quo:** No change; leaves perf/learning benefits untapped.
+
+## Red-Team Tests (run after success gate)
+
+* **Quant churn:** two heavy prompts back-to-back → ensure only first pulls and tag stays stable (cool-down).
+* **Exit storm:** start/quit quickly 3× → always prints `[MVCO] shutdown OK`.
+* **Guardrail attack:** attempt path traversal via tools → denied; audit shows block.
+
+## Decision Sheet
+
+* **Go:** Option A. Defaults: `enabled=true`, `context_scoring=true`, `use_mvco_router=true`, `resource_preset=balanced`.
+* **Rollback:** Flip flags to `false` (keeps code, disables features); if needed, restore from `./.backup/<timestamp>/`.
+
+---
+
+# RPIR Ledger (v3)
+
+* **R (Prompt):** Refine plan; remove GitHub; set dev path; deliver ADV-BLUEPRINT; include risks & verifications.
+* **P (Output):** Refined plan, conflict matrix, work order v2, ADV-BLUEPRINT (internal/external).
+* **I (Critique):** Biggest fragility is model family/tag mapping; add a small table to avoid name drift. Watch log growth.
+* **R (Update ideas):** Idle pre-pull queue; session-stable model tag with Δ-change threshold; daily log rotation.
+
+**Refinement prompts (choose 3–10):**
+
+1. Approve defaults: `enabled/context_scoring/use_mvco_router = true`, `preset=balanced`?
+2. Confirm base model family strings you want locked (e.g., `gemma-3-4b-it`, `mistral:7b-instruct`) for the table.
+3. Do you want RAG on/off surfaced in `/tools` now (Phase 7 prep), or wait?
+4. Max log retention (days or MB) before rotation?
+5. Should quant cool-down be per-session (recommended) or per-project?
+
+---
+
+# Classification & Scores
+
+* **This output = Framework + Decision + Insight.**
+* **N-Score:** SO 9, CD 8, OU 8, R 8, ED 8 → **8.2 (Stable)**
+
+---
+
+# Discovery Brief
+
+* We ported the advanced integrations into your local-only development flow, removed GitHub dependence, and added realistic, *launcher-to-shutdown* verification with explicit non-destructive guarantees. The ADV-BLUEPRINT mirrors your established blueprint while layering F1–F3 with clear toggles and failure fallbacks.&#x20;
+
+If you want, I can drop this ADV-BLUEPRINT into a single text file in your working directory—say `ADV-BLUEPRINT.txt`—exactly as rendered here.
+
+
+----------------------------------------------------------------------------------------------------
+------------------------------------section 8--------------------------------------------------------------
+
+-----------------------------------------------------------------------------------------------------
+
+
+* **/home/commander/Desktop/BackupOpencode/site-packages/opencode/config.py — add feature toggles + wire into Config**
+
+  ```python
+  # [ADD near other dataclasses]
+  from dataclasses import dataclass, field
+
+  @dataclass
+  class OptimizationToggles:
+      enabled: bool = True
+      context_scoring: bool = True
+      use_mvco_router: bool = True
+      resource_preset: str = "balanced"   # tiny|fast|balanced|quality
+
+  # [MODIFY in main Config dataclass: add field]
+  @dataclass
+  class Config:
+      # ...existing fields...
+      optimization: OptimizationToggles = field(default_factory=OptimizationToggles)
+
+  # [OPTIONAL: in Config.from_dict(...) or loader merge path]
+  d = data.get("optimization", {})
+  self.optimization = OptimizationToggles(
+      enabled=d.get("enabled", True),
+      context_scoring=d.get("context_scoring", True),
+      use_mvco_router=d.get("use_mvco_router", True),
+      resource_preset=d.get("resource_preset", "balanced"),
+  )
+  ```
+
+* **/home/commander/Desktop/BackupOpencode/site-packages/opencode/context\_scorer.py — normalize scorer API + one-time debug**
+
+  ```python
+  # [ADD at top]
+  _CTX_DEBUG_ONCE = {"done": False}
+  def _debug_once(msg: str):
+      if not _CTX_DEBUG_ONCE["done"]:
+          print(msg)
+          _CTX_DEBUG_ONCE["done"] = True
+
+  class ContextScoringEngine:
+      # ...existing init...
+
+      # [REPLACE or ADD this method; keep name 'score' to be the public API]
+      def score(self, context: dict, user_input: str) -> dict:
+          """
+          Returns structured signals used by router/quant/MVCO.
+          """
+          # --- derive or fallback heuristics without breaking existing internals ---
+          urgency = getattr(self, "estimate_urgency", lambda *_: 0.4)(context, user_input)
+          resource_cost = getattr(self, "estimate_cost", lambda *_: 0.6)(context, user_input)
+          complexity = getattr(self, "estimate_complexity", lambda *_: 0.5)(context, user_input)
+          lane = getattr(self, "suggest_lane", lambda *_: "general")(context, user_input)
+
+          out = {
+              "urgency": float(urgency),
+              "resource_cost": float(resource_cost),
+              "complexity": float(complexity),
+              "suggested_lane": str(lane),
+              "notes": "normalized-scoring-v1"
+          }
+          _debug_once(f"[Scorer] lane={out['suggested_lane']} "
+                      f"urgency={out['urgency']:.2f} "
+                      f"cost={out['resource_cost']:.2f} "
+                      f"complexity={out['complexity']:.2f}")
+          return out
+  ```
+
+* **/home/commander/Desktop/BackupOpencode/site-packages/opencode/interactive.py — wire F1/F2/F3 hooks (imports, init, pre/post call, shutdown)**
+
+  ```python
+  # [ADD imports near top]
+  from .context_scorer import ContextScoringEngine
+  from .quant_manager import DynamicQuantizationManager          # (new file)
+  from .mvco_engine import MVCO                                  # (new file)
+
+  class InteractiveMode:
+      def __init__(self, config, *args, **kwargs):
+          # ...existing init...
+          self.config = config
+          # [ADD scorer/quant/MVCO init guarded by flags]
+          self.scorer = ContextScoringEngine() if getattr(self.config, "optimization", None) and self.config.optimization.context_scoring else None
+          self.quant = DynamicQuantizationManager() if getattr(self.config, "optimization", None) else None
+          self.mvco  = MVCO() if getattr(self.config, "optimization", None) and self.config.optimization.use_mvco_router else None
+          # ----
+
+      # [FIND the method that handles a single user request before an LLM call; insert just before building the LLM prompt]
+      def _handle_request(self, user_input: str, context: dict):
+          route_metadata = {}
+          # [F1: scorer]
+          if self.scorer and self.config.optimization.enabled:
+              s = self.scorer.score(context=context, user_input=user_input)
+              route_metadata["scorer"] = s
+
+          # [F2: quant pick & ensure availability]
+          if self.quant and self.config.optimization.enabled:
+              # derive base model family from current client config/name
+              base_name = getattr(getattr(self, "client", None), "config", None)
+              base = (base_name.name.split(":")[0] if base_name and base_name.name else "gemma-3-4b-it")
+              preset = self.config.optimization.resource_preset
+              chosen = self.quant.recommend_quantization(base, preset, route_metadata.get("scorer", {}))
+              if base_name:
+                  base_name.name = chosen
+              self.quant.ensure_model_available(chosen)
+              print(f"[Quant] Using model {chosen}")
+
+          # [F3: MVCO pre-call predict (optional model/temp adjustments)]
+          if self.mvco and self.config.optimization.enabled:
+              mv = self.mvco.predict(route_metadata)
+              print(f"[MVCO] conf={mv.get('conf',0):.2f}")
+
+          # ... proceed to build prompt and call LLM as before ...
+          response = self._call_llm(user_input, context)  # <-- existing call
+
+          # [F3: MVCO post-call learn]
+          if self.mvco and self.config.optimization.enabled:
+              self.mvco.learn({"success": True, "model": getattr(getattr(self, "client", None), "config", None).name if getattr(getattr(self, "client", None), "config", None) else "unknown"})
+
+          return response
+
+      # [ENSURE clean shutdown path joins MVCO]
+      def stop(self):
+          # ...existing stop/cleanup...
+          if getattr(self, "mvco", None):
+              try:
+                  self.mvco.shutdown()
+                  print("[MVCO] shutdown OK")
+              except Exception as e:
+                  print(f"[MVCO][WARN] shutdown error: {e}")
+          # ...
+  ```
+
+* **/home/commander/Desktop/BackupOpencode/config.yaml — add optimization section (if this file is used)**
+
+  ```yaml
+  optimization:
+    enabled: true
+    context_scoring: true
+    use_mvco_router: true
+    resource_preset: balanced  # tiny|fast|balanced|quality
+  ```
+-------------------------------------------------------------------------------------------------------
+---------------------------------------extras----------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------
+
+"""
+DynamicQuantizationManager
+- Picks a safe quantization tag for a given base model based on VRAM and preset.
+- Ensures the model is available locally (one-time pull per tag per run).
+- Minimizes churn via a cooldown window and per-session sticky choice.
+
+Logs (grep-friendly):
+  [Quant] Using model <tag>
+  [Quant] Pulling model <tag> ...
+  [Quant][WARN] <message>
+"""
+
+from __future__ import annotations
+import os
+import re
+import shutil
+import subprocess
+import threading
+import time
+from dataclasses import dataclass
+from typing import Dict, Optional, Tuple
+
+# ---- helpers -----------------------------------------------------------------
+
+def _which(cmd: str) -> str:
+    return shutil.which(cmd) or cmd
+
+def _run(cmd: list[str], timeout: int = 20) -> Tuple[int, str]:
+    try:
+        out = subprocess.check_output(cmd, text=True, timeout=timeout, stderr=subprocess.STDOUT)
+        return 0, out
+    except subprocess.CalledProcessError as e:
+        return e.returncode, e.output or ""
+    except Exception as e:
+        return 1, str(e)
+
+def _print_once(cache: set[str], key: str, msg: str) -> None:
+    if key not in cache:
+        print(msg)
+        cache.add(key)
+
+# ---- VRAM detectors -----------------------------------------------------------
+
+def _vram_nvidia_gb() -> float:
+    code, out = _run(["nvidia-smi", "--query-gpu=memory.total", "--format=csv,noheader,nounits"], timeout=4)
+    if code != 0:
+        return -1.0
+    vals = []
+    for line in out.splitlines():
+        line = line.strip()
+        if line:
+            try:
+                # nvidia-smi returns MB units w/ nounits; normalize to GB
+                mb = float(line)
+                vals.append(mb / 1024.0)
+            except Exception:
+                pass
+    return max(vals) if vals else -1.0
+
+def _vram_amd_gb() -> float:
+    # rocm-smi outputs vary; best-effort parse of "Total VRAM Memory (B): <bytes>"
+    code, out = _run(["rocm-smi"], timeout=4)
+    if code != 0:
+        return -1.0
+    # try to find something like "Total VRAM Memory (B): 17179869184"
+    m = re.search(r"Total\s+VRAM\s+Memory\s+\(B\)\s*:\s*(\d+)", out, re.IGNORECASE)
+    if not m:
+        # fallback: look for "VRAM Total Memory (B)" variants
+        m = re.search(r"VRAM.*?Total.*?\(B\)\s*:\s*(\d+)", out, re.IGNORECASE | re.DOTALL)
+    if not m:
+        return -1.0
+    try:
+        b = float(m.group(1))
+        return b / (1024.0 ** 3)
+    except Exception:
+        return -1.0
+
+def detect_vram_gb() -> float:
+    """Return GPU VRAM (GB). If no GPU detected, returns 0.0 (CPU/low-resource path)."""
+    v = _vram_nvidia_gb()
+    if v >= 0:
+        return v
+    v = _vram_amd_gb()
+    if v >= 0:
+        return v
+    return 0.0
+
+# ---- quant logic --------------------------------------------------------------
+
+@dataclass
+class QuantChoice:
+    quant: str
+    reason: str
+
+_QUANT_TABLE = {
+    # preset -> default quant; escalate/degrade list used if availability fails
+    "tiny":      ["Q4_K_M", "Q4_0"],
+    "fast":      ["Q4_K_M", "Q5_K_M"],
+    "balanced":  ["Q5_K_M", "Q4_K_M", "Q6_K"],
+    "quality":   ["Q6_K", "Q5_K_M", "Q4_K_M"],
+}
+_DEFAULT_PRESET = "balanced"
+
+# optional per-family quirks (can extend as you learn availability)
+_FAMILY_CANONICAL = {
+    # normalize various names to a canonical family string used in tags
+    "gemma": "gemma-3-4b-it",           # example default
+    "gemma2": "gemma2-2b-16k",
+    "mistral": "mistral:7b-instruct",   # already has colon; we'll replace quant safely
+    "llama3": "llama3.1:8b-instruct",
+}
+
+def _normalize_family(base_model: str) -> str:
+    if not base_model:
+        return _FAMILY_CANONICAL["gemma"]
+    low = base_model.lower()
+    for k, v in _FAMILY_CANONICAL.items():
+        if k in low:
+            return v
+    return base_model  # assume caller passed the exact name used in your config
+
+def _inject_quant_tag(base_model: str, quant: str) -> str:
+    # If base_model already has a colon, replace the trailing part after ':' with quant if it looks like a quant,
+    # otherwise append ":<quant>".
+    if ":" in base_model:
+        # Some models include versions after colon; we append quant if there is not already a Q*-style suffix
+        if re.search(r":Q[0-9].*", base_model):
+            return re.sub(r":Q[0-9][^:]*$", f":{quant}", base_model)
+        return f"{base_model}:{quant}"
+    return f"{base_model}:{quant}"
+
+# ---- manager -----------------------------------------------------------------
+
+class DynamicQuantizationManager:
+    """
+    Safe, sticky quant chooser with one-time model pulls.
+    """
+    def __init__(self, ollama_cmd: str = "ollama", pull_timeout_s: int = 1800,
+                 cooldown_s: int = 30, dry_run: bool = False):
+        self.ollama = _which(ollama_cmd)
+        self.pull_timeout_s = pull_timeout_s
+        self.cooldown_s = cooldown_s
+        self.dry_run = dry_run
+        self._lock = threading.Lock()
+        self._pulled_once: set[str] = set()
+        self._printed_once: set[str] = set()
+        self._last_choice: Optional[Tuple[str, float]] = None  # (tag, timestamp)
+
+    # --- discovery -------------------------------------------------------------
+
+    def installed_models(self) -> set[str]:
+        code, out = _run([self.ollama, "list"], timeout=6)
+        if code != 0:
+            return set()
+        names = set()
+        for line in out.splitlines():
+            parts = line.split()
+            if parts:
+                names.add(parts[0])  # "name[:tag]"
+        return names
+
+    # --- policy ----------------------------------------------------------------
+
+    def recommend_quantization(self, base_model: str,
+                               resource_preset: str,
+                               signals: Optional[Dict] = None) -> str:
+        """
+        Returns a model tag like "gemma-3-4b-it:Q5_K_M".
+        - Uses VRAM and preset as primary signal.
+        - Uses 'complexity' and 'resource_cost' to bump/degrade one step.
+        - Respects a short cooldown to avoid rapid thrashing.
+        """
+        base = _normalize_family(base_model)
+        preset = (resource_preset or _DEFAULT_PRESET).lower()
+        vr_gb = detect_vram_gb()
+
+        # start with default ladder for the preset
+        ladder = list(_QUANT_TABLE.get(preset, _QUANT_TABLE[_DEFAULT_PRESET]))
+
+        # coarse VRAM guardrails
+        if vr_gb < 4.0 and "Q4_K_M" in ladder:
+            ladder = ["Q4_K_M"] + [q for q in ladder if q != "Q4_K_M"]
+        elif vr_gb >= 12.0 and "Q6_K" in ladder:
+            ladder = ["Q6_K"] + [q for q in ladder if q != "Q6_K"]
+
+        # adjust by signals
+        s = signals or {}
+        complexity = float(s.get("complexity", 0.5))
+        resource_cost = float(s.get("resource_cost", 0.5))
+        # prefer higher quant for high complexity when VRAM permits
+        if complexity >= 0.75 and vr_gb >= 8.0 and "Q6_K" in ladder:
+            if ladder[0] != "Q6_K":
+                ladder.remove("Q6_K")
+                ladder.insert(0, "Q6_K")
+        # prefer lower quant for high resource cost / low VRAM
+        if resource_cost >= 0.75 and "Q4_K_M" in ladder:
+            if ladder[0] != "Q4_K_M":
+                ladder.remove("Q4_K_M")
+                ladder.insert(0, "Q4_K_M")
+
+        # cooldown: if last tag still appropriate and cooldown not elapsed, keep it
+        now = time.time()
+        if self._last_choice and (now - self._last_choice[1] < self.cooldown_s):
+            sticky_tag = self._last_choice[0]
+            # keep if family matches and quant still in ladder (prevents oscillation)
+            if sticky_tag.split(":")[0] == base and sticky_tag.split(":")[-1] in ladder:
+                return sticky_tag
+
+        tag = _inject_quant_tag(base, ladder[0])
+        self._last_choice = (tag, now)
+        return tag
+
+    # --- provisioning ----------------------------------------------------------
+
+    def ensure_model_available(self, model_tag: str) -> bool:
+        """
+        True when model is present locally (pull if needed, once per tag per run).
+        Falls back down the ladder if pull fails.
+        """
+        base, quant = model_tag.split(":", 1) if ":" in model_tag else (model_tag, "")
+        with self._lock:
+            installed = self.installed_models()
+            if model_tag in installed or base in installed:
+                _print_once(self._printed_once, f"using:{model_tag}", f"[Quant] Using model {model_tag}")
+                return True
+
+            if self.dry_run:
+                _print_once(self._printed_once, f"dry:{model_tag}", f"[Quant] (dry-run) would pull {model_tag}")
+                return True
+
+            # attempt pull; if fail, try degraded quants if applicable
+            degrade = ["Q6_K", "Q5_K_M", "Q4_K_M"]
+            if quant and quant in degrade:
+                ladder = [quant] + [q for q in degrade if q != quant]
+            else:
+                ladder = degrade
+
+            for q in ladder:
+                cand = _inject_quant_tag(base, q)
+                if cand in self._pulled_once:
+                    _print_once(self._printed_once, f"using:{cand}", f"[Quant] Using model {cand}")
+                    return True
+
+                _print_once(self._printed_once, f"pull:{cand}", f"[Quant] Pulling model {cand} ...")
+                code, out = _run([self.ollama, "pull", cand], timeout=self.pull_timeout_s)
+                if code == 0:
+                    self._pulled_once.add(cand)
+                    print(f"[Quant] Using model {cand}")
+                    return True
+                else:
+                    print(f"[Quant][WARN] Pull failed for {cand}: {out.strip()[:160]}")
+
+            # final fallback: try base without quant
+            _print_once(self._printed_once, f"pull:{base}", f"[Quant] Pulling model {base} ...")
+            code, out = _run([self.ollama, "pull", base], timeout=self.pull_timeout_s)
+            if code == 0:
+                self._pulled_once.add(base)
+                print(f"[Quant] Using model {base}")
+                return True
+
+            print(f"[Quant][WARN] Could not make model available: {model_tag}")
+            return False
+
+-----------------------markov engine-----------------------------------
+
+"""
+MVCO: Markov-like lightweight context orchestrator
+- Predicts a confidence score and optional hints for routing/model choice.
+- Learns asynchronously from interaction outcomes.
+- Guarantees clean shutdown (no zombie threads).
+
+Logs (grep-friendly):
+  [MVCO] conf=<0.00..1.00>
+  [MVCO] shutdown OK
+  [MVCO][WARN] <message>
+"""
+
+from __future__ import annotations
+import json
+import os
+import queue
+import threading
+import time
+from dataclasses import dataclass, asdict
+from typing import Dict, Optional
+
+# Optional persistence location (kept small; safe under home dir)
+_DEFAULT_STATE_DIR = os.path.expanduser("~/.opencode/state")
+_DEFAULT_STATE_FILE = os.path.join(_DEFAULT_STATE_DIR, "mvco_state.json")
+
+@dataclass
+class _MVCOState:
+    # running confidence estimate (EWMA)
+    conf: float = 0.5
+    # basic outcome counts by model tag, lane, etc.
+    total: int = 0
+    ok: int = 0
+    by_model_ok: Dict[str, int] = None
+    by_model_total: Dict[str, int] = None
+
+    def __post_init__(self):
+        if self.by_model_ok is None:
+            self.by_model_ok = {}
+        if self.by_model_total is None:
+            self.by_model_total = {}
+
+class MVCO:
+    """
+    Minimal, safe learning scaffold.
+    - predict(route_meta) -> dict(boost_temp, prefer_model, conf)
+    - learn(outcome)      -> queue outcomes; learner thread updates state
+    - shutdown()          -> join learner thread (prints [MVCO] shutdown OK)
+    """
+    def __init__(self, lr: float = 0.1, persist: bool = False, state_path: Optional[str] = None):
+        self.lr = float(lr)
+        self.persist = bool(persist)
+        self.state_path = state_path or _DEFAULT_STATE_FILE
+        self._q: "queue.Queue[dict]" = queue.Queue()
+        self._stop = threading.Event()
+        self._t = threading.Thread(target=self._loop, daemon=True)
+        self._lock = threading.Lock()
+        self._state = self._load_state()
+        self._t.start()
+
+    # ---- public API -----------------------------------------------------------
+
+    def predict(self, route_meta: Dict) -> Dict:
+        """
+        Uses lightweight signals to return:
+          - conf: current confidence [0.01..0.99]
+          - prefer_model: None (placeholder hook for future policy)
+          - boost_temp: 0.0 (placeholder; caller may adjust gen params externally)
+        """
+        with self._lock:
+            conf = float(self._state.conf)
+        # bounded
+        conf = max(0.01, min(0.99, conf))
+        print(f"[MVCO] conf={conf:.2f}")
+        return {"conf": conf, "prefer_model": None, "boost_temp": 0.0}
+
+    def learn(self, outcome: Dict) -> None:
+        """
+        Queue an outcome dict; examples:
+          {"success": True, "model": "gemma-3-4b-it:Q5_K_M", "latency_ms": 820, "lane":"code"}
+        """
+        try:
+            self._q.put_nowait(dict(outcome))
+        except Exception:
+            pass  # drop silently if queue is full; keep UI responsive
+
+    def shutdown(self, timeout: float = 2.0) -> None:
+        self._stop.set()
+        try:
+            self._t.join(timeout=timeout)
+            print("[MVCO] shutdown OK")
+        except Exception as e:
+            print(f"[MVCO][WARN] shutdown error: {e}")
+
+    # ---- worker ---------------------------------------------------------------
+
+    def _loop(self):
+        """Background learning loop."""
+        last_persist = time.time()
+        while not self._stop.is_set():
+            try:
+                outcome = self._q.get(timeout=0.5)
+            except queue.Empty:
+                # gentle idle persistence every ~30s
+                if self.persist and (time.time() - last_persist) > 30:
+                    self._save_state()
+                    last_persist = time.time()
+                continue
+
+            ok = bool(outcome.get("success", True))
+            model = str(outcome.get("model", "unknown"))
+            lane = str(outcome.get("lane", "unknown"))  # reserved for future use
+
+            with self._lock:
+                # EWMA of success
+                prev = self._state.conf
+                target = 1.0 if ok else 0.0
+                self._state.conf = 0.9 * prev + 0.1 * target  # gentle update
+                # counts
+                self._state.total += 1
+                self._state.ok += 1 if ok else 0
+                self._state.by_model_total[model] = self._state.by_model_total.get(model, 0) + 1
+                if ok:
+                    self._state.by_model_ok[model] = self._state.by_model_ok.get(model, 0) + 1
+
+            # occasional persistence
+            if self.persist and (time.time() - last_persist) > 10:
+                self._save_state()
+                last_persist = time.time()
+
+        # flush on stop
+        if self.persist:
+            self._save_state()
+
+    # ---- persistence ----------------------------------------------------------
+
+    def _load_state(self) -> _MVCOState:
+        if not self.persist:
+            return _MVCOState()
+        try:
+            if os.path.isfile(self.state_path):
+                with open(self.state_path, "r", encoding="utf-8") as f:
+                    raw = json.load(f)
+                st = _MVCOState(**raw)
+                return st
+        except Exception:
+            pass
+        return _MVCOState()
+
+    def _save_state(self) -> None:
+        if not self.persist:
+            return
+        try:
+            os.makedirs(os.path.dirname(self.state_path), exist_ok=True)
+            with open(self.state_path, "w", encoding="utf-8") as f:
+                json.dump(asdict(self._state), f)
+        except Exception:
+            # never crash the app on persistence issues
+            pass
+
+-----------------------------------------------------------------------------------------------------

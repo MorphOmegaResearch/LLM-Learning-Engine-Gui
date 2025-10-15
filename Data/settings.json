@@ -1,8 +1,8 @@
 {
   "tab_order": [
+    "custom_code_tab",
     "training_tab",
     "models_tab",
-    "custom_code_tab",
     "settings_tab"
   ],
   "ui": {
@@ -22,11 +22,129 @@
   "models_tab_enabled": true,
   "settings_tab_enabled": true,
   "custom_code_tab_enabled": true,
-  "reorder_mode": "static",
+  "reorder_mode": "arrow",
   "regression_policy": {
     "enabled": true,
     "alert_drop_percent": 5.0,
     "strict_block": false,
     "auto_rollback": false
-  }
+  },
+  "ui_state": {
+    "training_tab": {
+      "default_profile": {
+        "kind": "type",
+        "id": "Qwen2.5-0.5b_coder"
+      }
+    }
+  },
+  "panel_orders": {
+    "custom_code_tab": [
+      "\ud83d\udcac Chat",
+      "\ud83d\udcc1 Projects",
+      "\ud83d\udd27 Tools",
+      "\u2699\ufe0f Settings"
+    ],
+    "training_tab": [
+      "Runner",
+      "Script Manager",
+      "Model Selection",
+      "Profiles",
+      "Summary"
+    ],
+    "models_tab": [
+      "Overview",
+      "Skills",
+      "Stats",
+      "Types",
+      "\ud83c\udfaf Adapters",
+      "\ud83d\udcc8 History",
+      "Raw Info",
+      "Notes",
+      "\ud83e\uddea Evaluation",
+      "Baselines",
+      "Compare"
+    ],
+    "settings_tab": [
+      "General",
+      "Paths",
+      "Training Defaults",
+      "Interface",
+      "Tab Manager",
+      "Resources",
+      "Custom Code",
+      "Debug",
+      "System Blueprints",
+      "Help & Guide"
+    ]
+  },
+  "todos": {
+    "tasks": [
+      {
+        "text": "Test_Auto_Training",
+        "done": false
+      },
+      {
+        "text": "Keyboard_Shortcuts_configurable_bindings",
+        "done": false
+      },
+      {
+        "text": "Color coded priority system for tasks and bugs",
+        "done": false
+      },
+      {
+        "text": "create work_order section here in todolist",
+        "done": false
+      },
+      {
+        "text": "onboard local ai tech support - sends bug from debug and relating blueprints to a local model of the users choosing",
+        "done": false
+      },
+      {
+        "text": "onboard tech support available during initial launch crash , add enable/disable local tech support check box in settings tab",
+        "done": false
+      },
+      {
+        "text": "local tech support conformers and option for api calling models from listed available externally owned models , auth keys preset for ease of use",
+        "done": false
+      },
+      {
+        "text": "todo list upgrade, double click listed items to open a popup file viewer , event chain addition Create->task/bug/workorder->description->contents->save/edit buttons internal -> remove external \"edit todo button\"",
+        "done": false
+      },
+      {
+        "text": "test \"Show thinking\" feature/quick action",
+        "done": false
+      },
+      {
+        "text": "project/rag training , criteria for master class promotions is hybrid type specific project/rag benchmarks and data-sets toward",
+        "done": false
+      },
+      {
+        "text": "symbiote hybrid-types, start with vehicle diag, drone simulator, ect",
+        "done": false
+      },
+      {
+        "text": "Training Games - Results and stats gathered where possible for model training using games like solitare , chess, ect working up to more complex games including minecraft and role playing games",
+        "done": false
+      },
+      {
+        "text": "auto / manual temp options , auto tied to training mode",
+        "done": false
+      },
+      {
+        "text": "Agents panel and orchestrator tools + orchestrator type creation and data set generator alignment",
+        "done": false
+      }
+    ],
+    "bugs": [
+      {
+        "text": "models stat panel inconsistent to selected model",
+        "done": false
+      }
+    ],
+    "completed": [],
+    "work_orders": [],
+    "notes": []
+  },
+  "todo_show_on_launch": true
 }

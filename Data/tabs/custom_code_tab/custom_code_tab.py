@@ -25,18 +25,32 @@ class CustomCodeTab(BaseTab):
         # Set up close handler for auto-saving chat history
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+        # Backend settings (shared file with Chat)
+        from pathlib import Path
+        import json
+        self._settings_path = Path(__file__).parent / 'custom_code_settings.json'
+        try:
+            self._backend_settings = json.loads(self._settings_path.read_text()) if self._settings_path.exists() else {}
+        except Exception:
+            self._backend_settings = {}
+        # Use last saved width, and default to locked on launch
+        self._right_panel_width = int(self._backend_settings.get('right_panel_width', 340))
+        self._right_panel_locked = True
+        self._backend_settings['right_panel_locked'] = True
+
     def create_ui(self):
         """Create the custom code tab UI"""
         log_message("CUSTOM_CODE_TAB: Creating UI...")
 
-        # Main layout: content area (left) and side panel (right)
-        self.parent.columnconfigure(0, weight=1)  # Content area
-        self.parent.columnconfigure(1, weight=0)  # Side panel
+        # Main layout: Paned window with resizable left (content) and right (models)
+        self.parent.columnconfigure(0, weight=1)
         self.parent.rowconfigure(0, weight=1)
+        outer_pw = ttk.Panedwindow(self.parent, orient=tk.HORIZONTAL)
+        outer_pw.grid(row=0, column=0, sticky=tk.NSEW)
+        self._outer_pw = outer_pw
 
-        # Left side: Main content with sub-tabs
-        content_frame = ttk.Frame(self.parent, style='Category.TFrame')
-        content_frame.grid(row=0, column=0, sticky=tk.NSEW, padx=10, pady=10)
+        # Left side pane: main content with sub-tabs
+        content_frame = ttk.Frame(outer_pw, style='Category.TFrame')
         content_frame.columnconfigure(0, weight=1)
         content_frame.rowconfigure(1, weight=1)
 
@@ -66,29 +80,85 @@ class CustomCodeTab(BaseTab):
         self.chat_tab_frame = ttk.Frame(self.sub_notebook)
         self.sub_notebook.add(self.chat_tab_frame, text="💬 Chat")
         self.create_chat_tab(self.chat_tab_frame)
+        # When user navigates to Chat tab, refresh conversations (bind once)
+        try:
+            def _on_subtab_changed(event=None):
+                try:
+                    current = self.sub_notebook.select()
+                    if current == str(self.chat_tab_frame) and hasattr(self, 'chat_interface'):
+                        if hasattr(self.chat_interface, '_refresh_conversations_list'):
+                            self.chat_interface._refresh_conversations_list()
+                except Exception:
+                    pass
+            self.sub_notebook.bind('<<NotebookTabChanged>>', _on_subtab_changed)
+        except Exception:
+            pass
 
-        # History Sub-tab
-        self.history_tab_frame = ttk.Frame(self.sub_notebook)
-        self.sub_notebook.add(self.history_tab_frame, text="📚 History")
-        self.create_history_tab(self.history_tab_frame)
+        # History sub-tab removed (handled via Chat sidebar quick views)
 
         # Tools Sub-tab
         self.tools_tab_frame = ttk.Frame(self.sub_notebook)
         self.sub_notebook.add(self.tools_tab_frame, text="🔧 Tools")
         self.create_tools_tab(self.tools_tab_frame)
 
-        # Projects Sub-tab (placeholder for future)
+        # Projects Sub-tab (project-aware chat interface)
         self.projects_tab_frame = ttk.Frame(self.sub_notebook)
         self.sub_notebook.add(self.projects_tab_frame, text="📁 Projects")
-        self.create_placeholder_tab(self.projects_tab_frame, "Project Management")
+        self.create_projects_tab(self.projects_tab_frame)
 
         # Settings Sub-tab
         self.settings_tab_frame = ttk.Frame(self.sub_notebook)
         self.sub_notebook.add(self.settings_tab_frame, text="⚙️ Settings")
         self.create_settings_tab(self.settings_tab_frame)
 
-        # Right side: Model selector (similar to Models tab)
-        self.create_right_panel(self.parent)
+        # Right side pane: Model selector
+        right_pane = ttk.Frame(outer_pw, style='Category.TFrame')
+        right_pane.columnconfigure(0, weight=1)
+        right_pane.rowconfigure(0, weight=1)
+        self.create_right_panel(right_pane)
+
+        outer_pw.add(content_frame, weight=1)
+        outer_pw.add(right_pane, weight=0)
+        try:
+            # Enforce sensible minimum sizes so panes don't disappear
+            outer_pw.paneconfigure(content_frame, minsize=500)
+            outer_pw.paneconfigure(right_pane, minsize=260)
+        except Exception:
+            pass
+
+        # Set default sash position after layout: leave ~360px for right pane
+        try:
+            def _set_outer_sash():
+                try:
+                    self.parent.update_idletasks()
+                    pw_w = max(self._outer_pw.winfo_width(), 1000)
+                    target_right = int(self._backend_settings.get('right_panel_width', self._right_panel_width or 340))
+                    target_right = max(260, target_right)
+                    # Compute sash position from desired right width, clamp to min sizes
+                    pos = pw_w - target_right
+                    pos = max(600, min(pos, pw_w - 260))
+                    self._outer_pw.sashpos(0, pos)
+                except Exception:
+                    pass
+            self.parent.after(150, _set_outer_sash)
+        except Exception:
+            pass
+
+        # Enforce locked width on resize
+        def _enforce_right_width(event=None):
+            if not getattr(self, '_right_panel_locked', False):
+                return
+            try:
+                pw_w = max(self._outer_pw.winfo_width(), 800)
+                width = max(260, int(getattr(self, '_right_panel_width', 340)))
+                pos = pw_w - width
+                self._outer_pw.sashpos(0, max(500, min(pos, pw_w - 260)))
+            except Exception:
+                pass
+        self._outer_pw.bind('<Configure>', _enforce_right_width)
+
+        # Apply initial lock behavior (disable drag + arrow when locked)
+        self._apply_right_lock_state()
 
         log_message("CUSTOM_CODE_TAB: UI created successfully")
 
@@ -113,6 +183,12 @@ class CustomCodeTab(BaseTab):
 
         self.settings_interface = SettingsTab(parent, self.root, self.style, self)
         self.settings_interface.safe_create()
+
+    def create_projects_tab(self, parent):
+        """Create the projects management sub-tab (project-aware chat)."""
+        from .sub_tabs.projects_interface_tab import ProjectsInterfaceTab
+        self.projects_interface = ProjectsInterfaceTab(parent, self.root, self.style, self)
+        self.projects_interface.safe_create()
 
     def create_history_tab(self, parent):
         """Create the conversation history sub-tab"""
@@ -340,11 +416,14 @@ class CustomCodeTab(BaseTab):
 
     def create_right_panel(self, parent):
         """Create right side panel with model selector"""
-        right_panel = ttk.Frame(parent, width=300, style='Category.TFrame')
-        right_panel.grid(row=0, column=1, sticky=tk.NSEW, padx=(10, 10), pady=10)
-        right_panel.grid_propagate(False)  # Maintain fixed width
+        right_panel = ttk.Frame(parent, width=360, style='Category.TFrame')
+        right_panel.grid(row=0, column=0, sticky=tk.NSEW, padx=10, pady=10)
+        # Maintain internal width to keep scrollbar visible
+        right_panel.grid_propagate(False)
         right_panel.columnconfigure(0, weight=1)
         right_panel.rowconfigure(1, weight=1)
+        # Keep a handle for width measurement when locking
+        self._right_pane_widget = right_panel
 
         # Header
         header = ttk.Frame(right_panel, style='Category.TFrame')
@@ -364,6 +443,15 @@ class CustomCodeTab(BaseTab):
             style='Select.TButton',
             width=3
         ).pack(side=tk.RIGHT)
+        # Lock width toggle
+        self._right_lock_btn = ttk.Button(
+            header,
+            text=("🔒" if self._right_panel_locked else "🔓"),
+            command=self._toggle_right_panel_lock,
+            style='Select.TButton',
+            width=3
+        )
+        self._right_lock_btn.pack(side=tk.RIGHT, padx=(4,0))
 
         # Model list frame with scrollbar
         list_container = ttk.Frame(right_panel, style='Category.TFrame')
@@ -408,6 +496,11 @@ class CustomCodeTab(BaseTab):
         # Enable mousewheel scrolling for model list
         self.bind_mousewheel_to_canvas(self.model_canvas)
 
+        # UI state for expand/collapse
+        # Default collapsed on launch
+        self.cc_collections_expanded = False
+        self.cc_unassigned_expanded = False
+        self.cc_variant_expanded = {}
         # Load models
         self.refresh_model_list()
 
@@ -419,32 +512,194 @@ class CustomCodeTab(BaseTab):
         for widget in self.model_scroll_frame.winfo_children():
             widget.destroy()
 
-        # Import config to get models
+        # Import config to get models and collections
         try:
-            from config import get_ollama_models
-            models = get_ollama_models()
-            log_message(f"CUSTOM_CODE_TAB: Found {len(models)} Ollama models")
-        except Exception as e:
-            log_message(f"CUSTOM_CODE_TAB ERROR: Failed to get models: {e}")
-            models = []
-
-        if not models:
-            ttk.Label(
-                self.model_scroll_frame,
-                text="No Ollama models found",
-                style='Config.TLabel'
-            ).pack(pady=20, padx=10)
-            return
-
-        # Display each model as a button
-        for model in models:
-            model_btn = ttk.Button(
-                self.model_scroll_frame,
-                text=model,
-                command=lambda m=model: self.select_model(m),
-                style='Category.TButton'
+            from config import (
+                get_ollama_models,
+                list_model_profiles,
+                get_lineage_id,
+                get_assigned_tags_by_lineage,
+                load_ollama_assignments,
             )
-            model_btn.pack(fill=tk.X, padx=5, pady=2)
+            models = get_ollama_models() or []
+            profiles = list_model_profiles() or []
+            assignments = load_ollama_assignments() or {}
+            tag_index = assignments.get('tag_index') or {}
+
+            # Build assigned tags per variant using both v2 and legacy formats
+            assigned_by_variant = {}
+            for k, v in assignments.items():
+                if k == 'tag_index':
+                    continue
+                if isinstance(v, dict):
+                    tags = v.get('tags') or []
+                else:
+                    tags = v or []
+                assigned_by_variant[k] = list(tags)
+        except Exception as e:
+            log_message(f"CUSTOM_CODE_TAB ERROR: Failed to get model/collection info: {e}")
+            models, profiles, tag_index, assigned_by_variant = [], [], {}, {}
+
+        # Collections section
+        col_header = ttk.Frame(self.model_scroll_frame, style='Category.TFrame')
+        col_header.pack(fill=tk.X, pady=(0,4))
+        col_btn = ttk.Button(col_header, text=("▼" if self.cc_collections_expanded else "▶"), width=2, style='Select.TButton', command=self._toggle_cc_collections)
+        col_btn.pack(side=tk.LEFT, padx=(0,5))
+        ttk.Label(col_header, text="📚 Collections", font=("Arial", 11, "bold"), style='CategoryPanel.TLabel').pack(side=tk.LEFT)
+
+        if self.cc_collections_expanded:
+            # List variants with per-variant expand
+            variants = sorted([it.get('variant_id') for it in profiles if it.get('variant_id')])
+            if not variants:
+                ttk.Label(self.model_scroll_frame, text="No variants found", style='Config.TLabel').pack(fill=tk.X, padx=10, pady=(0,6))
+            for vid in variants:
+                row = ttk.Frame(self.model_scroll_frame, style='Category.TFrame')
+                row.pack(fill=tk.X)
+                exp = self.cc_variant_expanded.get(vid, False)
+                btn = ttk.Button(row, text=("▼" if exp else "▶"), width=2, style='Select.TButton', command=lambda v=vid: self._toggle_cc_variant(v))
+                btn.pack(side=tk.LEFT, padx=(10,4))
+                # Variant label colored by class level
+                try:
+                    from config import get_variant_class
+                    cls = get_variant_class(vid)
+                    color = {
+                        'novice': '#51cf66', 'skilled': '#61dafb', 'expert': '#9b59b6', 'master': '#ffa94d', 'artifact': '#c92a2a'
+                    }.get((cls or '').lower(), '#bbbbbb')
+                    ttk.Label(row, text=vid, style='Config.TLabel', foreground=color).pack(side=tk.LEFT)
+                except Exception:
+                    ttk.Label(row, text=vid, style='Config.TLabel').pack(side=tk.LEFT)
+                if exp:
+                    # Assigned tags under this variant (prefer assignments mapping; then lineage; no ULID creation here)
+                    tags = []
+                    # v2/legacy by-variant mapping
+                    tags = list(assigned_by_variant.get(vid) or [])
+                    if not tags:
+                        try:
+                            lid = get_lineage_id(vid)
+                            if lid:
+                                tags = get_assigned_tags_by_lineage(lid) or []
+                        except Exception:
+                            tags = []
+                    if tags:
+                        for tg in tags:
+                            trow = ttk.Frame(self.model_scroll_frame, style='Category.TFrame')
+                            trow.pack(fill=tk.X)
+                            ttk.Label(trow, text="Assigned:", style='Config.TLabel', foreground='#bbbbbb').pack(side=tk.LEFT, padx=(32,6))
+                            # Color tag button by owning variant class color
+                            try:
+                                from tkinter import ttk as _ttk
+                                st = _ttk.Style()
+                                style_name = f"CCColorBtn_{color.replace('#','')}\.TButton"
+                                try:
+                                    st.lookup(style_name, 'foreground')
+                                except Exception:
+                                    st.configure(style_name, foreground=color)
+                                btn_style = style_name
+                            except Exception:
+                                btn_style = 'Select.TButton'
+                            ttk.Button(trow, text=tg, style=btn_style, command=lambda m=tg: self.select_model(m)).pack(side=tk.LEFT)
+                    else:
+                        ttk.Label(self.model_scroll_frame, text="Assigned: None", style='Config.TLabel', foreground='#bbbbbb').pack(fill=tk.X, padx=32)
+
+        # Unassigned section
+        un_header = ttk.Frame(self.model_scroll_frame, style='Category.TFrame')
+        un_header.pack(fill=tk.X, pady=(10,4))
+        un_btn = ttk.Button(un_header, text=("▼" if self.cc_unassigned_expanded else "▶"), width=2, style='Select.TButton', command=self._toggle_cc_unassigned)
+        un_btn.pack(side=tk.LEFT, padx=(0,5))
+        ttk.Label(un_header, text="🗂️ Unassigned", font=("Arial", 11, "bold"), style='CategoryPanel.TLabel').pack(side=tk.LEFT)
+
+        if self.cc_unassigned_expanded:
+            # Any model not assigned in either tag_index or assignments map is unassigned
+            assigned_tags = set(tag_index.keys())
+            for tags in assigned_by_variant.values():
+                for t in (tags or []):
+                    assigned_tags.add(t)
+            unassigned = [m for m in models if m not in assigned_tags]
+            if not unassigned:
+                ttk.Label(self.model_scroll_frame, text="No unassigned models", style='Config.TLabel').pack(fill=tk.X, padx=10)
+            else:
+                for m in sorted(unassigned):
+                    ttk.Button(self.model_scroll_frame, text=m, command=lambda mm=m: self.select_model(mm), style='Category.TButton').pack(fill=tk.X, padx=20, pady=1)
+
+    def _toggle_cc_collections(self):
+        self.cc_collections_expanded = not self.cc_collections_expanded
+        self.refresh_model_list()
+
+    def _toggle_right_panel_lock(self):
+        try:
+            self._right_panel_locked = not getattr(self, '_right_panel_locked', False)
+            # Measure current width of the right pane area
+            # Measure current right pane width reliably
+            try:
+                width = int(self._right_pane_widget.winfo_width()) if hasattr(self, '_right_pane_widget') else None
+            except Exception:
+                width = None
+            if not width:
+                try:
+                    # Fallback: compute from total width minus sash position
+                    pw_w = max(self._outer_pw.winfo_width(), 1)
+                    sash = int(self._outer_pw.sashpos(0))
+                    width = max(260, pw_w - sash)
+                except Exception:
+                    width = 340
+            self._right_panel_width = int(width)
+            if hasattr(self, '_right_lock_btn'):
+                self._right_lock_btn.config(text=("🔒" if self._right_panel_locked else "🔓"))
+            # Persist to backend settings
+            self._backend_settings['right_panel_locked'] = bool(self._right_panel_locked)
+            self._backend_settings['right_panel_width'] = int(self._right_panel_width)
+            try:
+                import json
+                self._settings_path.write_text(json.dumps(self._backend_settings, indent=2))
+            except Exception:
+                pass
+            # Apply behavior
+            self._apply_right_lock_state()
+        except Exception:
+            pass
+
+    def _apply_right_lock_state(self):
+        try:
+            if getattr(self, '_right_panel_locked', False):
+                # Disable drag interactions and sash cursor
+                try:
+                    self._outer_pw.configure(cursor='arrow')
+                except Exception:
+                    pass
+                def _block(event):
+                    return 'break'
+                # Bind block handlers
+                for seq in ('<ButtonPress-1>', '<B1-Motion>', '<ButtonRelease-1>'):
+                    self._outer_pw.bind(seq, _block)
+                # Enforce current width immediately
+                try:
+                    pw_w = max(self._outer_pw.winfo_width(), 800)
+                    width = max(260, int(getattr(self, '_right_panel_width', 340)))
+                    pos = pw_w - width
+                    self._outer_pw.sashpos(0, max(500, min(pos, pw_w - 260)))
+                except Exception:
+                    pass
+            else:
+                # Re-enable default behavior
+                try:
+                    self._outer_pw.configure(cursor='')
+                except Exception:
+                    pass
+                for seq in ('<ButtonPress-1>', '<B1-Motion>', '<ButtonRelease-1>'):
+                    try:
+                        self._outer_pw.unbind(seq)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+    def _toggle_cc_unassigned(self):
+        self.cc_unassigned_expanded = not self.cc_unassigned_expanded
+        self.refresh_model_list()
+
+    def _toggle_cc_variant(self, vid: str):
+        self.cc_variant_expanded[vid] = not self.cc_variant_expanded.get(vid, False)
+        self.refresh_model_list()
 
     def select_model(self, model_name):
         """Handle model selection"""
@@ -452,7 +707,17 @@ class CustomCodeTab(BaseTab):
 
         # Update chat interface with selected model
         if hasattr(self, 'chat_interface') and self.chat_interface:
-            self.chat_interface.set_model(model_name)
+            try:
+                self.chat_interface.set_model(model_name)
+                # Ensure UI reflects selection even if inner flow was bypassed
+                if hasattr(self.chat_interface, '_set_model_label_with_class_color'):
+                    self.chat_interface._set_model_label_with_class_color(model_name)
+                if hasattr(self.chat_interface, '_update_mount_button_style'):
+                    self.chat_interface._update_mount_button_style(mounted=False)
+                if hasattr(self.chat_interface, 'mount_btn'):
+                    self.chat_interface.mount_btn.config(state=tk.NORMAL)
+            except Exception as e:
+                log_message(f"CUSTOM_CODE_TAB ERROR: set_model failed: {e}")
 
     def get_chat_interface_scores(self):
         """Get the real-time evaluation scores from the chat interface"""
@@ -477,6 +742,15 @@ class CustomCodeTab(BaseTab):
         # Save chat history before closing
         if hasattr(self, 'chat_interface') and self.chat_interface:
             self.chat_interface.save_on_exit()
+
+        # Persist pane lock/width
+        try:
+            self._backend_settings['right_panel_locked'] = bool(self._right_panel_locked)
+            self._backend_settings['right_panel_width'] = int(getattr(self, '_right_panel_width', 340))
+            import json
+            self._settings_path.write_text(json.dumps(self._backend_settings, indent=2))
+        except Exception:
+            pass
 
         # Close the application
         self.root.destroy()

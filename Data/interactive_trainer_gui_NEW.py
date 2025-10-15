@@ -409,19 +409,17 @@ class TrainingGUI:
 
         DEFAULT_TAB_ORDER = ['training_tab', 'models_tab', 'custom_code_tab', 'settings_tab']
 
-        def normalize_tab_order(available_tabs: list[str]) -> list[str]:
-            # Start with our canonical order (minus missing)
-            ordered = [t for t in DEFAULT_TAB_ORDER if t in available_tabs]
-            # Insert any extra tabs (e.g., ChatInterface, Tools, etc.) before settings_tab
-            extras = [t for t in available_tabs if t not in ordered]
+        def normalize_tab_order(available: list[str]) -> list[str]:
+            ordered = [t for t in DEFAULT_TAB_ORDER if t in available]
+            extras = [t for t in available if t not in ordered]
             if 'settings_tab' in ordered:
                 idx = ordered.index('settings_tab')
                 ordered[idx:idx] = [t for t in extras if t != 'settings_tab']
             else:
                 ordered.extend(extras)
-                if 'settings_tab' in available_tabs:
+                if 'settings_tab' in available:
                     ordered.append('settings_tab')
-            # Always de-dupe
+            # de-dupe
             seen, deduped = set(), []
             for t in ordered:
                 if t not in seen:
@@ -429,8 +427,15 @@ class TrainingGUI:
                     deduped.append(t)
             return deduped
 
-        tab_order = normalize_tab_order(available_tabs)
-        settings['tab_order'] = tab_order # Update settings in memory
+        # Respect saved tab_order if present; otherwise use normalized defaults
+        saved_order = settings.get('tab_order')
+        if isinstance(saved_order, list) and saved_order:
+            # Keep only available, preserve saved ordering, then append any missing
+            tab_order = [t for t in saved_order if t in available_tabs] + [t for t in available_tabs if t not in saved_order]
+        else:
+            tab_order = normalize_tab_order(available_tabs)
+        # Keep in-memory settings consistent with final order (no overwrite to defaults)
+        settings['tab_order'] = tab_order
 
         # Create all tab instances
         tab_instances = {}
@@ -462,6 +467,19 @@ class TrainingGUI:
             except Exception:
                 pass
 
+        # Apply saved per-tab panel orders (if any)
+        try:
+            self._apply_saved_panel_orders(settings, tab_instances)
+        except Exception:
+            logger_util.log_message("MAIN_GUI: Failed to apply saved panel orders.")
+
+        # Optional: Show ToDo popup on launch if enabled (defer to ensure it appears on top)
+        try:
+            if settings.get('todo_show_on_launch') and hasattr(self, 'settings_tab') and self.settings_tab:
+                self.root.after(300, lambda: self.settings_tab.show_todo_popup())
+        except Exception:
+            pass
+
     def run(self):
         """Start the GUI main loop"""
         self.root.mainloop()
@@ -484,6 +502,57 @@ class TrainingGUI:
             self._drag_data["current_index"] = self._drag_data["initial_index"]
             logger_util.log_message(f"MAIN_GUI: Drag initiated after delay for tab: {self.notebook.tab(self._drag_data['item'], 'text')}")
             self._drag_data["drag_pending"] = False
+
+    def _apply_saved_panel_orders(self, settings: dict, tab_instances: dict):
+        """Reorder sub-notebooks in tabs according to saved panel headers.
+
+        settings['panel_orders'] is a mapping of tab_name -> [panel header strings]
+        """
+        panel_orders = settings.get('panel_orders')
+        if not isinstance(panel_orders, dict):
+            return
+
+        for tab_name, meta in tab_instances.items():
+            desired = panel_orders.get(tab_name)
+            if not desired or not isinstance(desired, list):
+                continue
+            inst = meta.get('instance')
+            notebook = None
+            for attr in (
+                'training_notebook',        # TrainingTab
+                'sub_notebook',             # CustomCodeTab
+                'settings_notebook',        # SettingsTab
+                'model_info_notebook',      # ModelsTab
+                'models_notebook'           # Fallback (older naming)
+            ):
+                nb = getattr(inst, attr, None) if inst is not None else None
+                if nb is not None:
+                    notebook = nb
+                    break
+            if notebook is None:
+                continue
+
+            # Map current header -> tab_id
+            try:
+                current_ids = notebook.tabs()
+            except Exception:
+                continue
+            header_to_id = {}
+            for tid in current_ids:
+                try:
+                    header_to_id[notebook.tab(tid, 'text')] = tid
+                except Exception:
+                    pass
+
+            # Reinsert tabs to match desired order
+            for i, header in enumerate(desired):
+                tid = header_to_id.get(header)
+                if not tid:
+                    continue
+                try:
+                    notebook.insert(i, tid)
+                except Exception:
+                    pass
 
 
 if __name__ == "__main__":

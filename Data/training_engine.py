@@ -118,7 +118,11 @@ class TrainingEngine:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             clean_model_name = self.model_name.replace("unsloth/", "").replace("-Instruct", "").replace("/", "_")
             category = self.config.get("category", "general")
-            self.output_dir = MODELS_DIR / f"training_{category}_{clean_model_name}_{timestamp}"
+            variant = os.getenv("TRAINING_VARIANT_ID", "").strip().replace("/", "_").replace(" ", "_")
+            lid = os.getenv("TRAINING_LINEAGE_ID", "").strip()
+            short = (lid[:10] if lid else "")
+            suffix = (f"_{variant}" if variant else "") + (f"_{short}" if short else "")
+            self.output_dir = MODELS_DIR / f"training_{category}_{clean_model_name}{suffix}_{timestamp}"
 
         self.output_dir.mkdir(parents=True, exist_ok=True)
         log_message(f"ENGINE: Output directory set to: {self.output_dir}")
@@ -397,11 +401,13 @@ class TrainingEngine:
             variant_id = os.getenv("TRAINING_VARIANT_ID") or self.output_dir.name
             assigned_type = None
             class_level = None
+            lineage_id = None
             try:
                 import config as C
                 mp = C.load_model_profile(variant_id)
                 assigned_type = mp.get("assigned_type")
                 class_level = mp.get("class_level") or mp.get("class")
+                lineage_id = mp.get("lineage_id") or C.ensure_lineage_id(variant_id)
             except Exception:
                 pass
             sidecar = {
@@ -409,10 +415,24 @@ class TrainingEngine:
                 "base_model": self.model_name,
                 "assigned_type": assigned_type,
                 "class_level": class_level,
+                "lineage_id": lineage_id,
                 "timestamp": time.strftime("%Y-%m-%d_%H-%M-%S"),
             }
             with open(str(self.output_dir) + ".variant.json", "w", encoding="utf-8") as f:
                 json.dump(sidecar, f, indent=2)
+            # Enrich model profile with adapters list/latest
+            try:
+                import config as C
+                mp = C.load_model_profile(variant_id) or {}
+                adapters = list(mp.get('adapters') or [])
+                aname = os.path.basename(str(self.output_dir))
+                if aname not in adapters:
+                    adapters.append(aname)
+                mp['adapters'] = adapters
+                mp['latest_adapter'] = aname
+                C.save_model_profile(variant_id, mp)
+            except Exception:
+                pass
         except Exception:
             pass
 

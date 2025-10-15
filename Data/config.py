@@ -1998,6 +1998,38 @@ DEFAULT_MODEL_PROFILE = {
     "badges": []
 }
 
+# --- Lineage (ULID) helpers -------------------------------------------------
+def generate_ulid() -> str:
+    """Return a ULID string if ulid lib available; otherwise UUID4 hex fallback."""
+    try:
+        import ulid
+        return str(ulid.new())
+    except Exception:
+        import uuid, time
+        # time-seeded uuid fallback for rough ordering; clearly marked
+        return f"FALLBACK-{int(time.time())}-{uuid.uuid4().hex}"
+
+def ensure_lineage_id(variant_id: str) -> str:
+    """Ensure the model profile for variant has a lineage_id; return it."""
+    try:
+        mp = load_model_profile(variant_id) or {}
+        lid = mp.get("lineage_id")
+        if not lid:
+            lid = generate_ulid()
+            mp["lineage_id"] = lid
+            save_model_profile(variant_id, mp)
+        return lid
+    except Exception:
+        # last-resort
+        return generate_ulid()
+
+def get_lineage_id(variant_id: str) -> str | None:
+    try:
+        mp = load_model_profile(variant_id) or {}
+        return mp.get("lineage_id")
+    except Exception:
+        return None
+
 def _normalize_model_profile_defaults(mp: dict) -> dict:
     out = dict(DEFAULT_MODEL_PROFILE)
     out.update(mp or {})
@@ -2122,20 +2154,61 @@ def save_ollama_assignments(data: dict):
         print("[config] save_ollama_assignments error:", e)
 
 def add_ollama_assignment(variant_id: str, tag: str):
-    data = load_ollama_assignments()
-    lst = data.get(variant_id) or []
-    if tag not in lst:
-        lst.append(tag)
-    data[variant_id] = lst
+    """Assign a GGUF tag to a variant, storing lineage-aware structure when possible."""
+    data = load_ollama_assignments() or {}
+    # Backward-compatible structure: allow plain list; prefer v2 with lineage and tag_index
+    lid = ensure_lineage_id(variant_id)
+    # Variants bucket may be a dict or list in legacy
+    entry = data.get(variant_id)
+    if isinstance(entry, dict):
+        tags = set(entry.get('tags') or [])
+        tags.add(tag)
+        entry['tags'] = sorted(tags)
+        entry['lineage_id'] = entry.get('lineage_id') or lid
+        data[variant_id] = entry
+    else:
+        # legacy list; upgrade minimally
+        lst = set(entry or [])
+        lst.add(tag)
+        data[variant_id] = sorted(lst)
+    # Maintain tag_index
+    tag_index = data.get('tag_index') or {}
+    tag_index[tag] = lid
+    data['tag_index'] = tag_index
     save_ollama_assignments(data)
 
 def list_assigned_ollama_tags() -> set:
     data = load_ollama_assignments() or {}
     out = set()
-    for tags in data.values():
+    for k, v in data.items():
+        if k == 'tag_index':
+            continue
+        if isinstance(v, dict):
+            tags = v.get('tags') or []
+        else:
+            tags = v or []
         for t in (tags or []):
             out.add(t)
     return out
+
+def get_assigned_tags_by_lineage(lineage_id: str) -> list[str]:
+    """Return assigned tags for a given lineage id (empty list if none)."""
+    data = load_ollama_assignments() or {}
+    res = set()
+    # Scan variant entries for matching lineage_id
+    for k, v in data.items():
+        if k == 'tag_index':
+            continue
+        if isinstance(v, dict) and v.get('lineage_id') == lineage_id:
+            for t in (v.get('tags') or []):
+                res.add(t)
+    return sorted(res)
+
+def get_lineage_for_tag(tag: str) -> str | None:
+    """Reverse-lookup lineage id for a GGUF tag if available."""
+    data = load_ollama_assignments() or {}
+    ti = data.get('tag_index') or {}
+    return ti.get(tag)
 
 
 # --- WO-6j: UI state persistence helpers ---
@@ -2320,6 +2393,7 @@ DEFAULT_TRAINING_PROFILE = {
     "selected_scripts": [],
     "selected_prompts": [],
     "selected_schemas": [],
+    "lineage_id": "",
     "runner_settings": {
         "max_time_min": 20,
         "max_runs": 1,
@@ -2402,6 +2476,10 @@ def build_training_profile_from_type(trainee_name: str, base_model: str, type_id
         "evals_plan": list(evals or []),
         "runner_settings": dict(DEFAULT_TRAINING_PROFILE["runner_settings"]),
     }
+    try:
+        tp["lineage_id"] = ensure_lineage_id(trainee_name)
+    except Exception:
+        tp["lineage_id"] = tp.get("lineage_id") or ""
     return _normalize_training_profile(tp)
 
 def upsert_training_profile_for_model(trainee_name: str, base_model: str, type_id: str) -> dict:

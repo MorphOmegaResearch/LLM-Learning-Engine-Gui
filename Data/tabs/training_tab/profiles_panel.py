@@ -42,6 +42,13 @@ class ProfilesPanel:
         section.pack(fill=tk.BOTH, expand=True, pady=10, padx=10)
         section.columnconfigure(0, weight=1) # Allow content to expand
 
+        # Header actions (top-right)
+        header_bar = ttk.Frame(section)
+        header_bar.pack(fill=tk.X, padx=10, pady=(6, 0))
+        header_bar.columnconfigure(0, weight=1)
+        ttk.Button(header_bar, text="Set Default Profile", command=self._set_default_profile, style='Select.TButton').pack(side=tk.RIGHT, padx=(6, 0))
+        ttk.Button(header_bar, text="Clear Default Profile", command=self._clear_default_profile, style='Select.TButton').pack(side=tk.RIGHT, padx=(6, 0))
+
         # Profile Selection and Load
         load_frame = ttk.Frame(section)
         load_frame.pack(fill=tk.X, padx=10, pady=5)
@@ -98,6 +105,11 @@ class ProfilesPanel:
 
         # Initial update of combobox and button states
         self.update_profile_combobox()
+        # Try to auto-apply default profile if configured
+        try:
+            self._apply_default_profile_if_set()
+        except Exception as e:
+            logger_util.log_message(f"PROFILES: default profile apply error: {e}")
         # WO-6x: Refresh on ProfilesChanged
         try:
             self.parent.bind("<<ProfilesChanged>>", lambda e: self.update_profile_combobox())
@@ -136,9 +148,7 @@ class ProfilesPanel:
                             self.subcategory_vars[(cat, subcat)].set(True)
 
             self.update_preview_callback()
-            # Only show popup when user explicitly selects from the combobox
-            if event is not None and not self._suppress_next_popup:
-                messagebox.showinfo("Profile Loaded", f"Profile '{profile_name}' loaded successfully.")
+            # No popup on load (legacy feature removed)
             # Reset suppress flag after use
             self._suppress_next_popup = False
             
@@ -265,7 +275,6 @@ class ProfilesPanel:
                 pass
 
             self.update_preview_callback()
-            messagebox.showinfo("Profile Loaded", f"Profile '{profile_name}' loaded successfully.")
             
             # Display profile details
             self.profile_display.config(state=tk.NORMAL)
@@ -419,19 +428,18 @@ class ProfilesPanel:
         self.profile_combobox['values'] = labels
 
         current = self.selected_profile_var.get()
+        # Default behavior: do not auto-select a profile unless default_profile is configured
+        import config as C
+        ui = C.load_ui_state() or {}
+        has_default = bool((ui.get('training_tab') or {}).get('default_profile'))
         if current in labels:
             self.profile_combobox.set(current)
-            # Only legacy profiles can be overwritten directly here
             is_legacy = (self._profiles_lookup.get(current, {}).get('kind') == 'legacy')
             self.overwrite_button.config(state=(tk.NORMAL if is_legacy else tk.DISABLED))
             self.delete_button.config(state=tk.NORMAL)
-        elif labels:
-            self.selected_profile_var.set(labels[0])
-            is_legacy = (self._profiles_lookup.get(labels[0], {}).get('kind') == 'legacy')
-            self.overwrite_button.config(state=(tk.NORMAL if is_legacy else tk.DISABLED))
-            self.delete_button.config(state=tk.NORMAL)
-            self._suppress_next_popup = True
-            self.load_profile_from_gui()
+        elif labels and has_default:
+            # A default will be applied elsewhere; leave selection neutral here
+            pass
         else:
             self.selected_profile_var.set("No profiles found")
             self.overwrite_button.config(state=tk.DISABLED)
@@ -439,6 +447,80 @@ class ProfilesPanel:
             self.profile_display.config(state=tk.NORMAL)
             self.profile_display.delete(1.0, tk.END)
             self.profile_display.config(state=tk.DISABLED)
+
+    # --- Default profile helpers -------------------------------------------
+    def _set_default_profile(self):
+        label = self.selected_profile_var.get()
+        if not label or label == "No profiles found":
+            messagebox.showwarning("No Profile Selected", "Select a profile (legacy or type) first.")
+            return
+        rec = getattr(self, '_profiles_lookup', {}).get(label)
+        payload = {}
+        if rec and rec.get('kind') in ('legacy', 'type'):
+            payload = { 'kind': rec.get('kind'), 'id': rec.get('id') }
+        else:
+            payload = { 'kind': 'legacy', 'id': label }
+        try:
+            import config as C
+            ui = C.load_ui_state() or {}
+            tt = ui.get('training_tab') or {}
+            tt['default_profile'] = payload
+            ui['training_tab'] = tt
+            C.save_ui_state(ui)
+            logger_util.log_message(f"PROFILES: Default profile set -> {payload}")
+            messagebox.showinfo("Default Profile", f"Default profile set to: {payload.get('id')}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to set default profile: {e}")
+
+    def _clear_default_profile(self):
+        try:
+            import config as C
+            ui = C.load_ui_state() or {}
+            tt = ui.get('training_tab') or {}
+            tt.pop('default_profile', None)
+            ui['training_tab'] = tt
+            C.save_ui_state(ui)
+            # Clear current selection and profile view
+            self.selected_profile_var.set("")
+            try:
+                self.profile_combobox.set("")
+            except Exception:
+                pass
+            self.profile_display.config(state=tk.NORMAL)
+            self.profile_display.delete(1.0, tk.END)
+            self.profile_display.config(state=tk.DISABLED)
+            logger_util.log_message("PROFILES: Default profile cleared")
+            messagebox.showinfo("Default Profile", "Default profile cleared. Settings will remain neutral until you select or save a profile.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to clear default profile: {e}")
+
+    def _apply_default_profile_if_set(self):
+        import config as C
+        ui = C.load_ui_state() or {}
+        rec = ((ui.get('training_tab') or {}).get('default_profile'))
+        if not rec:
+            return
+        kind = rec.get('kind'); pid = rec.get('id')
+        labels = list(self.profile_combobox['values']) or []
+        target_label = None
+        if kind == 'type':
+            needle = f"{pid}  (type)"
+            target_label = needle if needle in labels else None
+        else:
+            for lab in labels:
+                if lab.startswith(pid + "  ") and lab.endswith("(legacy)"):
+                    target_label = lab
+                    break
+            if not target_label and pid in labels:
+                target_label = pid
+        if target_label:
+            self._suppress_next_popup = True
+            self.selected_profile_var.set(target_label)
+            try:
+                self.profile_combobox.set(target_label)
+            except Exception:
+                pass
+            self.load_profile_from_gui()
 
     def save_to_selected_profile(self):
         """Saves current settings to the currently selected profile with confirmation."""
