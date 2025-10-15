@@ -1,0 +1,61 @@
+How to Enable GPU Offload (Safe, Side‑by‑Side)
+
+Purpose
+- Keep your working CPU inference untouched.
+- Use the isolated harness at extras/gpu-test with GPU‑enabled binaries.
+
+Recommended backend: Vulkan (best for older/mixed GPUs)
+- Works across many GPUs without fragile driver stacks.
+- We avoid CUDA/ROCm unless you already have a known‑good toolchain.
+
+Two options
+
+1) Copy prebuilt Vulkan llama.cpp binaries (simplest)
+- Place binaries here:
+  - extras/gpu-test/bin/main    (llama.cpp prompt runner; e.g., llama-cli)
+  - extras/gpu-test/bin/server  (llama.cpp server; e.g., llama-server)
+- Validate: running either binary should not print “no usable GPU found”. If it does, the binary likely lacks GPU backends.
+
+2) Build llama.cpp with Vulkan in a separate folder
+- Do NOT replace your existing build; keep this separate.
+- Example (commands are illustrative):
+  - mkdir -p ~/builds/llama-vulkan && cd ~/builds/llama-vulkan
+  - git clone https://github.com/ggerganov/llama.cpp .
+  - cmake -B build -DGGML_VULKAN=ON -DCMAKE_BUILD_TYPE=Release
+  - cmake --build build -j
+  - Copy binaries:
+    - cp build/bin/llama-server /home/commander/Desktop/Trainer/extras/gpu-test/bin/server
+    - cp build/bin/llama-cli    /home/commander/Desktop/Trainer/extras/gpu-test/bin/main
+- Notes:
+  - Vulkan runtime must be present (mesa-vulkan-drivers on many distros). Avoid GPU driver upgrades unless you know they’re safe.
+  - CUDA path (DGGML_CUDA=ON) is optional and fragile on old drivers; prefer Vulkan.
+  - OpenCL fallback: use -DGGML_OPENCL=ON (and optionally -DGGML_CLBLAST=ON). Works for some older GPUs; performance varies.
+
+Harness usage (no system changes)
+1) Put a small GGUF model in extras/gpu-test/models/
+   - Example already copied: qwen2.5-0.5b.Q5_K_M.gguf (~1 GB)
+2) Set overrides in extras/gpu-test/.env (optional):
+   MODEL=models/qwen2.5-0.5b.Q5_K_M.gguf
+   CTX=256
+   LAYERS=4
+3) One‑off tests:
+   - CPU:   ./run_cpu.sh    -p "hello"
+   - Vulkan: ./run_gpu_vulkan.sh -p "hello"
+4) Server (separate port 8095):
+   - CPU:   ./serve_cpu.sh
+   - Vulkan: ./serve_gpu_vulkan.sh
+
+Tuning & safety
+- Start tiny: CTX=256, LAYERS=2–4.
+- Increase LAYERS gradually if stable (watch for resets/OOM).
+- If you see “no usable GPU found”, the binary likely lacks GPU support or Vulkan is unavailable; fall back to CPU or provide a proper Vulkan build.
+- If I/O acts odd, try adding --no-mmap to the commands (you can edit the scripts or run bin/main directly with flags).
+
+Troubleshooting quick hits
+- No GPU message: rebuild with -DGGML_VULKAN=ON or use a known Vulkan binary.
+- Old NVIDIA drivers: avoid CUDA; prefer Vulkan.
+- Very old GPUs: try OpenCL builds, keep CTX small, and LAYERS=2.
+- Still unstable: run CPU scripts — your primary app remains unaffected regardless.
+
+Reminder: This harness is fully isolated
+- Separate binaries, models, and ports — it never changes drivers, PATH, or your app’s configuration.
