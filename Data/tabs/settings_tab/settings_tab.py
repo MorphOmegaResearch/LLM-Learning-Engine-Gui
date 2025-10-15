@@ -3419,6 +3419,42 @@ JSONL Format (training data):
         )
         dataflow_label.pack(padx=10, pady=10, anchor=tk.W)
 
+        # Development Blueprint v2 Section (Internal)
+        dev_section = ttk.LabelFrame(content_frame, text="🧭 Development Blueprint (v2)", style='TLabelframe')
+        dev_section.pack(fill=tk.X, padx=10, pady=10)
+
+        dev_text = """SCOPE & STATUS (Internal Artifact)
+
+COMPLETED IN V2
+• Temperature Controls: Legacy header controls removed; Manual/Auto persisted; bottom indicator authoritative and accurate; metadata includes temp_mode; Quick View shows Temp Mode.
+• Conversations QoL: Rename Chat (Chat + Projects); Projects bottom indicators de-duplicated.
+• ToDo v2: Categories (Tasks, Bugs, Work-Orders, Notes, Completed); priority (High/Medium/Low) with colors; creation flow (Category→Priority→Title→Details); inline edit; Mark Complete → green Completed.
+
+IN FLIGHT
+• Agents Panel: Receive selections from Collections; display, select, and persist agent sets.
+• Orchestrator Wiring: Agent types bound to type-variant training pipeline; expose tool chain controls; log telemetry.
+• Dataset Auto-Generation: Profiles per type variant; synthetic generation with provenance; versioned storage.
+• Evaluation Suites: Registry, schema-aware checks, multi-metric scoring; trend and baseline compare.
+• End-to-End Pipeline: Agents → Profiles → Training → Eval → Compare; resumable runs and artifact indexing.
+
+REMOVED (REDUNDANT)
+• Legacy temperature header label/slider/icon (functional duplicate of Quick Actions popup + indicator).
+
+NOTES
+• UI state keys: extend the indicator state-key pattern used for temperature to other indicators to avoid duplication across tabs.
+• Docs: See extras/blueprints/Trainer_Blue_Print_v2.0.txt for full external blueprint; this section reflects the GUI-internal dev plan.
+"""
+
+        dev_label = ttk.Label(
+            dev_section,
+            text=dev_text,
+            font=("Arial", 9),
+            foreground='#b8e2ff',
+            justify=tk.LEFT,
+            wraplength=700
+        )
+        dev_label.pack(padx=10, pady=10, anchor=tk.W)
+
     def create_help_tab(self, parent):
         """Create Help & Guide tab"""
         parent.columnconfigure(0, weight=1)
