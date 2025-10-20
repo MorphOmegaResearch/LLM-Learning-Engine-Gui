@@ -63,6 +63,29 @@ python3 tools/context_guard.py --report-only
 
 ---
 
+## One-click Setup
+
+- Linux/macOS
+  ```bash
+  bash scripts/bootstrap.sh
+  ```
+
+- Windows (PowerShell)
+  ```powershell
+  ./scripts/bootstrap.ps1
+  ```
+
+Options
+- `--no-launch` to skip launching the UI after dependencies install
+- `--ui new|old` to force which UI script to run
+
+The bootstrap will:
+- Create `.venv` virtual environment
+- Install `requirements.txt`
+- Launch the UI (`Data/interactive_ui.py`; fallback to `Data/interactive_trainer_gui_NEW.py`)
+
+---
+
 ## Git Workflow (Local)
 
 Branches
