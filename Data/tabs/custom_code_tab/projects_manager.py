@@ -6,6 +6,8 @@ from pathlib import Path
 from datetime import datetime
 import json
 from typing import Optional, Dict, Any, List
+import shutil
+from config import get_project_working_dir
 
 PROJECTS_ROOT = Path("Data/projects")
 PROJECTS_ROOT.mkdir(parents=True, exist_ok=True)
@@ -14,7 +16,26 @@ PROJECTS_ROOT.mkdir(parents=True, exist_ok=True)
 def ensure_project(name: str) -> Path:
     p = PROJECTS_ROOT / safe_name(name)
     p.mkdir(parents=True, exist_ok=True)
+    # Auto-create working_dir subdirectory
+    try:
+        get_project_working_dir(name)
+    except Exception:
+        pass  # Don't fail project creation if working_dir fails
     return p
+
+
+def delete_project(name: str) -> bool:
+    """Delete an entire project directory recursively.
+
+    Returns True if deleted or didn't exist; False on failure.
+    """
+    try:
+        p = PROJECTS_ROOT / safe_name(name)
+        if p.exists() and p.is_dir():
+            shutil.rmtree(p)
+        return True
+    except Exception:
+        return False
 
 
 def safe_name(n: str) -> str:
@@ -58,4 +79,3 @@ def save_conversation(project: str, model_name: str, chat_history: List[Dict[str
     }
     (root / f"{session_name}.json").write_text(json.dumps(rec, indent=2))
     return session_name
-

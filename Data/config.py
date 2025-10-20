@@ -33,11 +33,23 @@ OLLAMA_ASSIGNMENTS_PATH = DATA_DIR / "ollama_assignments.json"
 # L8 FIX: Sandbox directory for tool execution
 THE_SANDBOX_DIR = TRAINER_ROOT / "The_SandBox"
 
+# TODO directory structure
+TODOS_DIR = DATA_DIR / "todos"
+TODOS_TASKS_DIR = TODOS_DIR / "tasks"
+TODOS_BUGS_DIR = TODOS_DIR / "bugs"
+TODOS_WORK_ORDERS_DIR = TODOS_DIR / "work_orders"
+TODOS_NOTES_DIR = TODOS_DIR / "notes"
+TODOS_COMPLETED_DIR = TODOS_DIR / "completed"
+TODOS_PLANS_DIR = TODOS_DIR / "plans"
+TODOS_TESTS_DIR = TODOS_DIR / "tests"
+
 # Ensure all directories exist
 for dir_path in [MODELS_DIR, TRAINING_DATA_DIR, TOOLS_DATA_DIR,
                  APP_DEV_DATA_DIR, CODING_DATA_DIR, SEMANTIC_DATA_DIR,
                  PROMPTS_DIR, SCHEMAS_DIR, PROMPTBOX_DIR,
-                 EXPORTS_DIR, PROFILES_DIR, TOOL_PROFILES_DIR, THE_SANDBOX_DIR]: # L8: Added THE_SANDBOX_DIR
+                 EXPORTS_DIR, PROFILES_DIR, TOOL_PROFILES_DIR, THE_SANDBOX_DIR,
+                 TODOS_DIR, TODOS_TASKS_DIR, TODOS_BUGS_DIR, TODOS_WORK_ORDERS_DIR,
+                 TODOS_NOTES_DIR, TODOS_COMPLETED_DIR, TODOS_PLANS_DIR, TODOS_TESTS_DIR]: # Added TODO directories
     dir_path.mkdir(parents=True, exist_ok=True)
 
 # Default training settings
@@ -2495,3 +2507,332 @@ def upsert_training_profile_for_model(trainee_name: str, base_model: str, type_i
         pass
     save_training_profile(trainee_name, tp)
     return tp
+
+
+# === TODO File-Based Storage ===
+from datetime import datetime as _datetime
+import re as _re
+
+def _get_todo_dir(category: str) -> Path:
+    """Get the directory for a specific todo category."""
+    category_map = {
+        'tasks': TODOS_TASKS_DIR,
+        'bugs': TODOS_BUGS_DIR,
+        'work_orders': TODOS_WORK_ORDERS_DIR,
+        'notes': TODOS_NOTES_DIR,
+        'completed': TODOS_COMPLETED_DIR
+    }
+    return category_map.get(category, TODOS_TASKS_DIR)
+
+def _sanitize_filename(text: str) -> str:
+    """Sanitize text for use in filename (remove special chars, limit length)."""
+    # Remove/replace unsafe characters
+    safe = _re.sub(r'[^\w\s-]', '', text.lower())
+    safe = _re.sub(r'[-\s]+', '_', safe)
+    # Limit length
+    return safe[:50]
+
+def _generate_todo_filename(title: str) -> str:
+    """Generate a unique filename for a todo based on timestamp and title."""
+    timestamp = _datetime.now().strftime("%Y%m%d_%H%M%S")
+    safe_title = _sanitize_filename(title)
+    return f"{timestamp}_{safe_title}.txt"
+
+def create_todo_file(category: str, title: str, priority: str, details: str, plan: str | None = None) -> Path:
+    """
+    Create a new todo file.
+
+    Args:
+        category: tasks, bugs, work_orders, notes, or completed
+        title: Todo title
+        priority: high, medium, or low
+        details: Detailed description
+
+    Returns:
+        Path to the created file
+    """
+    todo_dir = _get_todo_dir(category)
+    filename = _generate_todo_filename(title)
+    filepath = todo_dir / filename
+
+    content = f"""PRIORITY: {priority}
+TITLE: {title}
+CREATED: {_datetime.now().isoformat()}
+CATEGORY: {category}
+---
+{details}
+"""
+
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(content)
+
+    return filepath
+
+def list_todo_files(category: str) -> list[Path]:
+    """List all todo files in a category (sorted by creation time, newest first)."""
+    todo_dir = _get_todo_dir(category)
+    files = sorted(todo_dir.glob("*.txt"), key=lambda p: p.stat().st_ctime, reverse=True)
+    return files
+
+def read_todo_file(filepath: Path) -> dict:
+    """
+    Read a todo file and parse its content.
+
+    Returns:
+        dict with keys: title, priority, created, category, details, filename
+    """
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Parse header and body
+        if '---' in content:
+            header, body = content.split('---', 1)
+            details = body.strip()
+        else:
+            header = content
+            details = ''
+
+        # Extract metadata
+        metadata = {}
+        for line in header.split('\n'):
+            if ':' in line:
+                key, value = line.split(':', 1)
+                metadata[key.strip().lower()] = value.strip()
+
+        return {
+            'title': metadata.get('title', filepath.stem),
+            'priority': metadata.get('priority', 'low'),
+            'created': metadata.get('created', ''),
+            'category': metadata.get('category', ''),
+            'details': details,
+            'filename': filepath.name,
+            'filepath': str(filepath)
+        }
+    except Exception as e:
+        return {
+            'title': filepath.stem,
+            'priority': 'low',
+            'created': '',
+            'category': '',
+            'details': f'Error reading file: {e}',
+            'filename': filepath.name,
+            'filepath': str(filepath)
+        }
+
+def update_todo_file(filepath: Path, title: str = None, priority: str = None, details: str = None) -> Path:
+    """
+    Update an existing todo file.
+
+    Args:
+        filepath: Path to the todo file
+        title: New title (if None, keeps existing)
+        priority: New priority (if None, keeps existing)
+        details: New details (if None, keeps existing)
+
+    Returns:
+        Path to the updated file (may be renamed if title changed)
+    """
+    # Read existing content
+    existing = read_todo_file(filepath)
+
+    # Update values
+    new_title = title if title is not None else existing['title']
+    new_priority = priority if priority is not None else existing['priority']
+    new_details = details if details is not None else existing['details']
+    created = existing['created']
+    category = existing['category']
+    plan = existing.get('plan')
+
+    # If title changed, generate new filename
+    if title and title != existing['title']:
+        new_filename = _generate_todo_filename(new_title)
+        new_filepath = filepath.parent / new_filename
+    else:
+        new_filepath = filepath
+
+    # Write updated content
+    lines = [
+        f"PRIORITY: {new_priority}",
+        f"TITLE: {new_title}",
+        f"CREATED: {created}",
+        f"CATEGORY: {category}",
+    ]
+    if plan:
+        lines.append(f"PLAN: {plan}")
+    lines.append(f"MODIFIED: {_datetime.now().isoformat()}")
+    header = "\n".join(lines)
+    content = f"{header}\n---\n{new_details}\n"
+
+    with open(new_filepath, 'w', encoding='utf-8') as f:
+        f.write(content)
+
+    # Remove old file if renamed
+    if new_filepath != filepath and filepath.exists():
+        filepath.unlink()
+
+    return new_filepath
+
+def delete_todo_file(filepath: Path) -> bool:
+    """Delete a todo file. Returns True if successful."""
+    try:
+        if filepath.exists():
+            filepath.unlink()
+            return True
+        return False
+    except Exception:
+        return False
+
+def move_todo_to_completed(filepath: Path) -> Path:
+    """Move a todo file to the completed directory."""
+    todo_data = read_todo_file(filepath)
+    completed_dir = _get_todo_dir('completed')
+    new_filepath = completed_dir / filepath.name
+
+    # Update content to mark as completed
+    content = f"""PRIORITY: {todo_data['priority']}
+TITLE: {todo_data['title']}
+CREATED: {todo_data['created']}
+CATEGORY: {todo_data['category']}
+COMPLETED: {_datetime.now().isoformat()}
+---
+{todo_data['details']}
+"""
+
+    with open(new_filepath, 'w', encoding='utf-8') as f:
+        f.write(content)
+
+    # Delete original
+    filepath.unlink()
+
+    return new_filepath
+
+
+def move_project_todo_to_completed(project_name: str, filepath: _Path) -> _Path:
+    """Move a project todo file to that project's completed directory.
+
+    Args:
+        project_name: Name of the project the todo belongs to
+        filepath: Path to the todo file within the project's todos subfolder
+
+    Returns:
+        Path to the new file in the project's completed directory
+    """
+    todo_data = read_todo_file(filepath)
+    todos_dir = get_project_todos_dir(project_name)
+    completed_dir = todos_dir / 'completed'
+    completed_dir.mkdir(parents=True, exist_ok=True)
+
+    new_filepath = completed_dir / filepath.name
+
+    # Update content to mark as completed; include project hint when available
+    lines = [
+        f"PRIORITY: {todo_data.get('priority', 'low')}",
+        f"TITLE: {todo_data.get('title', filepath.stem)}",
+        f"CREATED: {todo_data.get('created', '')}",
+        f"CATEGORY: completed",
+    ]
+    try:
+        # If original file carried project metadata in details/header, keep a Project hint
+        lines.append(f"PROJECT: {project_name}")
+    except Exception:
+        pass
+    lines.append(f"COMPLETED: {_datetime.now().isoformat()}")
+    header = "\n".join(lines)
+    content = f"{header}\n---\n{todo_data.get('details', '')}\n"
+
+    with open(new_filepath, 'w', encoding='utf-8') as f:
+        f.write(content)
+
+    # Delete original
+    try:
+        if filepath.exists():
+            filepath.unlink()
+    except Exception:
+        pass
+
+    return new_filepath
+
+
+
+# =====================================================
+# Project-Specific Todo Functions
+# =====================================================
+
+def get_project_todos_dir(project_name: str) -> _Path:
+    """Get or create the todos directory for a specific project."""
+    project_dir = DATA_DIR / "projects" / project_name
+    todos_dir = project_dir / "todos"
+    todos_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create category subdirectories
+    for category in ['tasks', 'bugs', 'work_orders', 'notes', 'completed', 'plans', 'tests']:
+        (todos_dir / category).mkdir(exist_ok=True)
+
+    return todos_dir
+
+
+def create_project_todo_file(project_name: str, category: str, title: str, priority: str, details: str, plan: str | None = None) -> _Path:
+    """Create a new todo file within a specific project."""
+    todos_dir = get_project_todos_dir(project_name)
+    category_dir = todos_dir / category
+
+    filename = _generate_todo_filename(title)
+    filepath = category_dir / filename
+
+    content = f"""PRIORITY: {priority}
+TITLE: {title}
+CREATED: {_datetime.now().isoformat()}
+CATEGORY: {category}
+PROJECT: {project_name}
+---
+{details}
+"""
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(content)
+
+    return filepath
+
+
+def list_project_todo_files(project_name: str, category: str) -> list[_Path]:
+    """List all todo files for a project category."""
+    todos_dir = get_project_todos_dir(project_name)
+    category_dir = todos_dir / category
+
+    if not category_dir.exists():
+        return []
+
+    files = sorted(category_dir.glob('*.txt'), key=lambda p: p.stat().st_mtime, reverse=True)
+    return files
+
+
+def list_all_projects_with_todos() -> list[str]:
+    """List all projects that have todos directories."""
+    projects_dir = DATA_DIR / "projects"
+    if not projects_dir.exists():
+        return []
+
+    projects_with_todos = []
+    for project_dir in projects_dir.iterdir():
+        if project_dir.is_dir():
+            todos_dir = project_dir / "todos"
+            if todos_dir.exists():
+                # Check if it has any todos
+                has_todos = False
+                for category in ['tasks', 'bugs', 'work_orders', 'notes', 'completed', 'plans', 'tests']:
+                    cat_dir = todos_dir / category
+                    if cat_dir.exists() and any(cat_dir.glob('*.txt')):
+                        has_todos = True
+                        break
+                if has_todos:
+                    projects_with_todos.append(project_dir.name)
+
+    return sorted(projects_with_todos)
+
+
+def get_project_working_dir(project_name: str) -> _Path:
+    """Get or create the working directory for a specific project."""
+    project_dir = DATA_DIR / "projects" / project_name
+    working_dir = project_dir / "working_dir"
+    working_dir.mkdir(parents=True, exist_ok=True)
+    return working_dir

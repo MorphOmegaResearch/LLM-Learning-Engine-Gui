@@ -81,6 +81,10 @@ git checkout -b docs/blueprint-v2
 # Stage and commit changes
 git add extras/blueprints/Trainer_Blue_Print_v2.0.txt \
         Data/tabs/settings_tab/settings_tab.py \
+        Data/tabs/custom_code_tab/sub_tabs/projects_interface_tab.py \
+        Data/tabs/custom_code_tab/sub_tabs/chat_interface_tab.py \
+        Data/tabs/custom_code_tab/projects_manager.py \
+        Data/config.py \
         START_HERE.md
 git commit -m "docs: add Blueprint v2, update Help and START_HERE"
 
@@ -95,6 +99,13 @@ Blueprints & Plans
 - Latest blueprint: `extras/blueprints/Trainer_Blue_Print_v2.0.txt`
 - Research archives: `extras/Research/`
 - Historical blueprints: `extras/blueprints/`
+
+Common update batch (current work)
+- Per‑project working_dir lifecycle (create/auto‑switch)
+- Unified ToDo manager (Main/Project toggle)
+- Plans & Tests categories + Plan template dialog
+- OS Trash integration + window size persistence
+- UI hardening & indicator fixes
 
 Commit style
 - Prefix: `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`

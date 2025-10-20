@@ -16,7 +16,11 @@ from logger_util import log_message
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from tabs.base_tab import BaseTab
-from config import TRAINER_ROOT, DATA_DIR, MODELS_DIR
+from config import (TRAINER_ROOT, DATA_DIR, MODELS_DIR, TODOS_DIR,
+                    create_todo_file, list_todo_files, read_todo_file,
+                    update_todo_file, delete_todo_file, move_todo_to_completed,
+                    get_project_todos_dir, create_project_todo_file, list_project_todo_files,
+                    list_all_projects_with_todos, move_project_todo_to_completed)
 
 
 class SettingsTab(BaseTab):
@@ -45,6 +49,8 @@ class SettingsTab(BaseTab):
         self._suppress_reorder_popup = False
         # Internal mapping from (tab_name, panel_header_text) -> file path (if resolvable)
         self.panel_file_map = {}
+        # Current project context for unified ToDo manager (set by Projects panel)
+        self.current_project_context = None
 
     def create_ui(self):
         """Create the settings tab UI with side menu and sub-tabs"""
@@ -74,6 +80,218 @@ class SettingsTab(BaseTab):
         quick_restart_btn.pack(side=tk.RIGHT, padx=(5, 0))
         print(f"DEBUG: Quick Restart button created. Command bound to: {quick_restart_btn.cget('command')}")
         log_message(f"SETTINGS: Quick Restart button created. Command bound to: {quick_restart_btn.cget('command')}")
+
+    # --- Plan Template Dialog (shared by Main/Project ToDo) ---
+    def _open_plan_template_dialog(self, project_name: str | None = None):
+        dlg = tk.Toplevel(self.root)
+        dlg.title('New Plan')
+        dlg.geometry('760x560')
+        try:
+            dlg.transient(self.root); dlg.grab_set()
+        except Exception:
+            pass
+
+        # Scrollable body container
+        container = ttk.Frame(dlg)
+        container.pack(fill=tk.BOTH, expand=True)
+        canvas = tk.Canvas(container, highlightthickness=0)
+        vbar = ttk.Scrollbar(container, orient=tk.VERTICAL, command=canvas.yview)
+        canvas.configure(yscrollcommand=vbar.set)
+        canvas.grid(row=0, column=0, sticky=tk.NSEW)
+        vbar.grid(row=0, column=1, sticky=tk.NS)
+        container.columnconfigure(0, weight=1)
+        container.rowconfigure(0, weight=1)
+        body = ttk.Frame(canvas, padding=10)
+        body_id = canvas.create_window((0,0), window=body, anchor='nw')
+
+        def _on_body_config(_e=None):
+            try:
+                canvas.configure(scrollregion=canvas.bbox('all'))
+            except Exception:
+                pass
+        def _on_container_resize(e):
+            try:
+                canvas.itemconfigure(body_id, width=e.width - vbar.winfo_width())
+            except Exception:
+                pass
+        body.bind('<Configure>', _on_body_config)
+        container.bind('<Configure>', _on_container_resize)
+
+        f = body  # Alias for layout
+        # Plan name
+        ttk.Label(f, text='Plan Name', style='CategoryPanel.TLabel').grid(row=0, column=0, sticky=tk.W)
+        name_var = tk.StringVar(); ttk.Entry(f, textvariable=name_var).grid(row=0, column=1, sticky=tk.EW)
+        # Priority
+        ttk.Label(f, text='Priority', style='CategoryPanel.TLabel').grid(row=1, column=0, sticky=tk.W)
+        pvar = tk.StringVar(value='medium'); pr = ttk.Frame(f); pr.grid(row=1, column=1, sticky=tk.W)
+        ttk.Radiobutton(pr, text='High', value='high', variable=pvar).pack(side=tk.LEFT, padx=4)
+        ttk.Radiobutton(pr, text='Medium', value='medium', variable=pvar).pack(side=tk.LEFT, padx=4)
+        ttk.Radiobutton(pr, text='Low', value='low', variable=pvar).pack(side=tk.LEFT, padx=4)
+        # Helper: auto-resize text widget 1..3 lines and hide scrollbar
+        def _mk_auto_text(parent, min_lines=1, max_lines=3):
+            txt = scrolledtext.ScrolledText(parent, height=min_lines, wrap=tk.WORD, font=('Arial',9), bg='#1e1e1e', fg='#dcdcdc')
+            # Hide the visible scrollbar by setting its width to 0; keep wheel working
+            try:
+                for child in txt.winfo_children():
+                    if isinstance(child, tk.Scrollbar):
+                        child.configure(width=0)
+            except Exception:
+                pass
+            def _update_height(_e=None):
+                try:
+                    # Count visual lines (approximate by content lines)
+                    text = txt.get('1.0', 'end-1c')
+                    lines = max(min_lines, min(max_lines, max(1, text.count('\n') + 1)))
+                    if int(txt.cget('height')) != lines:
+                        txt.configure(height=lines)
+                except Exception:
+                    pass
+                finally:
+                    try:
+                        txt.edit_modified(False)
+                    except Exception:
+                        pass
+            try:
+                txt.bind('<<Modified>>', _update_height)
+            except Exception:
+                pass
+            return txt
+
+        # Overview
+        ttk.Label(f, text='Overview', style='CategoryPanel.TLabel').grid(row=2, column=0, sticky=tk.NW)
+        ov = _mk_auto_text(f, 1, 3); ov.grid(row=2, column=1, sticky=tk.NSEW)
+        # Objectives
+        ttk.Label(f, text='Objectives', style='CategoryPanel.TLabel').grid(row=3, column=0, sticky=tk.NW)
+        obj = _mk_auto_text(f, 1, 3); obj.grid(row=3, column=1, sticky=tk.NSEW)
+        # Section builder: dynamic single-line entries with + / - controls
+        def _mk_section(row_idx: int, label_text: str, examples: list[str]):
+            ttk.Label(f, text=label_text, style='CategoryPanel.TLabel').grid(row=row_idx, column=0, sticky=tk.NW, pady=(6,0))
+            wrap = ttk.Frame(f); wrap.grid(row=row_idx, column=1, sticky=tk.NSEW, pady=(6,0))
+            wrap.columnconfigure(0, weight=1)
+
+            # controls under header
+            ctrl = ttk.Frame(wrap)
+            ctrl.grid(row=0, column=0, sticky=tk.W)
+            rows_frame = ttk.Frame(wrap)
+            rows_frame.grid(row=1, column=0, sticky=tk.NSEW)
+            rows = []
+
+            def add_row(text: str = '', *, placeholder: bool = False):
+                r = ttk.Frame(rows_frame)
+                r.columnconfigure(0, weight=1)
+                e = ttk.Entry(r)
+                e.grid(row=0, column=0, sticky=tk.EW, padx=(0,6), pady=2)
+                if text:
+                    e.insert(0, text)
+                if placeholder and text:
+                    try:
+                        e.configure(foreground='#888888')
+                        e._placeholder = True
+                    except Exception:
+                        pass
+                    def _clear_placeholder(_e):
+                        try:
+                            if getattr(e, '_placeholder', False):
+                                e.delete(0, tk.END)
+                                e.configure(foreground='#dcdcdc')
+                                e._placeholder = False
+                        except Exception:
+                            pass
+                    e.bind('<FocusIn>', _clear_placeholder, add='+')
+                rows.append(e)
+                r.pack(fill=tk.X)
+
+            def remove_row():
+                if rows:
+                    e = rows.pop()
+                    try:
+                        e.master.destroy()
+                    except Exception:
+                        pass
+
+            ttk.Button(ctrl, text='＋', width=3, command=lambda: add_row('')).pack(side=tk.LEFT, padx=(0,4))
+            ttk.Button(ctrl, text='−', width=3, command=remove_row).pack(side=tk.LEFT)
+
+            # Default three entries; first with example placeholder
+            add_row(examples[0] if examples else '', placeholder=True)
+            add_row('')
+            add_row('')
+
+            return rows
+
+        # Build sections
+        task_rows = _mk_section(4, 'Tasks', ['Add overview window when a model is selected'])
+        wo_rows = _mk_section(5, 'Work Orders', ['Create Popup Window'])
+        tests_rows = _mk_section(6, 'Tests', ['Selecting a model shows overview'])
+        f.columnconfigure(1, weight=1); f.rowconfigure(6, weight=1)
+        # Prefill examples
+        try:
+            ov.insert(tk.END, 'Example: Upgrade Chat interface to show model overview panel.')
+            obj.insert(tk.END, '- Improve discoverability\n- Reduce clicks\n- Keep layout responsive')
+        except Exception:
+            pass
+        # Create
+        def create_plan():
+            try:
+                title = (name_var.get() or '').strip()
+                if not title:
+                    messagebox.showwarning('Missing Plan Name','Please enter a plan name.', parent=dlg); return
+                prio = pvar.get()
+                from config import create_todo_file, create_project_todo_file
+                def mk(cat, text_):
+                    if project_name:
+                        return create_project_todo_file(project_name, cat, text_, prio, '', plan=title)
+                    else:
+                        return create_todo_file(cat, text_, prio, '', plan=title)
+                # Plan body summary
+                body_parts = [
+                    'Overview:\n' + ov.get('1.0', tk.END).strip(),
+                    'Objectives:\n' + obj.get('1.0', tk.END).strip(),
+                ]
+                # Collect non-empty rows; ignore placeholder examples
+                def _collect(rows):
+                    out = []
+                    for e in rows:
+                        try:
+                            if getattr(e, '_placeholder', False):
+                                continue
+                        except Exception:
+                            pass
+                        val = (e.get() or '').strip()
+                        if val:
+                            out.append(val)
+                    return out
+                lines_tasks = _collect(task_rows)
+                lines_wo = _collect(wo_rows)
+                lines_tests = _collect(tests_rows)
+                body_parts.append('Tasks:\n' + '\n'.join(f'- {t}' for t in lines_tasks) or 'Tasks:\n-')
+                body_parts.append('Work Orders:\n' + '\n'.join(f'{i+1}. {w}' for i,w in enumerate(lines_wo)) or 'Work Orders:\n1.')
+                body_parts.append('Tests:\n' + '\n'.join(f'- {t}' for t in lines_tests) or 'Tests:\n-')
+                body = '\n\n'.join(body_parts)
+                # Plan file
+                if project_name:
+                    create_project_todo_file(project_name, 'plans', f'Plan: {title}', prio, body, plan=title)
+                else:
+                    create_todo_file('plans', f'Plan: {title}', prio, body, plan=title)
+                # Derived items
+                for t in lines_tasks:
+                    mk('tasks', f'Plan:{title} | Task: {t}')
+                for i,w in enumerate(lines_wo, 1):
+                    mk('work_orders', f'Plan:{title} | Work-Order {i}: {w}')
+                for t in lines_tests:
+                    mk('tests', f'Plan:{title} | Test: {t}')
+                try:
+                    # Refresh listings in active popup
+                    self.refresh_todo_view()
+                except Exception:
+                    pass
+                dlg.destroy()
+            except Exception as e:
+                log_message(f'SETTINGS: Error creating plan (dialog): {e}')
+                messagebox.showerror('Error', f'Failed to create plan: {e}', parent=dlg)
+        b = ttk.Frame(f); b.grid(row=7, column=1, sticky=tk.E, pady=(8,0))
+        ttk.Button(b, text='Create Plan', style='Action.TButton', command=create_plan).pack(side=tk.LEFT, padx=4)
+        ttk.Button(b, text='Cancel', style='Select.TButton', command=dlg.destroy).pack(side=tk.LEFT, padx=4)
 
         # Settings tab refresh button
         ttk.Button(header_frame, text="🔄 Refresh Settings",
@@ -288,16 +506,22 @@ class SettingsTab(BaseTab):
         self.todo_section.columnconfigure(0, weight=1)
 
         # Header with dynamic counts, centered
-        self.todo_header_var = tk.StringVar(value="ToDo-List: 0 Tasks | 0 Bugs | 0 Work-Orders | 0 Notes | 0 Completed | High 0 | Med 0 | Low 0")
+        # Todo header with separate lines for better layout
+        self.todo_counts_var = tk.StringVar(value="Tasks: 0 | Bugs: 0 | Work-Orders: 0 | Notes: 0 | Completed: 0")
+        self.todo_priority_var = tk.StringVar(value="Priority: High 0 | Medium 0 | Low 0")
         header_row = ttk.Frame(self.todo_section, style='Category.TFrame')
         header_row.grid(row=0, column=0, sticky=tk.EW, pady=(4, 0))
         header_row.columnconfigure(0, weight=0)
         header_row.columnconfigure(1, weight=1)
+
         # Show-on-launch checkbox (no label)
         self.todo_show_on_launch = tk.BooleanVar(value=self.settings.get('todo_show_on_launch', False))
         cb = ttk.Checkbutton(header_row, variable=self.todo_show_on_launch, command=self._on_todo_show_on_launch_changed)
-        cb.grid(row=0, column=0, sticky=tk.W, padx=(0,8))
-        ttk.Label(header_row, textvariable=self.todo_header_var, font=("Arial", 11, "bold"), style='CategoryPanel.TLabel', anchor='center', justify='center').grid(row=0, column=1, sticky=tk.EW)
+        cb.grid(row=0, column=0, rowspan=2, sticky=tk.W, padx=(0,8))
+
+        # Two-line header for better fit
+        ttk.Label(header_row, textvariable=self.todo_counts_var, font=("Arial", 10, "bold"), style='CategoryPanel.TLabel', anchor='center').grid(row=0, column=1, sticky=tk.EW)
+        ttk.Label(header_row, textvariable=self.todo_priority_var, font=("Arial", 9), style='CategoryPanel.TLabel', anchor='center').grid(row=1, column=1, sticky=tk.EW)
 
         # Action buttons row
         buttons_row = ttk.Frame(self.todo_section)
@@ -1690,6 +1914,7 @@ class {class_name}:
 
     # --- ToDo List: Handlers ---
     def refresh_todo_view(self):
+        """Refresh main todo tree view from file-based storage."""
         # Clear tree
         for item in self.todo_tree.get_children():
             self.todo_tree.delete(item)
@@ -1712,126 +1937,136 @@ class {class_name}:
 
         # Helper to sort by priority
         def _prio_key(item):
-            p = (item or {}).get('priority','low').lower()
-            return {'high':0, 'medium':1, 'low':2}.get(p, 2)
+            p = (item or {}).get('priority', 'low').lower()
+            return {'high': 0, 'medium': 1, 'low': 2}.get(p, 2)
 
-        # Populate tasks/bugs/work_orders/notes sorted by priority
-        tcount=bcount=wcount=ncount=0
-        ph=pm=pl=0
-        for idx, t in enumerate(sorted(self.todos.get('tasks', []), key=_prio_key)):
-            text = t.get('text', '').strip() or f'Task {idx+1}'
-            done = t.get('done', False)
-            pr = (t.get('priority','low') or 'low').lower()
-            tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else (('prio_low',) if not done else ()))
-            self.todo_tree.insert(tasks_root, 'end', iid=f'task:{idx}', text=text, values=('☑' if done else '☐',), tags=tag)
-            tcount += 1
-            if not done:
-                if pr=='high': ph+=1
-                elif pr=='medium': pm+=1
-                else: pl+=1
-        for idx, b in enumerate(sorted(self.todos.get('bugs', []), key=_prio_key)):
-            text = b.get('text', '').strip() or f'Bug {idx+1}'
-            done = b.get('done', False)
-            pr = (b.get('priority','low') or 'low').lower()
-            tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else (('prio_low',) if not done else ()))
-            self.todo_tree.insert(bugs_root, 'end', iid=f'bug:{idx}', text=text, values=('☑' if done else '☐',), tags=tag)
-            bcount += 1
-            if not done:
-                if pr=='high': ph+=1
-                elif pr=='medium': pm+=1
-                else: pl+=1
-        for idx, w in enumerate(sorted(self.todos.get('work_orders', []), key=_prio_key)):
-            text = w.get('text', '').strip() or f'Work-Order {idx+1}'
-            done = w.get('done', False)
-            pr = (w.get('priority','low') or 'low').lower()
-            tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else (('prio_low',) if not done else ()))
-            self.todo_tree.insert(work_root, 'end', iid=f'work_orders:{idx}', text=text, values=('☑' if done else '☐',), tags=tag)
-            wcount += 1
-            if not done:
-                if pr=='high': ph+=1
-                elif pr=='medium': pm+=1
-                else: pl+=1
-        for idx, n in enumerate(sorted(self.todos.get('notes', []), key=_prio_key)):
-            text = n.get('text', '').strip() or f'Note {idx+1}'
-            done = n.get('done', False)
-            pr = (n.get('priority','low') or 'low').lower()
-            tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else (('prio_low',) if not done else ()))
-            self.todo_tree.insert(notes_root, 'end', iid=f'notes:{idx}', text=text, values=('☑' if done else '☐',), tags=tag)
-            ncount += 1
-            if not done:
-                if pr=='high': ph+=1
-                elif pr=='medium': pm+=1
-                else: pl+=1
-        # Completed (kept grouped by type)
+        # Load from files and populate
+        tcount = bcount = wcount = ncount = 0
+        ph = pm = pl = 0
+
+        # Tasks
+        try:
+            task_files = list_todo_files('tasks')
+            tasks_data = [read_todo_file(f) for f in task_files]
+            for todo in sorted(tasks_data, key=_prio_key):
+                text = todo.get('title', '').strip() or 'Untitled Task'
+                pr = (todo.get('priority', 'low') or 'low').lower()
+                tag = ('prio_high',) if pr == 'high' else (('prio_med',) if pr == 'medium' else ('prio_low',))
+                self.todo_tree.insert(tasks_root, 'end', iid=f'tasks:{todo["filename"]}', text=text, values=('☐',), tags=tag)
+                tcount += 1
+                if pr == 'high':
+                    ph += 1
+                elif pr == 'medium':
+                    pm += 1
+                else:
+                    pl += 1
+        except Exception as e:
+            log_message(f"SETTINGS: Error loading tasks: {e}")
+
+        # Bugs
+        try:
+            bug_files = list_todo_files('bugs')
+            bugs_data = [read_todo_file(f) for f in bug_files]
+            for todo in sorted(bugs_data, key=_prio_key):
+                text = todo.get('title', '').strip() or 'Untitled Bug'
+                pr = (todo.get('priority', 'low') or 'low').lower()
+                tag = ('prio_high',) if pr == 'high' else (('prio_med',) if pr == 'medium' else ('prio_low',))
+                self.todo_tree.insert(bugs_root, 'end', iid=f'bugs:{todo["filename"]}', text=text, values=('☐',), tags=tag)
+                bcount += 1
+                if pr == 'high':
+                    ph += 1
+                elif pr == 'medium':
+                    pm += 1
+                else:
+                    pl += 1
+        except Exception as e:
+            log_message(f"SETTINGS: Error loading bugs: {e}")
+
+        # Work Orders
+        try:
+            work_files = list_todo_files('work_orders')
+            work_data = [read_todo_file(f) for f in work_files]
+            for todo in sorted(work_data, key=_prio_key):
+                text = todo.get('title', '').strip() or 'Untitled Work-Order'
+                pr = (todo.get('priority', 'low') or 'low').lower()
+                tag = ('prio_high',) if pr == 'high' else (('prio_med',) if pr == 'medium' else ('prio_low',))
+                self.todo_tree.insert(work_root, 'end', iid=f'work_orders:{todo["filename"]}', text=text, values=('☐',), tags=tag)
+                wcount += 1
+                if pr == 'high':
+                    ph += 1
+                elif pr == 'medium':
+                    pm += 1
+                else:
+                    pl += 1
+        except Exception as e:
+            log_message(f"SETTINGS: Error loading work orders: {e}")
+
+        # Notes
+        try:
+            note_files = list_todo_files('notes')
+            notes_data = [read_todo_file(f) for f in note_files]
+            for todo in sorted(notes_data, key=_prio_key):
+                text = todo.get('title', '').strip() or 'Untitled Note'
+                pr = (todo.get('priority', 'low') or 'low').lower()
+                tag = ('prio_high',) if pr == 'high' else (('prio_med',) if pr == 'medium' else ('prio_low',))
+                self.todo_tree.insert(notes_root, 'end', iid=f'notes:{todo["filename"]}', text=text, values=('☐',), tags=tag)
+                ncount += 1
+                if pr == 'high':
+                    ph += 1
+                elif pr == 'medium':
+                    pm += 1
+                else:
+                    pl += 1
+        except Exception as e:
+            log_message(f"SETTINGS: Error loading notes: {e}")
+
+        # Completed
         ccount = 0
-        for idx, c in enumerate(self.todos.get('completed', [])):
-            text = c.get('text', '').strip() or f'Item {idx+1}'
-            self.todo_tree.insert(completed_root, 'end', iid=f'completed:{idx}', text=text, values=('☑',), tags=('completed',))
-            ccount += 1
+        try:
+            completed_files = list_todo_files('completed')
+            completed_data = [read_todo_file(f) for f in completed_files]
+            for todo in completed_data:
+                text = todo.get('title', '').strip() or 'Untitled Item'
+                self.todo_tree.insert(completed_root, 'end', iid=f'completed:{todo["filename"]}', text=text, values=('☑',), tags=('completed',))
+                ccount += 1
+        except Exception as e:
+            log_message(f"SETTINGS: Error loading completed: {e}")
 
-        # Update header counts with priority totals
-        self.todo_header_var.set(f"ToDo-List: {tcount} Tasks | {bcount} Bugs | {wcount} Work-Orders | {ncount} Notes | {ccount} Completed | High {ph} | Med {pm} | Low {pl}")
+        # Update header counts with priority totals (two-line layout)
+        self.todo_counts_var.set(f"Tasks: {tcount} | Bugs: {bcount} | Work-Orders: {wcount} | Notes: {ncount} | Completed: {ccount}")
+        self.todo_priority_var.set(f"Priority: High {ph} | Medium {pm} | Low {pl}")
         # Update buttons state
         self._apply_todo_button_states()
 
     def _on_todo_click(self, event):
-        # Toggle checkbox if clicking on the 'done' column for task/bug items
-        region = self.todo_tree.identify('region', event.x, event.y)
-        if region != 'cell':
-            return
-        col = self.todo_tree.identify_column(event.x)
-        if col != '#1':
-            return
-        item = self.todo_tree.identify_row(event.y)
-        if not item or item.startswith('completed:'):
-            return
-        kind, idx_str = item.split(':', 1)
-        try:
-            idx = int(idx_str)
-        except Exception:
-            return
-        lst = self.todos.get(
-            'tasks' if kind == 'task' else (
-                'bugs' if kind == 'bug' else (
-                    'work_orders' if kind == 'work_orders' else (
-                        'notes' if kind == 'notes' else None
-                    )
-                )
-            ),
-            []
-        )
-        if idx < 0 or idx >= len(lst):
-            return
-        lst[idx]['done'] = not bool(lst[idx].get('done', False))
-        # Update cell
-        self.todo_tree.set(item, 'done', '☑' if lst[idx]['done'] else '☐')
-        self.save_settings_to_file()
+        """Handle click on todo item - file-based storage doesn't use 'done' checkboxes."""
+        # With file-based storage, items are either active or completed (in different folders)
+        # No need for inline checkbox toggling
+        pass
 
     def _get_selected_todo(self):
+        """Get selected todo from tree - returns (category, filename)."""
         sel = self.todo_tree.selection()
         if not sel:
             return None
         item = sel[0]
         if ':' not in item:
             return None
-        kind, idx_str = item.split(':', 1)
-        try:
-            idx = int(idx_str)
-        except Exception:
-            return None
-        return kind, idx
+        category, filename = item.split(':', 1)
+        return category, filename
 
     def _is_todo_actionable(self, action):
+        """Check if action is valid for selected todo."""
         sel = self._get_selected_todo()
         if not sel:
             return False
-        kind, idx = sel
+        category, filename = sel
         if action == 'mark':
-            return kind in ('task', 'bug', 'work_orders', 'notes')
+            return category in ('tasks', 'bugs', 'work_orders', 'notes')
         if action == 'edit':
-            return kind in ('task', 'bug', 'work_orders', 'notes')
+            return category in ('tasks', 'bugs', 'work_orders', 'notes')
         if action == 'delete':
-            return kind in ('task', 'bug', 'work_orders', 'notes', 'completed')
+            return category in ('tasks', 'bugs', 'work_orders', 'notes', 'completed')
         return True
 
     def _apply_todo_button_states(self):
@@ -1900,10 +2135,28 @@ class {class_name}:
             pass
 
     # Optional popup on launch
-    def show_todo_popup(self):
+    def show_todo_popup(self, project_name: str = None, prefer_project: bool = False):
+        """Show main todo popup.
+
+        If project_name is provided and prefer_project is True, open the Project ToDo view instead.
+        """
+        # Redirect to project view if requested
+        try:
+            ctx_project = project_name or getattr(self, 'current_project_context', None)
+            if prefer_project and ctx_project:
+                return self.show_project_todo_popup(ctx_project)
+        except Exception:
+            pass
         top = tk.Toplevel(self.root)
         top.title("ToDo List")
-        top.geometry('600x500')
+        try:
+            geom = (self.settings or {}).get('todo_geometry_main')
+            if isinstance(geom, str) and 'x' in geom:
+                top.geometry(geom)
+            else:
+                top.geometry('820x560')
+        except Exception:
+            top.geometry('820x560')
         try:
             top.transient(self.root)
             top.lift()
@@ -1917,6 +2170,24 @@ class {class_name}:
         try:
             self.todo_popup_active = True
             def _on_close():
+                # Persist window geometry silently
+                try:
+                    w = max(400, int(top.winfo_width()))
+                    h = max(300, int(top.winfo_height()))
+                    self.settings['todo_geometry_main'] = f"{w}x{h}"
+                    # Merge minimal write
+                    all_settings = {}
+                    if self.settings_file.exists():
+                        try:
+                            with open(self.settings_file, 'r') as f:
+                                all_settings = json.load(f)
+                        except Exception:
+                            all_settings = {}
+                    all_settings['todo_geometry_main'] = self.settings['todo_geometry_main']
+                    with open(self.settings_file, 'w') as f:
+                        json.dump(all_settings, f, indent=2)
+                except Exception:
+                    pass
                 try:
                     self.todo_popup_active = False
                 except Exception:
@@ -1932,23 +2203,127 @@ class {class_name}:
         frame = ttk.Frame(top)
         frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
         frame.columnconfigure(0, weight=1)
-        frame.rowconfigure(1, weight=1)
-        # Header
-        ttk.Label(frame, textvariable=self.todo_header_var, font=("Arial", 12, "bold"), style='CategoryPanel.TLabel').grid(row=0, column=0, sticky=tk.EW, pady=(0,6))
+        frame.columnconfigure(1, weight=0)
+        frame.rowconfigure(2, weight=1)
+
+        # Toggle header: allow switching to Project list when context is provided
+        def _open_project_from_main():
+            try:
+                top.destroy()
+            except Exception:
+                pass
+            try:
+                ctx = project_name or getattr(self, 'current_project_context', None)
+                if ctx:
+                    self.show_project_todo_popup(ctx)
+            except Exception:
+                pass
+
+        log_message("TODO POPUP: Building header toggle row (Main)...")
+        toggle = ttk.Frame(frame)
+        toggle.grid(row=0, column=0, columnspan=2, sticky=tk.EW)
+        try:
+            for c in range(3):
+                toggle.columnconfigure(c, weight=1)
+            plan_btn = ttk.Button(toggle, text='＋ Plan', style='Action.TButton', command=lambda: self._open_plan_template_dialog(None))
+            plan_btn.grid(row=0, column=0, sticky=tk.W, padx=(0,8))
+            main_btn = ttk.Button(toggle, text='Main ToDo List', style='Action.TButton')
+            main_btn.grid(row=0, column=1, sticky=tk.EW, padx=(0,4))
+            ctx = project_name or getattr(self, 'current_project_context', None)
+            if ctx:
+                try:
+                    get_project_todos_dir(ctx)
+                except Exception:
+                    pass
+                proj_btn = ttk.Button(toggle, text='Project ToDo List', style='Select.TButton', command=_open_project_from_main)
+                proj_btn.grid(row=0, column=2, sticky=tk.EW, padx=(4,0))
+        except Exception as e:
+            log_message(f"TODO POPUP: Header build error (Main): {e}")
+
+        # Top right header buttons
+        def open_system_trash():
+            try:
+                import platform, subprocess, os, shutil
+                system = platform.system()
+                if system == 'Linux':
+                    if shutil.which('gio'):
+                        subprocess.Popen(['gio', 'open', 'trash:///'])
+                    elif shutil.which('xdg-open'):
+                        subprocess.Popen(['xdg-open', os.path.expanduser('~/.local/share/Trash/files')])
+                elif system == 'Darwin':
+                    subprocess.Popen(['open', os.path.expanduser('~/.Trash')])
+                elif system == 'Windows':
+                    subprocess.Popen(['explorer', 'shell:RecycleBinFolder'])
+            except Exception:
+                pass
+
+        try:
+            trash_btn = ttk.Button(frame, text='🗑', width=3, command=open_system_trash)
+            trash_btn.grid(row=0, column=1, sticky=tk.NE, padx=(6,0))
+        except Exception:
+            pass
+
+        # Plan context (used to auto-link new todos to a selected plan)
+        plan_context = {'name': None}
+
+        # Two-line header for better fit
+        try:
+            ttk.Label(frame, textvariable=self.todo_counts_var, font=("Arial", 11, "bold"), style='CategoryPanel.TLabel', anchor='center').grid(row=1, column=0, sticky=tk.EW)
+            ttk.Label(frame, textvariable=self.todo_priority_var, font=("Arial", 10), style='CategoryPanel.TLabel', anchor='center').grid(row=2, column=0, sticky=tk.EW, pady=(0,6))
+        except Exception as e:
+            log_message(f"TODO POPUP: Counts row error (Main): {e}")
+
+        # Folder button to open todos directory in file manager
+        def open_todos_folder():
+            """Open the todos directory in system file manager."""
+            try:
+                import subprocess
+                import platform
+
+                todos_path = str(TODOS_DIR)
+                log_message(f"SETTINGS: Opening todos folder: {todos_path}")
+
+                system = platform.system()
+                if system == 'Linux':
+                    subprocess.Popen(['xdg-open', todos_path])
+                elif system == 'Darwin':  # macOS
+                    subprocess.Popen(['open', todos_path])
+                elif system == 'Windows':
+                    subprocess.Popen(['explorer', todos_path])
+                else:
+                    messagebox.showinfo("Unsupported OS", f"Please manually navigate to:\n{todos_path}", parent=top)
+            except Exception as e:
+                log_message(f"SETTINGS: Error opening todos folder: {e}")
+                messagebox.showerror("Error", f"Failed to open folder:\n{e}\n\nPath: {TODOS_DIR}", parent=top)
+
+        try:
+            folder_btn = ttk.Button(frame, text="📁", command=open_todos_folder, width=3)
+            folder_btn.grid(row=1, column=1, rowspan=2, sticky=tk.NE, padx=(6,0))
+        except Exception as e:
+            log_message(f"TODO POPUP: Folder button error (Main): {e}")
         # Tree
-        sub = ttk.Frame(frame)
-        sub.grid(row=1, column=0, sticky=tk.NSEW)
-        sub.columnconfigure(0, weight=1)
-        sub.rowconfigure(0, weight=1)
-        scr = ttk.Scrollbar(sub, orient=tk.VERTICAL)
-        scr.pack(side=tk.RIGHT, fill=tk.Y)
-        pop_tree = ttk.Treeview(sub, columns=("done",), show='tree headings')
-        pop_tree.heading('#0', text='Item')
-        pop_tree.heading('done', text='Done')
-        pop_tree.column('done', width=60, anchor=tk.CENTER, stretch=False)
-        pop_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        pop_tree.configure(yscrollcommand=scr.set)
-        scr.config(command=pop_tree.yview)
+        log_message("TODO POPUP: Building body (tree) (Main)...")
+        try:
+            sub = ttk.Frame(frame)
+            sub.grid(row=3, column=0, columnspan=2, sticky=tk.NSEW)
+            sub.columnconfigure(0, weight=1)
+            sub.rowconfigure(0, weight=1)
+            scr = ttk.Scrollbar(sub, orient=tk.VERTICAL)
+            scr.pack(side=tk.RIGHT, fill=tk.Y)
+            pop_tree = ttk.Treeview(sub, columns=("done",), show='tree headings')
+            pop_tree.heading('#0', text='Item')
+            pop_tree.heading('done', text='Done')
+            pop_tree.column('done', width=60, anchor=tk.CENTER, stretch=False)
+            pop_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            pop_tree.configure(yscrollcommand=scr.set)
+            scr.config(command=pop_tree.yview)
+        except Exception as e:
+            log_message(f"TODO POPUP: Tree build error (Main): {e}")
+            # Fallback minimal tree
+            try:
+                ttk.Label(frame, text='[Tree build failed]', style='CategoryPanel.TLabel').grid(row=3, column=0, sticky=tk.W)
+            except Exception:
+                pass
 
         # Tag colors for priorities/completed in popup
         try:
@@ -1960,10 +2335,15 @@ class {class_name}:
             pass
 
         # Details editor inside popup
-        details = ttk.Frame(frame)
-        details.grid(row=2, column=0, sticky=tk.NSEW)
-        frame.rowconfigure(2, weight=1)
-        details.columnconfigure(1, weight=1)
+        log_message("TODO POPUP: Building body (details) (Main)...")
+        try:
+            details = ttk.Frame(frame)
+            details.grid(row=4, column=0, columnspan=2, sticky=tk.NSEW)
+            frame.rowconfigure(3, weight=1)
+            frame.rowconfigure(4, weight=1)
+            details.columnconfigure(1, weight=1)
+        except Exception as e:
+            log_message(f"TODO POPUP: Details frame error (Main): {e}")
         ttk.Label(details, text='Priority', style='CategoryPanel.TLabel').grid(row=0, column=0, sticky=tk.W)
         pr_var = tk.StringVar(value='low')
         pr_btns = ttk.Frame(details)
@@ -1980,96 +2360,230 @@ class {class_name}:
         details_txt.grid(row=2, column=1, sticky=tk.NSEW)
         details.rowconfigure(2, weight=1)
 
-        # Populate from current todos
-        def refresh_pop():
-            for i in pop_tree.get_children():
-                pop_tree.delete(i)
-            troot = pop_tree.insert('', 'end', text='🗒 Tasks', open=True)
-            broot = pop_tree.insert('', 'end', text='🐞 Bugs', open=True)
-            wroot = pop_tree.insert('', 'end', text='📋 Work-Orders', open=True)
-            nroot = pop_tree.insert('', 'end', text='📝 Notes', open=True)
-            croot = pop_tree.insert('', 'end', text='✅ Completed', open=True)
+        # Show helpful instructions on popup open
+        try:
+            details_txt.insert(tk.END, "📝 Quick Start:\n\n")
+            details_txt.insert(tk.END, "1. To CREATE: Fill in Title & Details, set Priority, click 'Create Todo', then select category\n\n")
+            details_txt.insert(tk.END, "2. To EDIT: Select an item from the list above, modify fields, click 'Save'\n\n")
+            details_txt.insert(tk.END, "3. To VIEW: Click any item in the tree to view/edit its details here\n\n")
+            details_txt.insert(tk.END, "Select an item above to get started!")
+            log_message("SETTINGS: Quick Start instructions added to details pane")
+        except Exception as e:
+            log_message(f"SETTINGS: Error adding Quick Start instructions: {e}")
 
-            def _prio_key(item):
-                p = (item or {}).get('priority','low').lower()
+        # Populate from file-based storage
+        def refresh_pop():
+            log_message("SETTINGS: refresh_pop() START")
+            try:
+                for i in pop_tree.get_children():
+                    pop_tree.delete(i)
+                log_message("SETTINGS: Tree cleared successfully")
+            except Exception as e:
+                log_message(f"SETTINGS: Error clearing popup tree: {e}")
+                return
+            try:
+                troot = pop_tree.insert('', 'end', text='🗒 Tasks', open=True)
+                broot = pop_tree.insert('', 'end', text='🐞 Bugs', open=True)
+                wroot = pop_tree.insert('', 'end', text='📋 Work-Orders', open=True)
+                nroot = pop_tree.insert('', 'end', text='📝 Notes', open=True)
+                croot = pop_tree.insert('', 'end', text='✅ Completed', open=True)
+                log_message("SETTINGS: Tree roots created successfully")
+            except Exception as e:
+                log_message(f"SETTINGS: Error creating popup tree roots: {e}")
+                return
+
+            def _prio_key(todo_dict):
+                p = (todo_dict or {}).get('priority','low').lower()
                 return {'high':0, 'medium':1, 'low':2}.get(p, 2)
 
-            for idx, t in enumerate(sorted(self.todos.get('tasks', []), key=_prio_key)):
-                pr = (t.get('priority','low') or 'low').lower()
-                tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
-                pop_tree.insert(troot, 'end', iid=f'task:{idx}', text=t.get('text',''), values=('☑' if t.get('done') else '☐',), tags=tag)
-            for idx, b in enumerate(sorted(self.todos.get('bugs', []), key=_prio_key)):
-                pr = (b.get('priority','low') or 'low').lower()
-                tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
-                pop_tree.insert(broot, 'end', iid=f'bug:{idx}', text=b.get('text',''), values=('☑' if b.get('done') else '☐',), tags=tag)
-            for idx, w in enumerate(sorted(self.todos.get('work_orders', []), key=_prio_key)):
-                pr = (w.get('priority','low') or 'low').lower()
-                tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
-                pop_tree.insert(wroot, 'end', iid=f'work_orders:{idx}', text=w.get('text',''), values=('☑' if w.get('done') else '☐',), tags=tag)
-            for idx, n in enumerate(sorted(self.todos.get('notes', []), key=_prio_key)):
-                pr = (n.get('priority','low') or 'low').lower()
-                tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
-                pop_tree.insert(nroot, 'end', iid=f'notes:{idx}', text=n.get('text',''), values=('☑' if n.get('done') else '☐',), tags=tag)
-            for idx, c in enumerate(self.todos.get('completed', [])):
-                pop_tree.insert(croot, 'end', iid=f'completed:{idx}', text=c.get('text',''), values=('☑',), tags=('completed',))
+            # Load from files instead of JSON
+            try:
+                task_files = list_todo_files('tasks')
+                log_message(f"SETTINGS: Found {len(task_files)} task files")
+                tasks_data = [read_todo_file(f) for f in task_files]
+                for todo in sorted(tasks_data, key=_prio_key):
+                    pr = (todo.get('priority','low') or 'low').lower()
+                    tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
+                    # Use filename as stable iid
+                    pop_tree.insert(troot, 'end', iid=f'tasks:{todo["filename"]}', text=todo.get('title',''), values=('☐',), tags=tag)
+                log_message(f"SETTINGS: Populated {len(tasks_data)} tasks")
+            except Exception as e:
+                log_message(f"SETTINGS: Error populating tasks in popup: {e}")
 
-        refresh_pop()
+            try:
+                bug_files = list_todo_files('bugs')
+                bugs_data = [read_todo_file(f) for f in bug_files]
+                for todo in sorted(bugs_data, key=_prio_key):
+                    pr = (todo.get('priority','low') or 'low').lower()
+                    tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
+                    pop_tree.insert(broot, 'end', iid=f'bugs:{todo["filename"]}', text=todo.get('title',''), values=('☐',), tags=tag)
+            except Exception as e:
+                log_message(f"SETTINGS: Error populating bugs in popup: {e}")
+
+            try:
+                wo_files = list_todo_files('work_orders')
+                wo_data = [read_todo_file(f) for f in wo_files]
+                for todo in sorted(wo_data, key=_prio_key):
+                    pr = (todo.get('priority','low') or 'low').lower()
+                    tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
+                    pop_tree.insert(wroot, 'end', iid=f'work_orders:{todo["filename"]}', text=todo.get('title',''), values=('☐',), tags=tag)
+            except Exception as e:
+                log_message(f"SETTINGS: Error populating work-orders in popup: {e}")
+
+            try:
+                notes_files = list_todo_files('notes')
+                notes_data = [read_todo_file(f) for f in notes_files]
+                for todo in sorted(notes_data, key=_prio_key):
+                    pr = (todo.get('priority','low') or 'low').lower()
+                    tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
+                    pop_tree.insert(nroot, 'end', iid=f'notes:{todo["filename"]}', text=todo.get('title',''), values=('☐',), tags=tag)
+            except Exception as e:
+                log_message(f"SETTINGS: Error populating notes in popup: {e}")
+
+            try:
+                completed_files = list_todo_files('completed')
+                completed_data = [read_todo_file(f) for f in completed_files]
+                for todo in completed_data:
+                    pop_tree.insert(croot, 'end', iid=f'completed:{todo["filename"]}', text=todo.get('title',''), values=('☑',), tags=('completed',))
+            except Exception as e:
+                log_message(f"SETTINGS: Error populating completed in popup: {e}")
+
+            # Plans and Tests (optional roots)
+            try:
+                plans_root = pop_tree.insert('', 'end', text='📐 Plans', open=True)
+                plan_files = list_todo_files('plans')
+                plans_data = [read_todo_file(f) for f in plan_files]
+                for todo in plans_data:
+                    pop_tree.insert(plans_root, 'end', iid=f'plans:{todo["filename"]}', text=todo.get('title',''), values=('☐',))
+            except Exception as e:
+                log_message(f"SETTINGS: Error populating plans in popup: {e}")
+            try:
+                tests_root = pop_tree.insert('', 'end', text='🧪 Tests', open=True)
+                test_files = list_todo_files('tests')
+                tests_data = [read_todo_file(f) for f in test_files]
+                for todo in tests_data:
+                    pop_tree.insert(tests_root, 'end', iid=f'tests:{todo["filename"]}', text=todo.get('title',''), values=('☐',))
+            except Exception as e:
+                log_message(f"SETTINGS: Error populating tests in popup: {e}")
+
+        # Populate tree first, then bind events
+        try:
+            refresh_pop()
+        except Exception as e:
+            log_message(f"TODO POPUP: Initial populate error (Main): {e}")
+        # Auto-refresh while popup is open to pick up external changes/restores
+        last_sig = {'v': 0}
+        def _tick_refresh():
+            try:
+                import os
+                sig = 0
+                base = get_project_todos_dir(project_name)
+                for cat in ('tasks','bugs','work_orders','notes','completed'):
+                    d = base / cat
+                    if d.exists():
+                        sig ^= int(d.stat().st_mtime)
+                if sig != last_sig['v']:
+                    last_sig['v'] = sig
+                    refresh_pop()
+            except Exception:
+                pass
+            try:
+                if top.winfo_exists():
+                    self.root.after(2000, _tick_refresh)
+            except Exception:
+                pass
+        try:
+            self.root.after(2000, _tick_refresh)
+        except Exception:
+            pass
+        # Auto-refresh while popup is open to pick up external changes/restores
+        last_sig = {'v': 0}
+        def _tick_refresh():
+            try:
+                import os, time
+                sig = 0
+                for cat in ('tasks','bugs','work_orders','notes','completed'):
+                    d = TODOS_DIR / cat
+                    if d.exists():
+                        sig ^= int(d.stat().st_mtime)
+                if sig != last_sig['v']:
+                    last_sig['v'] = sig
+                    refresh_pop()
+            except Exception:
+                pass
+            try:
+                if top.winfo_exists():
+                    self.root.after(2000, _tick_refresh)
+            except Exception:
+                pass
+        try:
+            self.root.after(2000, _tick_refresh)
+        except Exception:
+            pass
 
         # Action buttons use existing handlers but with selected item from popup
-        btns = ttk.Frame(frame)
-        btns.grid(row=3, column=0, sticky=tk.EW, pady=(6,0))
+        try:
+            btns = ttk.Frame(frame)
+            btns.grid(row=5, column=0, columnspan=2, sticky=tk.EW, pady=(6,0))
+        except Exception as e:
+            log_message(f"TODO POPUP: Buttons row error (Main): {e}")
         for i in range(5):
             btns.columnconfigure(i, weight=1)
 
         def get_sel_from_pop():
+            """Returns (category, filename) from selected tree item."""
             sel = pop_tree.selection()
             if not sel:
                 return None
             item = sel[0]
             if ':' not in item:
                 return None
-            kind, idx_str = item.split(':', 1)
-            try:
-                idx = int(idx_str)
-            except Exception:
-                return None
-            return kind, idx
-
-        # Helpers for popup in-place editing
-        def _get_list_for_kind(kind):
-            if kind == 'task':
-                return self.todos.get('tasks', [])
-            if kind == 'bug':
-                return self.todos.get('bugs', [])
-            if kind == 'work_orders':
-                return self.todos.get('work_orders', [])
-            if kind == 'notes':
-                return self.todos.get('notes', [])
-            if kind == 'completed':
-                return self.todos.get('completed', [])
-            return None
+            category, filename = item.split(':', 1)
+            return category, filename
 
         def populate_details_from_sel():
+            """Load todo file and populate detail fields."""
+            log_message("SETTINGS: populate_details_from_sel() called")
             sel = get_sel_from_pop()
-            # Reset fields
+
+            # If nothing selected, don't clear the Quick Start instructions
+            if not sel:
+                log_message("SETTINGS: No selection, keeping Quick Start instructions")
+                return
+
+            # Reset fields when we have a selection
             try:
                 pr_var.set('low')
                 title_var.set('')
                 details_txt.delete('1.0', tk.END)
+                log_message(f"SETTINGS: Fields cleared for selection: {sel}")
             except Exception:
                 pass
-            if not sel:
+            category, filename = sel
+
+            # Don't populate details for completed items (read-only)
+            if category == 'completed':
+                try:
+                    title_var.set('[Completed - Read Only]')
+                    details_txt.insert(tk.END, 'Completed items are read-only. Delete to remove or recreate as new todo.')
+                except Exception:
+                    pass
                 return
-            kind, idx = sel
-            lst = _get_list_for_kind(kind)
-            if lst is None or idx < 0 or idx >= len(lst):
-                return
-            item = lst[idx]
+
+            # Load from file
             try:
-                pr_var.set((item.get('priority') or 'low') if kind != 'completed' else (item.get('priority') or 'low'))
-                title_var.set(item.get('text',''))
-                details_txt.insert(tk.END, item.get('details',''))
-            except Exception:
+                from pathlib import Path
+                todo_dir = TODOS_DIR / category
+                filepath = todo_dir / filename
+                if not filepath.exists():
+                    return
+
+                todo_data = read_todo_file(filepath)
+                pr_var.set(todo_data.get('priority', 'low'))
+                title_var.set(todo_data.get('title', ''))
+                details_txt.insert(tk.END, todo_data.get('details', ''))
+            except Exception as e:
+                log_message(f"SETTINGS: Error loading todo file: {e}")
                 pass
 
         try:
@@ -2083,71 +2597,846 @@ class {class_name}:
             pass
 
         def create_cb():
-            self.todo_create()
-            self.refresh_todo_view()
-            refresh_pop()
+            """Open a full create dialog to enter category, title, priority, and details."""
+            dlg = tk.Toplevel(top)
+            dlg.title('Create ToDo')
+            dlg.geometry('640x420')
+            try:
+                dlg.transient(top); dlg.grab_set()
+            except Exception:
+                pass
+            frm = ttk.Frame(dlg, padding=10)
+            frm.pack(fill=tk.BOTH, expand=True)
+            # Category
+            ttk.Label(frm, text='Category', style='CategoryPanel.TLabel').grid(row=0, column=0, sticky=tk.W)
+            cat_var = tk.StringVar(value='tasks')
+            cats = [('Tasks','tasks'),('Bugs','bugs'),('Work-Orders','work_orders'),('Notes','notes')]
+            cat_row = ttk.Frame(frm); cat_row.grid(row=0, column=1, sticky=tk.W)
+            for label, val in cats:
+                ttk.Radiobutton(cat_row, text=label, value=val, variable=cat_var).pack(side=tk.LEFT, padx=4)
+            # Priority
+            ttk.Label(frm, text='Priority', style='CategoryPanel.TLabel').grid(row=1, column=0, sticky=tk.W)
+            pr_local = tk.StringVar(value='low')
+            pr_row = ttk.Frame(frm); pr_row.grid(row=1, column=1, sticky=tk.W)
+            ttk.Radiobutton(pr_row, text='High', value='high', variable=pr_local).pack(side=tk.LEFT, padx=4)
+            ttk.Radiobutton(pr_row, text='Medium', value='medium', variable=pr_local).pack(side=tk.LEFT, padx=4)
+            ttk.Radiobutton(pr_row, text='Low', value='low', variable=pr_local).pack(side=tk.LEFT, padx=4)
+            # Title
+            ttk.Label(frm, text='Title', style='CategoryPanel.TLabel').grid(row=2, column=0, sticky=tk.W)
+            tvar = tk.StringVar()
+            ttk.Entry(frm, textvariable=tvar).grid(row=2, column=1, sticky=tk.EW)
+            # Details
+            ttk.Label(frm, text='Details', style='CategoryPanel.TLabel').grid(row=3, column=0, sticky=tk.NW)
+            txt = scrolledtext.ScrolledText(frm, height=10, wrap=tk.WORD, font=('Arial', 9), bg='#1e1e1e', fg='#dcdcdc')
+            txt.grid(row=3, column=1, sticky=tk.NSEW)
+            frm.columnconfigure(1, weight=1)
+            frm.rowconfigure(3, weight=1)
+            # Buttons
+            def do_create():
+                try:
+                    title_text = (tvar.get() or '').strip()
+                    if not title_text:
+                        messagebox.showwarning('Missing Title', 'Please enter a title.', parent=dlg); return
+                    plan_name = plan_context.get('name') if isinstance(plan_context, dict) else None
+                    # Auto-label in title if linked to a plan
+                    if plan_name and not title_text.lower().startswith(f"plan:{plan_name.lower()}"):
+                        title_text = f"Plan:{plan_name} | {title_text}"
+                    created = create_todo_file(cat_var.get(), title_text, pr_local.get(), txt.get('1.0', tk.END).strip(), plan=plan_name)
+                    self.refresh_todo_view(); refresh_pop()
+                    try:
+                        import subprocess, platform
+                        system = platform.system(); path = str(created)
+                        if system == 'Linux': subprocess.Popen(['xdg-open', path])
+                        elif system == 'Darwin': subprocess.Popen(['open', path])
+                        elif system == 'Windows': subprocess.Popen(['explorer', path])
+                    except Exception: pass
+                    dlg.destroy()
+                except Exception as e:
+                    log_message(f'SETTINGS: Error creating todo (dialog): {e}')
+                    messagebox.showerror('Error', f'Failed to create todo: {e}', parent=dlg)
+            btns2 = ttk.Frame(frm); btns2.grid(row=4, column=1, sticky=tk.E)
+            ttk.Button(btns2, text='Create', style='Action.TButton', command=do_create).pack(side=tk.LEFT, padx=4)
+            ttk.Button(btns2, text='Cancel', style='Select.TButton', command=dlg.destroy).pack(side=tk.LEFT, padx=4)
+
+        def mark_cb():
+            """Move todo file to completed directory."""
+            sel = get_sel_from_pop()
+            if not sel:
+                messagebox.showinfo("No Selection", "Please select a todo to mark complete.", parent=top)
+                return
+            category, filename = sel
+            if category not in ('tasks', 'bugs', 'work_orders', 'notes', 'tests'):
+                messagebox.showinfo("Invalid Selection", "Select a task, bug, work-order, or note to mark complete.", parent=top)
+                return
+            if not messagebox.askyesno("Mark Complete", "Mark this todo as complete?", parent=top):
+                return
+            try:
+                # Move file to completed directory
+                from pathlib import Path
+                todo_dir = TODOS_DIR / category
+                filepath = todo_dir / filename
+                if filepath.exists():
+                    move_todo_to_completed(filepath)
+
+                self.refresh_todo_view()
+                refresh_pop()
+                # Clear details after marking complete
+                try:
+                    pr_var.set('low')
+                    title_var.set('')
+                    details_txt.delete('1.0', tk.END)
+                except Exception:
+                    pass
+            except Exception as e:
+                log_message(f"SETTINGS: Error in mark_cb: {e}")
+                messagebox.showerror("Error", f"Failed to mark complete: {e}", parent=top)
+
+        def edit_cb():
+            """Open selected todo file in system editor."""
+            sel = get_sel_from_pop()
+            if not sel:
+                messagebox.showinfo("No Selection", "Please select a todo to edit.", parent=top)
+                return
+            category, filename = sel
+            if category not in ('tasks', 'bugs', 'work_orders', 'notes', 'completed'):
+                messagebox.showinfo("Invalid Selection", "Select a valid todo to open.", parent=top)
+                return
+            try:
+                from pathlib import Path
+                todo_dir = TODOS_DIR / category
+                filepath = todo_dir / filename
+                if not filepath.exists():
+                    messagebox.showerror("Error", "Todo file not found.", parent=top)
+                    return
+                import subprocess, platform
+                system = platform.system()
+                path = str(filepath)
+                if system == 'Linux': subprocess.Popen(['xdg-open', path])
+                elif system == 'Darwin': subprocess.Popen(['open', path])
+                elif system == 'Windows': subprocess.Popen(['explorer', path])
+            except Exception as e:
+                log_message(f"SETTINGS: Error opening todo externally: {e}")
+                messagebox.showerror("Error", f"Failed to open: {e}", parent=top)
+
+        def _send_to_trash(path_str: str) -> bool:
+            try:
+                # Prefer send2trash if available
+                try:
+                    from send2trash import send2trash
+                    send2trash(path_str)
+                    return True
+                except Exception:
+                    pass
+                import platform, subprocess, os, shutil
+                system = platform.system()
+                if system == 'Linux' and shutil.which('gio'):
+                    subprocess.check_call(['gio', 'trash', path_str])
+                    return True
+                # Fallback: move to local app trash
+                tdir = DATA_DIR / '.trash'
+                tdir.mkdir(parents=True, exist_ok=True)
+                import shutil as _sh
+                _sh.move(path_str, tdir / Path(path_str).name)
+                return True
+            except Exception:
+                return False
+
+        def delete_cb():
+            """Move todo file to system trash (recoverable)."""
+            sel = get_sel_from_pop()
+            if not sel:
+                messagebox.showinfo("No Selection", "Please select a todo to delete.", parent=top)
+                return
+            category, filename = sel
+            # Allow deleting from all categories including completed
+            if category not in ('tasks', 'bugs', 'work_orders', 'notes', 'completed', 'plans', 'tests'):
+                messagebox.showinfo("Invalid Selection", "Select an item to delete.", parent=top)
+                return
+            if not messagebox.askyesno("Confirm Delete", "Delete selected todo?", parent=top):
+                return
+            try:
+                from pathlib import Path
+                todo_dir = TODOS_DIR / category
+                filepath = todo_dir / filename
+                if filepath.exists():
+                    _send_to_trash(str(filepath))
+
+                self.refresh_todo_view()
+                refresh_pop()
+                # Clear details after delete
+                try:
+                    pr_var.set('low')
+                    title_var.set('')
+                    details_txt.delete('1.0', tk.END)
+                except Exception:
+                    pass
+            except Exception as e:
+                log_message(f"SETTINGS: Error in delete_cb: {e}")
+                messagebox.showerror("Error", f"Failed to delete: {e}", parent=top)
+
+        def save_cb():
+            """Update todo file with changes from detail fields."""
+            sel = get_sel_from_pop()
+            if not sel:
+                messagebox.showinfo("No Selection", "Please select a todo to save.", parent=top)
+                return
+            category, filename = sel
+            if category == 'completed':
+                messagebox.showinfo("Read Only", "Completed items are read-only. Delete or recreate to change.", parent=top)
+                return
+            try:
+                # Get field values
+                new_title = (title_var.get() or '').strip()
+                new_priority = pr_var.get()
+                new_details = details_txt.get('1.0', tk.END).strip()
+
+                if not new_title:
+                    messagebox.showwarning("Missing Title", "Title cannot be empty.", parent=top)
+                    return
+
+                # Update file (may rename if title changed)
+                from pathlib import Path
+                todo_dir = TODOS_DIR / category
+                filepath = todo_dir / filename
+                if not filepath.exists():
+                    messagebox.showerror("Error", "Todo file not found.", parent=top)
+                    return
+
+                new_filepath = update_todo_file(filepath, new_title, new_priority, new_details)
+
+                self.refresh_todo_view()
+                refresh_pop()
+
+                # Re-select the updated item (may have new filename if title changed)
+                try:
+                    new_filename = new_filepath.name
+                    pop_tree.selection_set(f"{category}:{new_filename}")
+                except Exception:
+                    pass
+
+                populate_details_from_sel()
+            except Exception as e:
+                log_message(f"SETTINGS: Error in save_cb: {e}")
+                messagebox.showerror("Error", f"Failed to save: {e}", parent=top)
+
+        ttk.Button(btns, text="➕ Create Todo", command=create_cb, style='Action.TButton').grid(row=0, column=0, padx=3, sticky=tk.EW)
+        ttk.Button(btns, text="✔ Mark Complete", command=mark_cb, style='Select.TButton').grid(row=0, column=1, padx=3, sticky=tk.EW)
+        ttk.Button(btns, text="✏️ Edit (Open)", command=edit_cb, style='Select.TButton').grid(row=0, column=2, padx=3, sticky=tk.EW)
+        ttk.Button(btns, text="📄 Open File", command=edit_cb, style='Select.TButton').grid(row=0, column=3, padx=3, sticky=tk.EW)
+        ttk.Button(btns, text="🗑 Delete Todo", command=delete_cb, style='Select.TButton').grid(row=0, column=4, padx=3, sticky=tk.EW)
+        ttk.Button(btns, text="💾 Save (Title/Priority)", command=save_cb, style='Action.TButton').grid(row=0, column=5, padx=3, sticky=tk.EW)
+
+
+    def show_project_todo_popup(self, project_name):
+        """Show project-specific todo popup - completely separate from main todos."""
+        if not project_name:
+            messagebox.showerror("No Project", "Please select a project first.")
+            return
+
+        # Ensure project todos directory exists
+        get_project_todos_dir(project_name)
+
+        top = tk.Toplevel(self.root)
+        top.title(f"Project ToDo List - {project_name}")
+        try:
+            geom = (self.settings or {}).get('todo_geometry_project')
+            if isinstance(geom, str) and 'x' in geom:
+                top.geometry(geom)
+            else:
+                top.geometry('820x560')
+        except Exception:
+            top.geometry('820x560')
+        try:
+            top.transient(self.root)
+            top.lift()
+            top.attributes('-topmost', True)
+            self.root.after(500, lambda: top.attributes('-topmost', False))
+            top.focus_force()
+        except Exception:
+            pass
+
+        # Track active state
+        try:
+            def _on_close():
+                # Persist project geometry silently
+                try:
+                    w = max(400, int(top.winfo_width()))
+                    h = max(300, int(top.winfo_height()))
+                    self.settings['todo_geometry_project'] = f"{w}x{h}"
+                    all_settings = {}
+                    if self.settings_file.exists():
+                        try:
+                            with open(self.settings_file, 'r') as f:
+                                all_settings = json.load(f)
+                        except Exception:
+                            all_settings = {}
+                    all_settings['todo_geometry_project'] = self.settings['todo_geometry_project']
+                    with open(self.settings_file, 'w') as f:
+                        json.dump(all_settings, f, indent=2)
+                except Exception:
+                    pass
+                try:
+                    top.destroy()
+                except Exception:
+                    pass
+            top.protocol('WM_DELETE_WINDOW', _on_close)
+        except Exception:
+            pass
+
+        frame = ttk.Frame(top)
+        frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
+        frame.columnconfigure(0, weight=1)
+        frame.columnconfigure(1, weight=0)
+        frame.rowconfigure(3, weight=1)
+
+        # Toggle header: Project/Main buttons
+        def _open_main_from_project():
+            try:
+                top.destroy()
+            except Exception:
+                pass
+            try:
+                self.show_todo_popup(project_name=project_name, prefer_project=False)
+            except Exception:
+                pass
+
+        log_message("TODO POPUP: Building header toggle row (Project)...")
+        toggle = ttk.Frame(frame)
+        toggle.grid(row=0, column=0, columnspan=2, sticky=tk.EW)
+        try:
+            for c in range(3):
+                toggle.columnconfigure(c, weight=1)
+            plan_btn = ttk.Button(toggle, text='＋ Plan', style='Action.TButton', command=lambda: self._open_plan_template_dialog(project_name))
+            plan_btn.grid(row=0, column=0, sticky=tk.W, padx=(0,8))
+            proj_btn = ttk.Button(toggle, text='Project ToDo List', style='Action.TButton')
+            proj_btn.grid(row=0, column=1, sticky=tk.EW, padx=(0,4))
+            main_btn = ttk.Button(toggle, text='Main ToDo List', style='Select.TButton', command=_open_main_from_project)
+            main_btn.grid(row=0, column=2, sticky=tk.EW, padx=(4,0))
+        except Exception as e:
+            log_message(f"TODO POPUP: Header build error (Project): {e}")
+
+        # Project-specific header variables
+        proj_counts_var = tk.StringVar(value="Tasks: 0 | Bugs: 0 | Work-Orders: 0 | Notes: 0 | Completed: 0")
+        proj_priority_var = tk.StringVar(value="Priority: High 0 | Medium 0 | Low 0")
+
+        # Two-line header
+        ttk.Label(frame, textvariable=proj_counts_var, font=("Arial", 11, "bold"), style='CategoryPanel.TLabel', anchor='center').grid(row=1, column=0, sticky=tk.EW)
+        ttk.Label(frame, textvariable=proj_priority_var, font=("Arial", 10), style='CategoryPanel.TLabel', anchor='center').grid(row=2, column=0, sticky=tk.EW, pady=(0,6))
+
+        # Top right: Trash and Folder buttons
+        def open_system_trash():
+            try:
+                import platform, subprocess, os, shutil
+                system = platform.system()
+                if system == 'Linux':
+                    if shutil.which('gio'):
+                        subprocess.Popen(['gio', 'open', 'trash:///'])
+                    elif shutil.which('xdg-open'):
+                        subprocess.Popen(['xdg-open', os.path.expanduser('~/.local/share/Trash/files')])
+                elif system == 'Darwin':
+                    subprocess.Popen(['open', os.path.expanduser('~/.Trash')])
+                elif system == 'Windows':
+                    subprocess.Popen(['explorer', 'shell:RecycleBinFolder'])
+            except Exception:
+                pass
+
+        try:
+            trash_btn = ttk.Button(frame, text='🗑', width=3, command=open_system_trash)
+            trash_btn.grid(row=0, column=1, sticky=tk.NE, padx=(6,0))
+        except Exception:
+            pass
+
+        # Folder button - opens project todos folder
+        def open_project_todos_folder():
+            try:
+                import subprocess, platform
+                todos_path = str(get_project_todos_dir(project_name))
+                log_message(f"SETTINGS: Opening project todos folder: {todos_path}")
+                system = platform.system()
+                if system == 'Linux':
+                    subprocess.Popen(['xdg-open', todos_path])
+                elif system == 'Darwin':
+                    subprocess.Popen(['open', todos_path])
+                elif system == 'Windows':
+                    subprocess.Popen(['explorer', todos_path])
+                else:
+                    messagebox.showinfo("Unsupported OS", f"Please manually navigate to:\n{todos_path}", parent=top)
+            except Exception as e:
+                log_message(f"SETTINGS: Error opening project todos folder: {e}")
+                messagebox.showerror("Error", f"Failed to open folder:\n{e}", parent=top)
+
+        folder_btn = ttk.Button(frame, text="📁", command=open_project_todos_folder, width=3)
+        folder_btn.grid(row=1, column=1, rowspan=2, sticky=tk.NE, padx=(6,0))
+
+        # Tree
+        log_message("TODO POPUP: Building body (tree) (Project)...")
+        try:
+            sub = ttk.Frame(frame)
+            sub.grid(row=3, column=0, columnspan=2, sticky=tk.NSEW)
+            sub.columnconfigure(0, weight=1)
+            sub.rowconfigure(0, weight=1)
+            scr = ttk.Scrollbar(sub, orient=tk.VERTICAL)
+            scr.pack(side=tk.RIGHT, fill=tk.Y)
+            pop_tree = ttk.Treeview(sub, columns=("done",), show='tree headings')
+            pop_tree.heading('#0', text='Item')
+            pop_tree.heading('done', text='Done')
+            pop_tree.column('done', width=60, anchor=tk.CENTER, stretch=False)
+            pop_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            pop_tree.configure(yscrollcommand=scr.set)
+            scr.config(command=pop_tree.yview)
+        except Exception as e:
+            log_message(f"TODO POPUP: Tree build error (Project): {e}")
+            try:
+                ttk.Label(frame, text='[Tree build failed]', style='CategoryPanel.TLabel').grid(row=3, column=0, sticky=tk.W)
+            except Exception:
+                pass
+
+        # Tag colors
+        try:
+            pop_tree.tag_configure('prio_high', foreground='#ff5555')
+            pop_tree.tag_configure('prio_med', foreground='#ff9900')
+            pop_tree.tag_configure('prio_low', foreground='#ffd700')
+            pop_tree.tag_configure('completed', foreground='#33cc33', font=('Arial', 9, 'italic'))
+        except Exception:
+            pass
+
+        # Details viewer (read-only)
+        log_message("TODO POPUP: Building body (details) (Project)...")
+        try:
+            details = ttk.Frame(frame)
+            details.grid(row=4, column=0, columnspan=2, sticky=tk.NSEW)
+            frame.rowconfigure(3, weight=1)
+            frame.rowconfigure(4, weight=1)
+            details.columnconfigure(1, weight=1)
+        except Exception as e:
+            log_message(f"TODO POPUP: Details frame error (Project): {e}")
+        ttk.Label(details, text='Priority', style='CategoryPanel.TLabel').grid(row=0, column=0, sticky=tk.W)
+        pr_var = tk.StringVar(value='low')
+        pr_btns = ttk.Frame(details)
+        pr_btns.grid(row=0, column=1, sticky=tk.W, pady=(0,6))
+        ttk.Radiobutton(pr_btns, text='High', value='high', variable=pr_var).pack(side=tk.LEFT, padx=2)
+        ttk.Radiobutton(pr_btns, text='Medium', value='medium', variable=pr_var).pack(side=tk.LEFT, padx=2)
+        ttk.Radiobutton(pr_btns, text='Low', value='low', variable=pr_var).pack(side=tk.LEFT, padx=2)
+        ttk.Label(details, text='Title', style='CategoryPanel.TLabel').grid(row=1, column=0, sticky=tk.W)
+        title_var = tk.StringVar(value='')
+        title_entry = ttk.Entry(details, textvariable=title_var)
+        title_entry.grid(row=1, column=1, sticky=tk.EW, pady=(0,6))
+        ttk.Label(details, text='Details (read-only preview)', style='CategoryPanel.TLabel').grid(row=2, column=0, sticky=tk.W)
+        details_txt = scrolledtext.ScrolledText(details, height=8, wrap=tk.WORD, font=('Arial', 9), bg='#1e1e1e', fg='#dcdcdc')
+        details_txt.grid(row=2, column=1, sticky=tk.NSEW)
+        details.rowconfigure(2, weight=1)
+        try:
+            details_txt.configure(state='disabled')
+        except Exception:
+            pass
+
+        # Quick Start instructions
+        try:
+            details_txt.configure(state='normal')
+            details_txt.insert(tk.END, f"📝 Project: {project_name}\n\n")
+            details_txt.insert(tk.END, "1. To CREATE: Enter Title and set Priority, click 'Create Todo', then edit the file in your editor (auto-opens).\n\n")
+            details_txt.insert(tk.END, "2. To EDIT: Double-click an item or use 'Open File' to edit externally.\n\n")
+            details_txt.insert(tk.END, "3. To UPDATE Title/Priority: Change fields above and click 'Save (Title/Priority)'.\n\n")
+            details_txt.insert(tk.END, "This panel shows a read-only preview of the selected todo.")
+            details_txt.configure(state='disabled')
+            log_message(f"SETTINGS: Project todo popup opened for: {project_name}")
+        except Exception as e:
+            log_message(f"SETTINGS: Error adding Quick Start instructions: {e}")
+
+        # Helper: set details preview safely in read-only widget
+        def _set_details_text(text: str):
+            try:
+                details_txt.configure(state='normal')
+                details_txt.delete('1.0', tk.END)
+                details_txt.insert(tk.END, text or '')
+                details_txt.configure(state='disabled')
+            except Exception:
+                pass
+
+        # Populate from project-specific files
+        def refresh_pop():
+            log_message(f"SETTINGS: Refreshing project todos for: {project_name}")
+            try:
+                for i in pop_tree.get_children():
+                    pop_tree.delete(i)
+                log_message("SETTINGS: Project tree cleared successfully")
+            except Exception as e:
+                log_message(f"SETTINGS: Error clearing project popup tree: {e}")
+                return
+            try:
+                troot = pop_tree.insert('', 'end', text='🗒 Tasks', open=True)
+                broot = pop_tree.insert('', 'end', text='🐞 Bugs', open=True)
+                wroot = pop_tree.insert('', 'end', text='📋 Work-Orders', open=True)
+                nroot = pop_tree.insert('', 'end', text='📝 Notes', open=True)
+                croot = pop_tree.insert('', 'end', text='✅ Completed', open=True)
+                log_message("SETTINGS: Project tree roots created successfully")
+            except Exception as e:
+                log_message(f"SETTINGS: Error creating project popup tree roots: {e}")
+                return
+
+            def _prio_key(todo_dict):
+                p = (todo_dict or {}).get('priority','low').lower()
+                return {'high':0, 'medium':1, 'low':2}.get(p, 2)
+
+            tcount = bcount = wcount = ncount = ccount = 0
+            ph = pm = pl = 0
+
+            # Load project-specific todos
+            try:
+                task_files = list_project_todo_files(project_name, 'tasks')
+                log_message(f"SETTINGS: Found {len(task_files)} project task files")
+                tasks_data = [read_todo_file(f) for f in task_files]
+                for todo in sorted(tasks_data, key=_prio_key):
+                    pr = (todo.get('priority','low') or 'low').lower()
+                    tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
+                    pop_tree.insert(troot, 'end', iid=f'tasks:{todo["filename"]}', text=todo.get('title',''), values=('☐',), tags=tag)
+                    tcount += 1
+                    if pr == 'high': ph += 1
+                    elif pr == 'medium': pm += 1
+                    else: pl += 1
+                log_message(f"SETTINGS: Populated {len(tasks_data)} project tasks")
+            except Exception as e:
+                log_message(f"SETTINGS: Error populating project tasks in popup: {e}")
+
+            try:
+                bug_files = list_project_todo_files(project_name, 'bugs')
+                bugs_data = [read_todo_file(f) for f in bug_files]
+                for todo in sorted(bugs_data, key=_prio_key):
+                    pr = (todo.get('priority','low') or 'low').lower()
+                    tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
+                    pop_tree.insert(broot, 'end', iid=f'bugs:{todo["filename"]}', text=todo.get('title',''), values=('☐',), tags=tag)
+                    bcount += 1
+                    if pr == 'high': ph += 1
+                    elif pr == 'medium': pm += 1
+                    else: pl += 1
+            except Exception as e:
+                log_message(f"SETTINGS: Error populating project bugs in popup: {e}")
+
+            try:
+                wo_files = list_project_todo_files(project_name, 'work_orders')
+                wo_data = [read_todo_file(f) for f in wo_files]
+                for todo in sorted(wo_data, key=_prio_key):
+                    pr = (todo.get('priority','low') or 'low').lower()
+                    tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
+                    pop_tree.insert(wroot, 'end', iid=f'work_orders:{todo["filename"]}', text=todo.get('title',''), values=('☐',), tags=tag)
+                    wcount += 1
+                    if pr == 'high': ph += 1
+                    elif pr == 'medium': pm += 1
+                    else: pl += 1
+            except Exception as e:
+                log_message(f"SETTINGS: Error populating project work-orders in popup: {e}")
+
+            try:
+                notes_files = list_project_todo_files(project_name, 'notes')
+                notes_data = [read_todo_file(f) for f in notes_files]
+                for todo in sorted(notes_data, key=_prio_key):
+                    pr = (todo.get('priority','low') or 'low').lower()
+                    tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
+                    pop_tree.insert(nroot, 'end', iid=f'notes:{todo["filename"]}', text=todo.get('title',''), values=('☐',), tags=tag)
+                    ncount += 1
+                    if pr == 'high': ph += 1
+                    elif pr == 'medium': pm += 1
+                    else: pl += 1
+            except Exception as e:
+                log_message(f"SETTINGS: Error populating project notes in popup: {e}")
+
+            try:
+                completed_files = list_project_todo_files(project_name, 'completed')
+                completed_data = [read_todo_file(f) for f in completed_files]
+                for todo in completed_data:
+                    pop_tree.insert(croot, 'end', iid=f'completed:{todo["filename"]}', text=todo.get('title',''), values=('☑',), tags=('completed',))
+                    ccount += 1
+            except Exception as e:
+                log_message(f"SETTINGS: Error populating project completed in popup: {e}")
+
+            # Update counts
+            proj_counts_var.set(f"Tasks: {tcount} | Bugs: {bcount} | Work-Orders: {wcount} | Notes: {ncount} | Completed: {ccount}")
+            proj_priority_var.set(f"Priority: High {ph} | Medium {pm} | Low {pl}")
+
+        refresh_pop()
+
+        # Buttons and callbacks
+        btns = ttk.Frame(frame)
+        btns.grid(row=5, column=0, columnspan=2, sticky=tk.EW, pady=(6,0))
+        for i in range(5):
+            btns.columnconfigure(i, weight=1)
+
+        def get_sel_from_pop():
+            sel = pop_tree.selection()
+            if not sel:
+                return None
+            item = sel[0]
+            if ':' not in item:
+                return None
+            category, filename = item.split(':', 1)
+            return category, filename
+
+        def populate_details_from_sel():
+            log_message("SETTINGS: Project populate_details_from_sel() called")
+            sel = get_sel_from_pop()
+            if not sel:
+                log_message("SETTINGS: No selection, keeping Quick Start instructions")
+                return
+            try:
+                pr_var.set('low')
+                title_var.set('')
+                _set_details_text('')
+                log_message(f"SETTINGS: Fields cleared for selection: {sel}")
+            except Exception:
+                pass
+            category, filename = sel
+            if category == 'completed':
+                try:
+                    title_var.set('[Completed - Read Only]')
+                    _set_details_text('Completed items are read-only. Delete to remove or recreate as new todo.')
+                except Exception:
+                    pass
+                return
+            try:
+                from pathlib import Path
+                todos_dir = get_project_todos_dir(project_name)
+                todo_dir = todos_dir / category
+                filepath = todo_dir / filename
+                if not filepath.exists():
+                    return
+                todo_data = read_todo_file(filepath)
+                pr_var.set(todo_data.get('priority', 'low'))
+                title_var.set(todo_data.get('title', ''))
+                _set_details_text(todo_data.get('details', ''))
+            except Exception as e:
+                log_message(f"SETTINGS: Error loading project todo file: {e}")
+
+        try:
+            pop_tree.bind('<<TreeviewSelect>>', lambda e: populate_details_from_sel())
+        except Exception:
+            pass
+        try:
+            populate_details_from_sel()
+        except Exception:
+            pass
+
+        def create_cb():
+            """Open full create dialog for a new project todo."""
+            dlg = tk.Toplevel(top)
+            dlg.title('Create Project ToDo')
+            dlg.geometry('640x420')
+            try:
+                dlg.transient(top); dlg.grab_set()
+            except Exception:
+                pass
+            frm = ttk.Frame(dlg, padding=10)
+            frm.pack(fill=tk.BOTH, expand=True)
+            # Category
+            ttk.Label(frm, text='Category', style='CategoryPanel.TLabel').grid(row=0, column=0, sticky=tk.W)
+            cat_var = tk.StringVar(value='tasks')
+            cats = [('Tasks','tasks'),('Bugs','bugs'),('Work-Orders','work_orders'),('Notes','notes')]
+            cat_row = ttk.Frame(frm); cat_row.grid(row=0, column=1, sticky=tk.W)
+            for label, val in cats:
+                ttk.Radiobutton(cat_row, text=label, value=val, variable=cat_var).pack(side=tk.LEFT, padx=4)
+            # Priority
+            ttk.Label(frm, text='Priority', style='CategoryPanel.TLabel').grid(row=1, column=0, sticky=tk.W)
+            pr_local = tk.StringVar(value='low')
+            pr_row = ttk.Frame(frm); pr_row.grid(row=1, column=1, sticky=tk.W)
+            ttk.Radiobutton(pr_row, text='High', value='high', variable=pr_local).pack(side=tk.LEFT, padx=4)
+            ttk.Radiobutton(pr_row, text='Medium', value='medium', variable=pr_local).pack(side=tk.LEFT, padx=4)
+            ttk.Radiobutton(pr_row, text='Low', value='low', variable=pr_local).pack(side=tk.LEFT, padx=4)
+            # Title
+            ttk.Label(frm, text='Title', style='CategoryPanel.TLabel').grid(row=2, column=0, sticky=tk.W)
+            tvar = tk.StringVar()
+            ttk.Entry(frm, textvariable=tvar).grid(row=2, column=1, sticky=tk.EW)
+            # Details
+            ttk.Label(frm, text='Details', style='CategoryPanel.TLabel').grid(row=3, column=0, sticky=tk.NW)
+            txt = scrolledtext.ScrolledText(frm, height=10, wrap=tk.WORD, font=('Arial', 9), bg='#1e1e1e', fg='#dcdcdc')
+            txt.grid(row=3, column=1, sticky=tk.NSEW)
+            frm.columnconfigure(1, weight=1)
+            frm.rowconfigure(3, weight=1)
+            # Buttons
+            def do_create():
+                try:
+                    title_text = (tvar.get() or '').strip()
+                    if not title_text:
+                        messagebox.showwarning('Missing Title', 'Please enter a title.', parent=dlg); return
+                    plan_name = plan_context.get('name') if isinstance(plan_context, dict) else None
+                    if plan_name and not title_text.lower().startswith(f"plan:{plan_name.lower()}"):
+                        title_text = f"Plan:{plan_name} | {title_text}"
+                    created = create_project_todo_file(project_name, cat_var.get(), title_text, pr_local.get(), txt.get('1.0', tk.END).strip(), plan=plan_name)
+                    refresh_pop()
+                    try:
+                        import subprocess, platform
+                        system = platform.system(); path = str(created)
+                        if system == 'Linux': subprocess.Popen(['xdg-open', path])
+                        elif system == 'Darwin': subprocess.Popen(['open', path])
+                        elif system == 'Windows': subprocess.Popen(['explorer', path])
+                    except Exception: pass
+                    dlg.destroy()
+                except Exception as e:
+                    log_message(f'SETTINGS: Error creating project todo (dialog): {e}')
+                    messagebox.showerror('Error', f'Failed to create todo: {e}', parent=dlg)
+            btns2 = ttk.Frame(frm); btns2.grid(row=4, column=1, sticky=tk.E)
+            ttk.Button(btns2, text='Create', style='Action.TButton', command=do_create).pack(side=tk.LEFT, padx=4)
+            ttk.Button(btns2, text='Cancel', style='Select.TButton', command=dlg.destroy).pack(side=tk.LEFT, padx=4)
 
         def mark_cb():
             sel = get_sel_from_pop()
             if not sel:
-                messagebox.showinfo("No Selection", "Please select a todo to mark complete.")
+                messagebox.showinfo("No Selection", "Please select a todo to mark complete.", parent=top)
                 return
-            # Temporarily mirror selection in main tree for reuse
-            self.todo_tree.selection_set(sel[0] + ':' + str(sel[1]))
-            self.todo_mark_complete()
-            refresh_pop()
-            populate_details_from_sel()
-
-        def edit_cb():
-            sel = get_sel_from_pop()
-            if not sel:
-                messagebox.showinfo("No Selection", "Please select a todo to edit.")
+            category, filename = sel
+            if category not in ('tasks', 'bugs', 'work_orders', 'notes'):
+                messagebox.showinfo("Invalid Selection", "Select a task, bug, work-order, or note to mark complete.", parent=top)
                 return
-            self.todo_tree.selection_set(sel[0] + ':' + str(sel[1]))
-            self.todo_edit()
-            refresh_pop()
-            populate_details_from_sel()
-
-        def delete_cb():
-            sel = get_sel_from_pop()
-            if not sel:
-                messagebox.showinfo("No Selection", "Please select a todo to delete.")
+            if not messagebox.askyesno("Mark Complete", "Mark this todo as complete?", parent=top):
                 return
-            self.todo_tree.selection_set(sel[0] + ':' + str(sel[1]))
-            self.todo_delete()
-            refresh_pop()
-            populate_details_from_sel()
+            try:
+                from pathlib import Path
+                todos_dir = get_project_todos_dir(project_name)
+                todo_dir = todos_dir / category
+                filepath = todo_dir / filename
+                if filepath.exists():
+                    move_project_todo_to_completed(project_name, filepath)
+                refresh_pop()
+                try:
+                    pr_var.set('low')
+                    title_var.set('')
+                    _set_details_text('')
+                except Exception:
+                    pass
+            except Exception as e:
+                log_message(f"SETTINGS: Error in project mark_cb: {e}")
+                messagebox.showerror("Error", f"Failed to mark complete: {e}", parent=top)
 
         def save_cb():
             sel = get_sel_from_pop()
             if not sel:
-                messagebox.showinfo("No Selection", "Please select a todo to save.")
+                messagebox.showinfo("No Selection", "Please select a todo to save.", parent=top)
                 return
-            kind, idx = sel
-            if kind == 'completed':
-                messagebox.showinfo("Read Only", "Completed items are read-only. Delete or recreate to change.")
+            category, filename = sel
+            if category == 'completed':
+                messagebox.showinfo("Read Only", "Completed items are read-only. Delete or recreate to change.", parent=top)
                 return
-            lst = _get_list_for_kind(kind)
-            if lst is None or idx < 0 or idx >= len(lst):
-                return
-            item = lst[idx]
-            item['priority'] = pr_var.get()
-            item['text'] = (title_var.get() or '').strip()
-            item['details'] = details_txt.get('1.0', tk.END).strip()
-            self.save_settings_to_file()
-            self.refresh_todo_view()
-            refresh_pop()
             try:
-                pop_tree.selection_set(f"{kind}:{idx}")
+                new_title = (title_var.get() or '').strip()
+                new_priority = pr_var.get()
+                # Preserve details; edit externally
+                new_details = None
+                if not new_title:
+                    messagebox.showwarning("Missing Title", "Title cannot be empty.", parent=top)
+                    return
+                from pathlib import Path
+                todos_dir = get_project_todos_dir(project_name)
+                todo_dir = todos_dir / category
+                filepath = todo_dir / filename
+                if not filepath.exists():
+                    messagebox.showerror("Error", "Todo file not found.", parent=top)
+                    return
+                new_filepath = update_todo_file(filepath, new_title, new_priority, new_details)
+                refresh_pop()
+                try:
+                    new_filename = new_filepath.name
+                    pop_tree.selection_set(f"{category}:{new_filename}")
+                except Exception:
+                    pass
+                populate_details_from_sel()
+            except Exception as e:
+                log_message(f"SETTINGS: Error in project save_cb: {e}")
+                messagebox.showerror("Error", f"Failed to save: {e}", parent=top)
+
+        def _send_to_trash(path_str: str) -> bool:
+            try:
+                try:
+                    from send2trash import send2trash
+                    send2trash(path_str)
+                    return True
+                except Exception:
+                    pass
+                import platform, subprocess, os, shutil
+                system = platform.system()
+                if system == 'Linux' and shutil.which('gio'):
+                    subprocess.check_call(['gio', 'trash', path_str])
+                    return True
+                tdir = get_project_todos_dir(project_name).parent / '.trash'
+                tdir.mkdir(parents=True, exist_ok=True)
+                import shutil as _sh
+                _sh.move(path_str, tdir / Path(path_str).name)
+                return True
+            except Exception:
+                return False
+
+        def delete_cb():
+            sel = get_sel_from_pop()
+            if not sel:
+                messagebox.showinfo("No Selection", "Please select a todo to delete.", parent=top)
+                return
+            category, filename = sel
+            if category not in ('tasks', 'bugs', 'work_orders', 'notes', 'completed'):
+                messagebox.showinfo("Invalid Selection", "Select an item to delete.", parent=top)
+                return
+            if not messagebox.askyesno("Confirm Delete", "Delete selected todo?", parent=top):
+                return
+            try:
+                from pathlib import Path
+                todos_dir = get_project_todos_dir(project_name)
+                todo_dir = todos_dir / category
+                filepath = todo_dir / filename
+                if filepath.exists():
+                    _send_to_trash(str(filepath))
+                refresh_pop()
+                try:
+                    pr_var.set('low')
+                    title_var.set('')
+                    details_txt.delete('1.0', tk.END)
+                except Exception:
+                    pass
+            except Exception as e:
+                log_message(f"SETTINGS: Error in project delete_cb: {e}")
+                messagebox.showerror("Error", f"Failed to delete: {e}", parent=top)
+
+        def edit_cb():
+            sel = get_sel_from_pop()
+            if not sel:
+                messagebox.showinfo("No Selection", "Please select a todo to edit.", parent=top)
+                return
+            category, filename = sel
+            if category not in ('tasks', 'bugs', 'work_orders', 'notes', 'completed', 'plans', 'tests'):
+                messagebox.showinfo("Invalid Selection", "Select a valid todo to open.", parent=top)
+                return
+
+            try:
+                from pathlib import Path
+                todos_dir = get_project_todos_dir(project_name)
+                todo_dir = todos_dir / category
+                filepath = todo_dir / filename
+                if not filepath.exists():
+                    messagebox.showerror("Error", "Todo file not found.", parent=top)
+                    return
+                import subprocess, platform
+                system = platform.system()
+                path = str(filepath)
+                if system == 'Linux': subprocess.Popen(['xdg-open', path])
+                elif system == 'Darwin': subprocess.Popen(['open', path])
+                elif system == 'Windows': subprocess.Popen(['explorer', path])
+            except Exception as e:
+                log_message(f"SETTINGS: Error opening project todo externally: {e}")
+                messagebox.showerror("Error", f"Failed to open: {e}", parent=top)
+
+        # Action buttons (includes Open)
+        for i in range(6):
+            try:
+                btns.columnconfigure(i, weight=1)
             except Exception:
                 pass
-            populate_details_from_sel()
-
         ttk.Button(btns, text="➕ Create Todo", command=create_cb, style='Action.TButton').grid(row=0, column=0, padx=3, sticky=tk.EW)
         ttk.Button(btns, text="✔ Mark Complete", command=mark_cb, style='Select.TButton').grid(row=0, column=1, padx=3, sticky=tk.EW)
-        ttk.Button(btns, text="✏️ Edit Todo", command=edit_cb, style='Select.TButton').grid(row=0, column=2, padx=3, sticky=tk.EW)
-        ttk.Button(btns, text="🗑 Delete Todo", command=delete_cb, style='Select.TButton').grid(row=0, column=3, padx=3, sticky=tk.EW)
-        ttk.Button(btns, text="💾 Save", command=save_cb, style='Action.TButton').grid(row=0, column=4, padx=3, sticky=tk.EW)
+        ttk.Button(btns, text="✏️ Edit (Open)", command=edit_cb, style='Select.TButton').grid(row=0, column=2, padx=3, sticky=tk.EW)
+        ttk.Button(btns, text="📄 Open File", command=edit_cb, style='Select.TButton').grid(row=0, column=3, padx=3, sticky=tk.EW)
+        ttk.Button(btns, text="🗑 Delete Todo", command=delete_cb, style='Select.TButton').grid(row=0, column=4, padx=3, sticky=tk.EW)
+        ttk.Button(btns, text="💾 Save (Title/Priority)", command=save_cb, style='Action.TButton').grid(row=0, column=5, padx=3, sticky=tk.EW)
+
+        # Double-click to open file
+        try:
+            pop_tree.bind('<Double-1>', lambda e: edit_cb())
+        except Exception:
+            pass
 
     def todo_create(self):
         # Step 1: Category selection popup
@@ -2205,93 +3494,126 @@ class {class_name}:
         # (Callbacks proceed to next steps)
 
     def todo_mark_complete(self):
+        """Move selected todo file to completed directory."""
         sel = self._get_selected_todo()
         if not sel:
             messagebox.showinfo("No Selection", "Please select a todo (task/bug) to mark complete.")
             return
-        kind, idx = sel
-        if kind not in ('task', 'bug', 'work_orders', 'notes'):
+        category, filename = sel
+        if category not in ('tasks', 'bugs', 'work_orders', 'notes'):
             messagebox.showinfo("Invalid Selection", "Select a task or bug, not a category header.")
             return
         if not messagebox.askyesno("Mark Complete", "Mark this todo as complete?"):
             return
-        lst = self.todos.get('tasks' if kind == 'task' else ('bugs' if kind == 'bug' else ('work_orders' if kind=='work_orders' else 'notes')), [])
-        if idx < 0 or idx >= len(lst):
-            return
-        item = lst.pop(idx)
-        self.todos.setdefault('completed', []).append({ 'text': item.get('text', ''), 'type': kind, 'priority': item.get('priority','low'), 'details': item.get('details','') })
-        self.save_settings_to_file()
-        self.refresh_todo_view()
+        try:
+            from pathlib import Path
+            todo_dir = TODOS_DIR / category
+            filepath = todo_dir / filename
+            if filepath.exists():
+                move_todo_to_completed(filepath)
+            self.refresh_todo_view()
+        except Exception as e:
+            log_message(f"SETTINGS: Error marking complete: {e}")
+            messagebox.showerror("Error", f"Failed to mark complete: {e}")
 
     def todo_edit(self):
-        from tkinter import simpledialog
+        """Open edit dialog for selected todo file."""
         sel = self._get_selected_todo()
         if not sel:
             messagebox.showinfo("No Selection", "Please select a todo to edit.")
             return
-        kind, idx = sel
-        if kind not in ('task', 'bug', 'work_orders', 'notes'):
+        category, filename = sel
+        if category not in ('tasks', 'bugs', 'work_orders', 'notes'):
             messagebox.showinfo("Invalid Selection", "Select a task or bug to edit.")
             return
-        lst = self.todos.get('tasks' if kind == 'task' else ('bugs' if kind == 'bug' else ('work_orders' if kind=='work_orders' else 'notes')), [])
-        if idx < 0 or idx >= len(lst):
-            return
-        # Edit popup with priority + title + details
-        item = lst[idx]
-        top = tk.Toplevel(self.root); top.title('Edit ToDo')
-        frm = ttk.Frame(top, padding=8); frm.pack(fill=tk.BOTH, expand=True)
-        ttk.Label(frm, text='Priority', style='CategoryPanel.TLabel').grid(row=0,column=0,sticky=tk.W)
-        pr = tk.StringVar(value=item.get('priority','low'))
-        def setp(v): pr.set(v)
-        btnf = ttk.Frame(frm); btnf.grid(row=0,column=1,sticky=tk.W)
-        ttk.Button(btnf, text='High', style='Action.TButton', command=lambda: setp('high')).pack(side=tk.LEFT, padx=2)
-        ttk.Button(btnf, text='Medium', style='Action.TButton', command=lambda: setp('medium')).pack(side=tk.LEFT, padx=2)
-        ttk.Button(btnf, text='Low', style='Action.TButton', command=lambda: setp('low')).pack(side=tk.LEFT, padx=2)
-        ttk.Label(frm, text='Title', style='CategoryPanel.TLabel').grid(row=1,column=0,sticky=tk.W, pady=(6,0))
-        title_var = tk.StringVar(value=item.get('text',''))
-        ent = ttk.Entry(frm, textvariable=title_var, width=50)
-        ent.grid(row=1,column=1,sticky=tk.EW,pady=(6,0))
-        ttk.Label(frm, text='Details', style='CategoryPanel.TLabel').grid(row=2,column=0,sticky=tk.W, pady=(6,0))
-        txt = scrolledtext.ScrolledText(frm, height=10, wrap=tk.WORD, font=('Arial',9), bg='#1e1e1e', fg='#dcdcdc')
-        txt.grid(row=2,column=1,sticky=tk.NSEW,pady=(6,0))
-        frm.columnconfigure(1, weight=1); frm.rowconfigure(2, weight=1)
-        txt.insert(tk.END, item.get('details',''))
-        def save_edits():
-            item['priority'] = pr.get()
-            item['text'] = (title_var.get() or '').strip()
-            item['details'] = txt.get('1.0', tk.END).strip()
-            self.save_settings_to_file(); self.refresh_todo_view(); top.destroy()
-        ttk.Button(frm, text='Save', style='Action.TButton', command=save_edits).grid(row=3,column=1,sticky=tk.E, pady=6)
-        self.save_settings_to_file()
-        self.refresh_todo_view()
+        try:
+            from pathlib import Path
+            todo_dir = TODOS_DIR / category
+            filepath = todo_dir / filename
+            if not filepath.exists():
+                messagebox.showerror("Error", "Todo file not found.")
+                return
+
+            # Load todo from file
+            todo_data = read_todo_file(filepath)
+
+            # Edit popup with priority + title + details
+            top = tk.Toplevel(self.root)
+            top.title('Edit ToDo')
+            frm = ttk.Frame(top, padding=8)
+            frm.pack(fill=tk.BOTH, expand=True)
+
+            ttk.Label(frm, text='Priority', style='CategoryPanel.TLabel').grid(row=0, column=0, sticky=tk.W)
+            pr = tk.StringVar(value=todo_data.get('priority', 'low'))
+
+            def setp(v):
+                pr.set(v)
+
+            btnf = ttk.Frame(frm)
+            btnf.grid(row=0, column=1, sticky=tk.W)
+            ttk.Button(btnf, text='High', style='Action.TButton', command=lambda: setp('high')).pack(side=tk.LEFT, padx=2)
+            ttk.Button(btnf, text='Medium', style='Action.TButton', command=lambda: setp('medium')).pack(side=tk.LEFT, padx=2)
+            ttk.Button(btnf, text='Low', style='Action.TButton', command=lambda: setp('low')).pack(side=tk.LEFT, padx=2)
+
+            ttk.Label(frm, text='Title', style='CategoryPanel.TLabel').grid(row=1, column=0, sticky=tk.W, pady=(6, 0))
+            title_var = tk.StringVar(value=todo_data.get('title', ''))
+            ent = ttk.Entry(frm, textvariable=title_var, width=50)
+            ent.grid(row=1, column=1, sticky=tk.EW, pady=(6, 0))
+
+            ttk.Label(frm, text='Details', style='CategoryPanel.TLabel').grid(row=2, column=0, sticky=tk.W, pady=(6, 0))
+            txt = scrolledtext.ScrolledText(frm, height=10, wrap=tk.WORD, font=('Arial', 9), bg='#1e1e1e', fg='#dcdcdc')
+            txt.grid(row=2, column=1, sticky=tk.NSEW, pady=(6, 0))
+            frm.columnconfigure(1, weight=1)
+            frm.rowconfigure(2, weight=1)
+            txt.insert(tk.END, todo_data.get('details', ''))
+
+            def save_edits():
+                try:
+                    new_title = (title_var.get() or '').strip()
+                    new_priority = pr.get()
+                    new_details = txt.get('1.0', tk.END).strip()
+
+                    if not new_title:
+                        messagebox.showwarning("Missing Title", "Title cannot be empty.", parent=top)
+                        return
+
+                    # Update file (may rename if title changed)
+                    update_todo_file(filepath, new_title, new_priority, new_details)
+
+                    self.refresh_todo_view()
+                    top.destroy()
+                except Exception as e:
+                    log_message(f"SETTINGS: Error saving edits: {e}")
+                    messagebox.showerror("Error", f"Failed to save: {e}", parent=top)
+
+            ttk.Button(frm, text='Save', style='Action.TButton', command=save_edits).grid(row=3, column=1, sticky=tk.E, pady=6)
+        except Exception as e:
+            log_message(f"SETTINGS: Error in todo_edit: {e}")
+            messagebox.showerror("Error", f"Failed to open editor: {e}")
 
     def todo_delete(self):
+        """Delete selected todo file."""
         sel = self._get_selected_todo()
         if not sel:
             messagebox.showinfo("No Selection", "Please select a todo to delete.")
             return
-        kind, idx = sel
-        # Allow deleting from completed too
-        if kind not in ('task', 'bug', 'work_orders', 'notes', 'completed'):
+        category, filename = sel
+        # Allow deleting from all categories including completed
+        if category not in ('tasks', 'bugs', 'work_orders', 'notes', 'completed'):
             messagebox.showinfo("Invalid Selection", "Select an item to delete.")
             return
         if not messagebox.askyesno("Confirm Delete", "Delete selected todo?"):
             return
-        if kind == 'task':
-            lst = self.todos.get('tasks', [])
-        elif kind == 'bug':
-            lst = self.todos.get('bugs', [])
-        elif kind == 'work_orders':
-            lst = self.todos.get('work_orders', [])
-        elif kind == 'notes':
-            lst = self.todos.get('notes', [])
-        else:
-            lst = self.todos.get('completed', [])
-        if idx < 0 or idx >= len(lst):
-            return
-        lst.pop(idx)
-        self.save_settings_to_file()
-        self.refresh_todo_view()
+        try:
+            from pathlib import Path
+            todo_dir = TODOS_DIR / category
+            filepath = todo_dir / filename
+            if filepath.exists():
+                delete_todo_file(filepath)
+            self.refresh_todo_view()
+        except Exception as e:
+            log_message(f"SETTINGS: Error deleting todo: {e}")
+            messagebox.showerror("Error", f"Failed to delete: {e}")
 
     def get_setting(self, key, default=None):
         """Get a setting value"""

@@ -89,6 +89,20 @@ system blueprint:
    - START_HERE.md (Git context updates)
 
   Changelog
+   - v2.1: Projects ToDo + Working Dir + Plans system; UI hardening; size persistence; OS Trash integration; docs updates.
+     • Per‑project working_dir lifecycle: create on project create/auto‑create; auto‑switch on selection; single 📂 indicator; quick indicator shows short dir.
+     • Projects panel: Delete Project with working_dir reset → sandbox; tree refresh; safety confirmations.
+     • Unified ToDo manager: toggle header [Main ToDo List | Project ToDo List]; opens Project first from Projects panel and when a project is selected in Chat.
+     • Project ToDo manager: fully isolated storage under Data/projects/<name>/todos; mirrors main manager features.
+     • New categories: 📐 Plans (plans/) and 🧪 Tests (tests/) for both Main and Project ToDo trees.
+     • Plan Template dialog: scrollable; sections — Overview, Objectives, Tasks, Work Orders, Tests; per‑section (+/−) to add/remove single‑line todo entries (3 prepared entries by default; first is placeholder example and not saved).
+     • Linked todos: created items are auto‑labeled “Plan:<Name> | …” and include PLAN: <Name> header; update preserves PLAN.
+     • Completed plans: virtual grouping under Completed > Plans (auto‑updated as child todos complete).
+     • Create flows: Main and Project support full dialog creation; auto‑open created file in system editor.
+     • Edit flows: “Edit (Open)” + double‑click opens files externally; “Save (Title/Priority)” changes headers only.
+     • Delete → OS Trash: uses send2trash/gio with Data/.trash fallback; “🗑” button opens system trash.
+     • Window size persistence: both ToDo popups remember last size; restored on open.
+     • UI hardening: isolated header builds; explicit logging (TODO POPUP: …) so body always renders even if header fails.
+     • Visual polish: auto‑resizing fields (Overview/Objectives 1..3 lines); hidden internal scrollbars with wheel support; plan dialog now scrollable.
    - v2.0: Temp refactor finalized; Rename Chat/Projects; ToDo v2; docs/help/git updated.
    - v1.7e: Baselines + schema-aware eval; runner UX split.
-

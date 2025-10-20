@@ -28,6 +28,9 @@ class ChatInterfaceTab(BaseTab):
     def __init__(self, parent, root, style, parent_tab):
         super().__init__(parent, root, style)
         self.parent_tab = parent_tab
+        # Load backend settings first
+        self.backend_settings = self.load_backend_settings()
+
         self.current_model = None
         self.chat_history = []
         self.is_generating = False
@@ -53,6 +56,25 @@ class ChatInterfaceTab(BaseTab):
         self._qa_settings_dirty = False
         # Track if chat content changed (unsaved)
         self._chat_dirty = False
+        # Tracker window lock state
+        self.tracker_window_locked = self.backend_settings.get('tracker_window_locked', False)
+        self._locked_tracker_geometry = self.backend_settings.get('locked_tracker_geometry', None)
+        self._unlocked_tracker_sash_position = self.backend_settings.get('tracker_sash_position', None)
+
+        # Animation state
+        self._core_animation_job = None
+        self._core_pulse_direction = 1
+        self._core_current_radius = 10
+        self._core_pulse_speed = 150
+
+        # Track active generation process/thread for proper stopping
+        self._current_proc = None
+        self._gen_thread = None
+        self._stop_event = threading.Event()
+        try:
+            self._proc_lock = threading.Lock()
+        except Exception:
+            self._proc_lock = None
 
         # Load backend settings first
         self.backend_settings = self.load_backend_settings()
@@ -140,8 +162,14 @@ class ChatInterfaceTab(BaseTab):
         self.advanced_settings = self.load_advanced_settings()
 
         # System Prompt and Tool Schema management
-        self.current_system_prompt = "default"
-        self.current_tool_schema = "default"
+        # Load chat defaults from backend settings; allow None (off)
+        try:
+            dsp = self.backend_settings.get('default_system_prompt', 'default')
+            dts = self.backend_settings.get('default_tool_schema', 'default')
+        except Exception:
+            dsp, dts = 'default', 'default'
+        self.current_system_prompt = dsp if dsp not in ("None", None, "") else None
+        self.current_tool_schema = dts if dts not in ("None", None, "") else None
         self.system_prompts_dir = Path(__file__).parent.parent / "system_prompts"
         self.tool_schemas_dir = Path(__file__).parent.parent / "tool_schemas_configs"
         self._ensure_prompt_schema_dirs()
@@ -155,6 +183,483 @@ class ChatInterfaceTab(BaseTab):
             self.rag_service.refresh_index_global()
         except Exception:
             pass
+
+        # Tracker state
+        self.tracker_window = None
+        self.is_tracker_active = False
+        self._tracker_after_id = None
+
+    def toggle_tracker_window(self):
+        log_message("CHAT_INTERFACE: toggle_tracker_window called.")
+        if self.is_tracker_active:
+            log_message("CHAT_INTERFACE: Tracker window is active, calling _on_tracker_close.")
+            self._on_tracker_close()
+        else:
+            log_message("CHAT_INTERFACE: Tracker window is inactive, calling create_tracker_window.")
+            self.create_tracker_window()
+        log_message("CHAT_INTERFACE: toggle_tracker_window finished.")
+
+    def _on_tracker_close(self):
+        log_message("CHAT_INTERFACE: _on_tracker_close called.")
+        if not self.is_tracker_active: # Prevent re-entry
+            log_message("CHAT_INTERFACE: _on_tracker_close returning early (inactive).")
+            return
+
+        if self._tracker_after_id:
+            log_message("CHAT_INTERFACE: Cancelling _tracker_after_id.")
+            self.root.after_cancel(self._tracker_after_id)
+            self._tracker_after_id = None
+        
+        self.is_tracker_active = False # Set state to inactive first
+        log_message("CHAT_INTERFACE: Tracker window state set to inactive.")
+        log_message(f"CHAT_INTERFACE: tracker_window exists: {self.tracker_window is not None and self.tracker_window.winfo_exists()}")
+        log_message(f"CHAT_INTERFACE: main_pane exists: {hasattr(self, 'main_pane') and self.main_pane.winfo_exists()}")
+        log_message(f"CHAT_INTERFACE: main_pane sash exists: {hasattr(self, 'main_pane') and self.main_pane.winfo_exists()}")
+
+        # Save main_pane sash position
+        if hasattr(self, 'main_pane') and self.main_pane.winfo_exists():
+            sash_pos = self.main_pane.sashpos(0)
+            self._save_backend_setting('tracker_sash_position', sash_pos)
+            log_message(f"CHAT_INTERFACE: Saved tracker_sash_position: {sash_pos}")
+        else:
+            log_message("CHAT_INTERFACE: main_pane not found or sash not exists, skipping sash position save.")
+
+        if self.tracker_window and self.tracker_window.winfo_exists():
+            log_message(f"CHAT_INTERFACE: _on_tracker_close called for window ID: {self.tracker_window.winfo_id()}")
+            log_message("CHAT_INTERFACE: Attempting to destroy tracker_window.")
+            try:
+                self.tracker_window.destroy()
+                log_message("CHAT_INTERFACE: tracker_window.destroy() called successfully.")
+            except Exception as e:
+                log_message(f"CHAT_INTERFACE ERROR: Failed to destroy tracker_window: {e}")
+        else:
+            log_message("CHAT_INTERFACE: tracker_window not found or not exists.")
+        
+        self.tracker_window = None
+        self._update_quick_indicators()
+        log_message("CHAT_INTERFACE: Tracker window closed.")
+
+    def create_tracker_window(self):
+        log_message("CHAT_INTERFACE: create_tracker_window called.")
+        if self.is_tracker_active and self.tracker_window and self.tracker_window.winfo_exists():
+            log_message("CHAT_INTERFACE: Tracker window already active, lifting it.")
+            self.tracker_window.lift()
+            return
+
+        log_message("CHAT_INTERFACE: Creating Toplevel window.")
+        win = tk.Toplevel(self.root)
+        win.title("Tracker")
+        # Apply saved geometry if locked
+        if self.tracker_window_locked and self._locked_tracker_geometry:
+            win.geometry(self._locked_tracker_geometry)
+            log_message(f"CHAT_INTERFACE: Applying locked geometry: {self._locked_tracker_geometry}")
+        else:
+            win.geometry("400x600")
+        win.transient(self.root)
+        win.protocol("WM_DELETE_WINDOW", self._on_tracker_close)
+        self.tracker_window = win
+        log_message(f"CHAT_INTERFACE: Toplevel window created and configured. ID: {win.winfo_id()}")
+
+        self.is_tracker_active = True
+        self._update_quick_indicators()
+        log_message("CHAT_INTERFACE: Tracker window opened.")
+
+        log_message("CHAT_INTERFACE: Creating main_pane...")
+        # Main layout with horizontal paned window
+        main_pane = ttk.PanedWindow(win, orient=tk.HORIZONTAL)
+        main_pane.pack(fill=tk.BOTH, expand=True)
+        self.main_pane = main_pane # Store reference for sash manipulation
+        log_message("CHAT_INTERFACE: main_pane created.")
+
+        log_message("CHAT_INTERFACE: Creating left_frame and right_frame...")
+        # Left frame for Nest and Files
+        left_frame = ttk.Frame(main_pane, padding=5)
+        left_frame.columnconfigure(0, weight=1)
+        left_frame.rowconfigure(1, weight=1) # Give weight to the nest_labelframe
+        left_frame.rowconfigure(2, weight=1) # Give weight to the files_frame
+
+        # Right frame for Thoughts
+        right_frame = ttk.Frame(main_pane, padding=5)
+        right_frame.columnconfigure(0, weight=1)
+        right_frame.rowconfigure(0, weight=1)
+
+        main_pane.add(left_frame, weight=2)
+        main_pane.add(right_frame, weight=1)
+        log_message("CHAT_INTERFACE: left_frame and right_frame added to main_pane.")
+
+        log_message("CHAT_INTERFACE: Applying sash position...")
+        # Load and apply sash position
+        if self.tracker_window_locked:
+            saved_sash_pos = self.backend_settings.get('tracker_sash_position_locked', None)
+            log_message(f"CHAT_INTERFACE: Locked sash position found: {saved_sash_pos}. Applying...")
+        else:
+            saved_sash_pos = self.backend_settings.get('tracker_sash_position', None)
+            log_message(f"CHAT_INTERFACE: Unlocked sash position found: {saved_sash_pos}. Applying...")
+
+        if saved_sash_pos is not None:
+            # Apply after window is drawn to ensure correct sizing
+            win.after(100, lambda: main_pane.sashpos(0, saved_sash_pos))
+        else:
+            log_message("CHAT_INTERFACE: No saved sash position found. Applying default.")
+            # Default split: 2/3 for left, 1/3 for right
+            win.update_idletasks() # Ensure window geometry is updated
+            win.after(100, lambda: main_pane.sashpos(0, int(win.winfo_width() * 0.66)))
+        log_message("CHAT_INTERFACE: Sash position application scheduled.")
+
+        log_message("CHAT_INTERFACE: Creating Left Pane Widgets...")
+        # --- Left Pane Widgets ---
+
+        # Top controls frame for features/functions
+        top_controls_frame = ttk.Frame(left_frame, padding=2)
+        top_controls_frame.grid(row=0, column=0, sticky="ew")
+        top_controls_frame.columnconfigure(0, weight=1) # For potential future elements
+        log_message("CHAT_INTERFACE: top_controls_frame created.")
+
+        # Lock button for window size
+        self.lock_button = ttk.Button(top_controls_frame, text="", command=self._toggle_tracker_window_lock, style='Toolbutton')
+        self.lock_button.grid(row=0, column=1, sticky="e", padx=5)
+        log_message("CHAT_INTERFACE: Lock button created.")
+
+        # Store initial window geometry
+        win.update_idletasks()
+        self._initial_tracker_geometry = win.geometry()
+        log_message(f"CHAT_INTERFACE: Initial tracker window geometry: {self._initial_tracker_geometry}")
+
+        # Apply initial lock state
+        self._update_lock_button_icon()
+        if self.tracker_window_locked:
+            win.resizable(False, False)
+            log_message("CHAT_INTERFACE: Window set to not resizable.")
+        else:
+            win.resizable(True, True)
+            log_message("CHAT_INTERFACE: Window set to resizable.")
+
+        # Active Model Nest (Top)
+        nest_labelframe = ttk.LabelFrame(left_frame, text="Active Model")
+        nest_labelframe.grid(row=1, column=0, sticky="ew", pady=(0,5))
+        nest_labelframe.columnconfigure(0, weight=1)
+        self.tracker_nest_canvas = tk.Canvas(nest_labelframe, height=60, bg='#1e1e1e', highlightthickness=0)
+        self.tracker_nest_canvas.grid(row=0, column=0, sticky="ew")
+        log_message("CHAT_INTERFACE: nest_labelframe and canvas created.")
+
+        # File Grid (Bottom)
+        files_frame = ttk.Frame(left_frame)
+        files_frame.grid(row=2, column=0, sticky="nsew")
+        files_frame.columnconfigure(0, weight=1)
+        files_frame.rowconfigure(1, weight=1)
+
+        self.tracker_dir_label = ttk.Label(files_frame, text="Loading...", font=("Arial", 9, "italic"), anchor="w")
+        self.tracker_dir_label.grid(row=0, column=0, sticky=tk.EW, pady=(0, 5))
+
+        canvas = tk.Canvas(files_frame, bg='#1e1e1e', highlightthickness=0)
+        scrollbar = ttk.Scrollbar(files_frame, orient="vertical", command=canvas.yview)
+        self.tracker_files_frame = ttk.Frame(canvas, style='Category.TFrame')
+
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.grid(row=1, column=0, sticky='nsew')
+        scrollbar.grid(row=1, column=1, sticky='ns')
+        canvas_window = canvas.create_window((0, 0), window=self.tracker_files_frame, anchor="nw")
+
+        def on_frame_configure(event):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        self.tracker_files_frame.bind("<Configure>", on_frame_configure)
+
+        def on_canvas_configure(event):
+            canvas.itemconfig(canvas_window, width=event.width)
+        canvas.bind("<Configure>", on_canvas_configure)
+        log_message("CHAT_INTERFACE: files_frame and its components created.")
+
+        log_message("CHAT_INTERFACE: Creating Right Pane Widgets...")
+        # --- Right Pane Widgets ---
+
+        # Thoughts Panel
+        thoughts_labelframe = ttk.LabelFrame(right_frame, text="Thoughts")
+        thoughts_labelframe.grid(row=0, column=0, sticky="nsew")
+        thoughts_labelframe.columnconfigure(0, weight=1)
+        thoughts_labelframe.rowconfigure(0, weight=1)
+        self.tracker_thoughts_text = scrolledtext.ScrolledText(thoughts_labelframe, state=tk.DISABLED, wrap=tk.WORD, font=("Arial", 9), bg='#1e1e1e', fg='#dcdcdc')
+        self.tracker_thoughts_text.grid(row=0, column=0, sticky="nsew")
+        log_message("CHAT_INTERFACE: thoughts_labelframe and text widget created.")
+
+        self.tracker_file_widgets = {}
+        log_message("CHAT_INTERFACE: Calling refresh_tracker_display from create_tracker_window.")
+        self.refresh_tracker_display()
+        log_message("CHAT_INTERFACE: create_tracker_window finished.")
+
+    def refresh_tracker_display(self):
+        log_message("CHAT_INTERFACE: refresh_tracker_display called.")
+        if not self.is_tracker_active or not self.tracker_window or not self.tracker_window.winfo_exists():
+            if self._tracker_after_id:
+                self.root.after_cancel(self._tracker_after_id)
+                self._tracker_after_id = None
+            log_message("CHAT_INTERFACE: refresh_tracker_display returning early (inactive or window not exists).")
+            return
+
+        try:
+            if self.tool_executor:
+                current_dir = self.tool_executor.get_working_directory()
+            else:
+                current_dir = self.backend_settings.get('working_directory', '.')
+            log_message(f"CHAT_INTERFACE: Watching directory: {current_dir}")
+            
+            self.tracker_dir_label.config(text=f"Watching: {current_dir}")
+
+            # Use `ls -lp --full-time` to get file details
+            log_message("CHAT_INTERFACE: Calling subprocess.run for ls...")
+            result = subprocess.run(['ls', '-lp', '--full-time', current_dir], capture_output=True, text=True, check=True)
+            lines = result.stdout.strip().split('\n') if result.stdout.strip() else []
+            log_message("CHAT_INTERFACE: subprocess.run completed.")
+
+            # Clear previous grid
+            for widget in self.tracker_files_frame.winfo_children():
+                widget.destroy()
+            self.tracker_file_widgets.clear()
+
+            # Grid configuration
+            max_cols = 4
+            col = 0
+            row = 0
+
+            # Loop to create a grid of icon-only frames
+            if len(lines) > 1:
+                for line in lines[1:]: # Skip total line
+                    if not line: continue
+                    parts = line.split()
+                    if len(parts) < 9: continue
+
+                    perms, _, owner, group, size, month, day, time, name = parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[6], parts[7], " ".join(parts[8:])
+                    
+                    is_dir = perms.startswith('d')
+                    display_name = name.rstrip('/')
+                    full_path = str(Path(current_dir) / display_name)
+
+                    item_frame = ttk.Frame(self.tracker_files_frame, width=80, height=80)
+                    item_frame.grid(row=row, column=col, padx=5, pady=5)
+                    item_frame.pack_propagate(False)
+                    self.tracker_file_widgets[full_path] = item_frame
+
+
+                    icon = "📁" if is_dir else "📄"
+                    icon_label = ttk.Label(item_frame, text=icon, font=("Arial", 24))
+                    icon_label.pack(expand=True)
+
+                    # Create tooltip text with name, size, date
+                    details = f"Name: {display_name}\nSize: {size} bytes\nModified: {month} {day} {time}"
+
+                    # Bind hover and double-click events
+                    icon_label.bind("<Enter>", lambda e, t=details, w=item_frame: self._show_tooltip(w, t))
+                    icon_label.bind("<Leave>", lambda e: self._hide_tooltip())
+                    if not is_dir:
+                        icon_label.bind("<Double-1>", lambda e, p=full_path: self.open_file_viewer(p))
+
+
+                    col += 1
+                    if col >= max_cols:
+                        col = 0
+                        row += 1
+            log_message("CHAT_INTERFACE: File icons created.")
+
+        except Exception as e:
+            log_message(f"CHAT_INTERFACE ERROR in refresh_tracker_display: {e}")
+            # Clear previous grid
+            for widget in self.tracker_files_frame.winfo_children():
+                widget.destroy()
+            error_label = ttk.Label(self.tracker_files_frame, text=f"Error: {e}", foreground="red", wraplength=280)
+            error_label.pack()
+
+        self._tracker_after_id = self.root.after(2500, self.refresh_tracker_display)
+        log_message("CHAT_INTERFACE: refresh_tracker_display scheduled next update.")
+
+    def _show_tooltip(self, widget, text):
+        if hasattr(self, '_tooltip_win') and self._tooltip_win:
+            self._hide_tooltip()
+
+        x, y, _, _ = widget.bbox("insert")
+        x += widget.winfo_rootx() + 25
+        y += widget.winfo_rooty() + 25
+
+        self._tooltip_win = tw = tk.Toplevel(self.root)
+        tw.wm_overrideredirect(True)
+        tw.wm_geometry(f"+{x}+{y}")
+
+        label = ttk.Label(tw, text=text, justify=tk.LEFT,
+                         background="#333333", foreground="white", relief=tk.SOLID, borderwidth=1,
+                         font=("Arial", 9, "normal"), padding=4)
+        label.pack(ipadx=1)
+        self._tooltip_active = True
+
+    def _hide_tooltip(self):
+        if hasattr(self, '_tooltip_win') and self._tooltip_win:
+            self._tooltip_win.destroy()
+        self._tooltip_win = None
+        self._tooltip_active = False
+
+    def _start_core_animation(self):
+        if hasattr(self, '_core_animation_job') and self._core_animation_job:
+            self.root.after_cancel(self._core_animation_job)
+
+        self._core_current_radius = 10
+        self._core_pulse_direction = 1
+        # Introduce a small delay to allow the canvas to render and get its dimensions
+        self.root.after(100, self._pulse_core)
+    def _stop_core_animation(self):
+        if hasattr(self, '_core_animation_job') and self._core_animation_job:
+            self.root.after_cancel(self._core_animation_job)
+            self._core_animation_job = None
+        if hasattr(self, 'tracker_nest_canvas') and self.tracker_nest_canvas:
+            self.tracker_nest_canvas.delete("core")
+
+    def _pulse_core(self):
+        if not hasattr(self, 'tracker_nest_canvas') or not self.tracker_nest_canvas or not self.tracker_nest_canvas.winfo_exists():
+            return
+
+        canvas = self.tracker_nest_canvas
+
+        # Calculate radius for pulsing effect
+        if self._core_current_radius > 20:
+            self._core_pulse_direction = -1
+        elif self._core_current_radius < 10:
+            self._core_pulse_direction = 1
+        self._core_current_radius += self._core_pulse_direction
+
+        # Calculate color based on radius
+        hue = 0.55  # Cyan
+        saturation = 0.8
+        value = self._core_current_radius / 25.0 + 0.2
+        try:
+            import colorsys
+            r, g, b = colorsys.hsv_to_rgb(hue, saturation, value)
+            color = f"#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}"
+        except ImportError:
+            color = "#00FFFF"  # Fallback color
+
+        canvas.delete("core")
+        width = canvas.winfo_width()
+        height = canvas.winfo_height()
+        if width > 1 and height > 1:
+            x0 = width/2 - self._core_current_radius
+            y0 = height/2 - self._core_current_radius
+            x1 = width/2 + self._core_current_radius
+            y1 = height/2 + self._core_current_radius
+            canvas.create_oval(x0, y0, x1, y1, fill=color, outline=color, tags="core")
+
+        self._core_animation_job = self.root.after(self._core_pulse_speed, self._pulse_core)
+
+    def _animate_energy_arc(self, target_file_path):
+        if not self.is_tracker_active or not self.tracker_window or not self.tracker_window.winfo_exists():
+            return
+        
+        target_widget = self.tracker_file_widgets.get(target_file_path)
+        if not target_widget:
+            return
+
+        # 1. Flash the target widget
+        try:
+            original_style = target_widget.cget("style")
+            flash_style = "Flash.TFrame"
+            self.style.configure(flash_style, background="#61dafb")
+            target_widget.configure(style=flash_style)
+            self.root.after(500, lambda: target_widget.configure(style=original_style))
+        except tk.TclError: # Style may already exist
+            try:
+                target_widget.configure(style=flash_style)
+                self.root.after(500, lambda: target_widget.configure(style=original_style))
+            except Exception: # Failsafe
+                pass
+
+        # 2. Draw a bolt on the nest canvas
+        canvas = self.tracker_nest_canvas
+        if not canvas or not canvas.winfo_exists():
+            return
+            
+        width = canvas.winfo_width()
+        height = canvas.winfo_height()
+        
+        if width <= 1 or height <= 1:
+            return
+
+        x_start, y_start = width / 2, height / 2
+        
+        # Simplified bolt shooting upwards
+        bolt_points = [
+            x_start, y_start,
+            x_start + random.randint(-5, 5), y_start - 10,
+            x_start + random.randint(-5, 5), y_start - 20,
+            x_start + random.randint(-5, 5), y_start - 30,
+            x_start, y_start - 40
+        ]
+        
+        bolt = canvas.create_line(bolt_points, fill="#61dafb", width=2, tags="bolt")
+        
+        def clear_bolt():
+            if canvas.winfo_exists():
+                canvas.delete(bolt)
+        
+        self.root.after(300, clear_bolt)
+
+    def _update_lock_button_icon(self):
+        if self.tracker_window_locked:
+            self.lock_button.config(text="🔒")
+        else:
+            self.lock_button.config(text="🔓")
+
+    def _toggle_tracker_window_lock(self):
+        if not self.tracker_window or not self.tracker_window.winfo_exists():
+            return
+
+        self.tracker_window_locked = not self.tracker_window_locked
+        self._update_lock_button_icon()
+
+        if self.tracker_window_locked:
+            # Save current (unlocked) geometry and sash position before locking
+            self._unlocked_tracker_sash_position = self.main_pane.sashpos(0)
+            self._save_backend_setting('tracker_sash_position', self._unlocked_tracker_sash_position)
+            log_message(f"CHAT_INTERFACE: Saved unlocked sash position: {self._unlocked_tracker_sash_position}")
+
+            # Apply locked state
+            self._locked_tracker_geometry = self.tracker_window.geometry()
+            self._save_backend_setting('locked_tracker_geometry', self._locked_tracker_geometry)
+            self.tracker_window.resizable(False, False)
+            # Adjust sash to give more space to thoughts pane when locked
+            self.main_pane.sashpos(0, int(self.tracker_window.winfo_width() * 0.5))
+            self._save_backend_setting('tracker_sash_position_locked', self.main_pane.sashpos(0))
+            log_message(f"CHAT_INTERFACE: Saved locked tracker geometry: {self._locked_tracker_geometry}")
+            log_message(f"CHAT_INTERFACE: Set locked sash position: {self.main_pane.sashpos(0)}")
+        else:
+            # Apply unlocked state
+            self.tracker_window.resizable(True, True)
+            # Restore unlocked sash position
+            if self._unlocked_tracker_sash_position is not None:
+                self.main_pane.sashpos(0, self._unlocked_tracker_sash_position)
+                log_message(f"CHAT_INTERFACE: Restored unlocked sash position: {self._unlocked_tracker_sash_position}")
+            # Restore geometry if it was previously locked
+            if self._locked_tracker_geometry:
+                self.tracker_window.geometry(self._locked_tracker_geometry)
+                log_message(f"CHAT_INTERFACE: Restored locked geometry: {self._locked_tracker_geometry}")
+
+        # Persist lock state
+        self._save_backend_setting('tracker_window_locked', self.tracker_window_locked)
+
+    def open_file_viewer(self, file_path):
+        from default_api import read_file
+        from tkinter import messagebox
+        try:
+            content_result = read_file(absolute_path=file_path)
+            
+            viewer_win = tk.Toplevel(self.root)
+            viewer_win.title(f"View: {Path(file_path).name}")
+            viewer_win.geometry("700x500")
+            viewer_win.transient(self.root)
+
+            txt = scrolledtext.ScrolledText(viewer_win, wrap=tk.WORD, font=("Courier", 10), bg='#1e1e1e', fg='#ffffff')
+            txt.pack(fill=tk.BOTH, expand=True)
+            
+            file_content = content_result.get('read_file_response', {}).get('output', f"Could not read file: {file_path}")
+            txt.insert(tk.END, file_content)
+            txt.config(state=tk.DISABLED)
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not open file viewer for {file_path}:\n{e}")
 
     def update_session_temp_label(self, value):
         self.session_temperature = round(float(value), 1)
@@ -277,7 +782,12 @@ class ChatInterfaceTab(BaseTab):
         ttk.Button(top_actions, text="🗑 Delete Chat", command=self.delete_current_chat, style='Select.TButton').pack(side=tk.LEFT, padx=(0,5))
 
     def open_todo_list(self):
-        """Open the Settings tab ToDo popup from Chat quick actions."""
+        """Open the Settings tab ToDo popup from Quick Actions.
+
+        - If a project with existing per-project todos is selected (Projects panel),
+          open the Project ToDo view by default with toggle buttons visible.
+        - Otherwise, open the Main ToDo view.
+        """
         try:
             # Access settings tab instance via parent_tab.tab_instances
             tab_map = getattr(self.parent_tab, 'tab_instances', None)
@@ -287,12 +797,17 @@ class ChatInterfaceTab(BaseTab):
             if isinstance(tab_map, dict):
                 settings_meta = tab_map.get('settings_tab')
             settings_inst = settings_meta.get('instance') if settings_meta else None
-            if settings_inst and hasattr(settings_inst, 'show_todo_popup'):
-                settings_inst.show_todo_popup()
-            else:
-                # Graceful fallback: no settings instance available
+            if not (settings_inst and hasattr(settings_inst, 'show_todo_popup')):
                 from tkinter import messagebox
                 messagebox.showinfo("ToDo List", "Settings tab is not available.")
+                return
+
+            # If a project is selected (Projects panel), open its Project ToDo first
+            project_name = getattr(self, 'current_project', None)
+            if project_name:
+                settings_inst.show_project_todo_popup(project_name)
+            else:
+                settings_inst.show_todo_popup()
         except Exception:
             try:
                 from tkinter import messagebox
@@ -1086,26 +1601,64 @@ class ChatInterfaceTab(BaseTab):
     def _on_open_selected_conversation(self, event=None):
         try:
             # Save QA settings per session if changed
-            self._maybe_prompt_save_qa_settings('opening another chat')
-            sel = self.conv_tree.selection() if hasattr(self, 'conv_tree') else []
-            if not sel:
-                return
-            item = sel[0]
-            vals = self.conv_tree.item(item, 'values')
-            if not vals or vals[0] != 'session':
-                return
-            session_id = vals[1]
             data = self.chat_history_manager.load_conversation(session_id)
             if not data:
                 return
-            # Restore per-session tool overrides if available
+
+            meta = data.get('metadata') or {}
+            log_message(f"CHAT_INTERFACE: Loading session {session_id} with metadata: {meta}")
+
+            # Restore all per-session settings from metadata
+            # Working Directory
+            if 'working_directory' in meta and hasattr(self, 'tool_executor') and self.tool_executor:
+                new_dir = meta['working_directory']
+                if self.tool_executor.set_working_directory(new_dir):
+                    self.backend_settings['working_directory'] = new_dir
+                    log_message(f"CHAT_INTERFACE: Restored session working directory to {new_dir}")
+                else:
+                    log_message(f"CHAT_INTERFACE ERROR: Failed to restore session working directory to {new_dir}")
+
+            # Mode
+            if 'mode' in meta:
+                new_mode = meta.get('mode', 'smart')
+                self.current_mode = new_mode
+                # Apply the mode's parameters
+                if hasattr(self, 'set_mode_parameters'):
+                    mode_params = self.get_mode_parameters(new_mode)
+                    self.set_mode_parameters(new_mode, mode_params)
+                log_message(f"CHAT_INTERFACE: Restored session mode to {new_mode}")
+
+            # System Prompt & Tool Schema
+            self.current_system_prompt = meta.get('system_prompt', self.backend_settings.get('default_system_prompt', 'default'))
+            self.current_tool_schema = meta.get('tool_schema', self.backend_settings.get('default_tool_schema', 'default'))
+            log_message(f"CHAT_INTERFACE: Restored prompt ({self.current_system_prompt}) and schema ({self.current_tool_schema})")
+
+            # Temperature
+            self.temp_mode = meta.get('temp_mode', 'manual')
+            self.session_temperature = meta.get('temperature', self.backend_settings.get('temperature', 0.8))
             try:
-                meta = data.get('metadata') or {}
-                sess = meta.get('session_tools')
-                if isinstance(sess, dict):
-                    self.session_enabled_tools = sess
-            except Exception:
+                self.session_temperature_var.set(self.session_temperature)
+                self.update_session_temp_label(self.session_temperature)
+            except Exception: # UI might not be fully ready
                 pass
+            log_message(f"CHAT_INTERFACE: Restored temperature to {self.session_temperature} ({self.temp_mode})")
+
+            # Show Thoughts
+            self.show_thoughts = meta.get('show_thoughts', False)
+
+            # RAG Enabled
+            self.rag_enabled = meta.get('rag_enabled', False)
+
+            # Tool Overrides
+            sess = meta.get('session_tools')
+            if isinstance(sess, dict):
+                self.session_enabled_tools = sess
+                log_message("CHAT_INTERFACE: Restored per-session tool overrides")
+            else:
+                self.session_enabled_tools = None
+
+            # Finally, update all indicators
+            self.root.after(100, self._update_quick_indicators)
             # Check model availability and confirm switch
             model = (data.get('model_name') or '').strip()
             switched = False
@@ -1474,6 +2027,9 @@ class ChatInterfaceTab(BaseTab):
             # Show Thoughts toggle (👁 preferred; fallback 🧠)
             def _toggle_thoughts():
                 self.show_thoughts = not bool(self.show_thoughts)
+                # If turning on, ensure tracker is open
+                if self.show_thoughts and not self.is_tracker_active:
+                    self.create_tracker_window()
                 try:
                     self._update_quick_indicators()
                 except Exception:
@@ -1498,8 +2054,9 @@ class ChatInterfaceTab(BaseTab):
             # Removed redundant "Save RAG" action; RAG setting persists via autosave when toggled
             mk_at(i, '🗒', 'ToDo List', self.open_todo_list); i += 1
             # Training toggle (🏋️) with colored state
-            self._qa_train_btn = mk_at(i, '🏋️', 'Training Mode', self._qa_toggle_training)
-            self._qa_update_training_btn()
+            mk_at(i, '🏋️', 'Training Mode', self._qa_toggle_training)
+            # New: Tracker button
+            mk_at(i + 1, '🔍', 'Open Live File Tracker', self.toggle_tracker_window)
             # Mark current QA view
             self._qa_view = 'main'
         except Exception:
@@ -1556,6 +2113,9 @@ class ChatInterfaceTab(BaseTab):
             int(1 if getattr(self, 'rag_enabled', False) else 0),
             str(getattr(self, 'temp_mode', 'manual')),
             int(round(float(getattr(self, 'session_temperature', 0.8)) * 10)),
+            # Include prompt/schema so indicators refresh on change
+            str(self.current_system_prompt or 'OFF'),
+            str(self.current_tool_schema or 'OFF'),
         )
         if state_key == getattr(self, '_qa_state_key', None):
             return
@@ -1572,13 +2132,35 @@ class ChatInterfaceTab(BaseTab):
         if (self._think_next_min or self._think_next_max):
             self._make_indicator(self.qa_indicators, '⏱', lambda: f"ThinkTime pending: min={int(self._think_next_min or 0)}s, max={int(self._think_next_max or 0)}s")
 
-        # Working directory
-        if wd:
+        # Working directory (allow child tabs to suppress)
+        if wd and not getattr(self, '_suppress_base_workdir_indicator', False):
             self._make_indicator(self.qa_indicators, '📂', lambda wdir=wd: f"Working dir: {wdir}")
 
         # Enabled tools
         if tools_list:
             self._make_indicator(self.qa_indicators, '🔧', lambda lst=tools_list: "Enabled tools:\n" + ", ".join(lst))
+
+        # Combined Prompt/Schema indicator
+        try:
+            # An item is considered "active" if it's not explicitly turned off (i.e., not None or empty string)
+            sp_active = self.current_system_prompt not in (None, '', 'None')
+            ts_active = self.current_tool_schema not in (None, '', 'None')
+
+            if sp_active or ts_active:
+                tooltip_parts = []
+                # Use the actual value, or 'default' if for some reason it's an empty string but not None
+                sp_name = self.current_system_prompt or 'default'
+                ts_name = self.current_tool_schema or 'default'
+
+                if sp_active:
+                    tooltip_parts.append(f"Prompt: {sp_name}")
+                if ts_active:
+                    tooltip_parts.append(f"Schema: {ts_name}")
+                
+                tooltip_text = "\n".join(tooltip_parts)
+                self._make_indicator(self.qa_indicators, '📝', lambda t=tooltip_text: t)
+        except Exception:
+            pass
 
         # ToDo popup active
         if todo_active:
@@ -1590,17 +2172,14 @@ class ChatInterfaceTab(BaseTab):
             self._make_indicator(self.qa_indicators, '⚡', lambda m=mode_name: f"Mode: {m}")
         except Exception:
             pass
-
-        # Prompt/Schema indicator
-        try:
-            pr = self.current_system_prompt or 'default'
-            sc = self.current_tool_schema or 'default'
-            self._make_indicator(self.qa_indicators, '📝', lambda p=pr, s=sc: f"Prompt: {p}\nSchema: {s}")
-        except Exception:
-            pass
         # Show Thoughts indicator
         if bool(self.show_thoughts):
             self._make_indicator(self.qa_indicators, '👁', lambda: "Show Thoughts: ON (streaming preview)")
+
+        # Tracker indicator
+        if self.is_tracker_active:
+            self._make_indicator(self.qa_indicators, '🔍', lambda: "Tracker window is open")
+
         # Temperature indicator
         try:
             tmode = (getattr(self, 'temp_mode', 'manual') or 'manual').capitalize()
@@ -1894,7 +2473,11 @@ class ChatInterfaceTab(BaseTab):
         lst = tk.Listbox(lf, yscrollcommand=sb.set, bg='#1e1e1e', fg='#ffffff', selectbackground='#61dafb', width=26)
         lst.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         sb.config(command=lst.yview)
-        prompts = sorted([f.stem for f in self.system_prompts_dir.glob('*.txt')])
+        try:
+            import config as C
+            prompts = list(C.list_system_prompts())
+        except Exception:
+            prompts = sorted([f.stem for f in self.system_prompts_dir.glob('*.txt')])
         for i, name in enumerate(prompts):
             lst.insert(tk.END, name)
             if name == (self.current_system_prompt or 'default'):
@@ -1918,9 +2501,18 @@ class ChatInterfaceTab(BaseTab):
             name = lst.get(lst.curselection()[0])
             current['name'] = name
             try:
-                content = (self.system_prompts_dir / f"{name}.txt").read_text()
+                import config as C
+                data = C.load_system_prompt(name)
+                # Accept either {'prompt': '...'} or raw string-like
+                if isinstance(data, dict) and 'prompt' in data:
+                    content = str(data.get('prompt') or '')
+                else:
+                    content = str(data)
             except Exception:
-                content = ''
+                try:
+                    content = (self.system_prompts_dir / f"{name}.txt").read_text()
+                except Exception:
+                    content = ''
             ed.delete(1.0, tk.END)
             ed.insert(tk.END, content)
             current['modified'] = False
@@ -1939,11 +2531,39 @@ class ChatInterfaceTab(BaseTab):
         for i in range(4):
             btns.columnconfigure(i, weight=1)
 
+        # Helpers to resolve central file locations for prompts
+        def _resolve_prompt_path(name: str):
+            try:
+                import config as C
+                from pathlib import Path as _P
+                # 1) Semantic_States JSON
+                sp = C.SEMANTIC_DATA_DIR / f"system_prompt_{name}.json"
+                if sp.exists():
+                    return sp
+                # 2) Prompts JSON (any nested)
+                for p in C.PROMPTS_DIR.rglob('*.json'):
+                    if p.stem == name:
+                        return p
+                # 3) PromptBox TXT
+                pb = C.PROMPTBOX_DIR / f"{name}.txt"
+                if pb.exists():
+                    return pb
+                # Default create path: PromptBox txt
+                pb.parent.mkdir(parents=True, exist_ok=True)
+                return pb
+            except Exception:
+                return self.system_prompts_dir / f"{name}.txt"
+
         def save_cb():
             name = current.get('name')
             if not name:
                 return
-            (self.system_prompts_dir / f"{name}.txt").write_text(ed.get(1.0, tk.END))
+            path = _resolve_prompt_path(name)
+            try:
+                path.write_text(ed.get(1.0, tk.END))
+            except Exception:
+                # Fallback to local
+                (self.system_prompts_dir / f"{name}.txt").write_text(ed.get(1.0, tk.END))
             current['modified'] = False
 
         def new_cb():
@@ -1951,7 +2571,7 @@ class ChatInterfaceTab(BaseTab):
             name = simpledialog.askstring('New Prompt', 'Enter prompt name:')
             if not name:
                 return
-            p = self.system_prompts_dir / f"{name}.txt"
+            p = _resolve_prompt_path(name)
             if p.exists():
                 messagebox.showerror('Exists', 'A prompt with that name already exists.')
                 return
@@ -1971,7 +2591,10 @@ class ChatInterfaceTab(BaseTab):
                 return
             if not messagebox.askyesno('Confirm', f"Delete prompt '{name}'?"):
                 return
-            (self.system_prompts_dir / f"{name}.txt").unlink(missing_ok=True)
+            try:
+                _resolve_prompt_path(name).unlink(missing_ok=True)
+            except Exception:
+                (self.system_prompts_dir / f"{name}.txt").unlink(missing_ok=True)
             # refresh list
             sel = lst.curselection()
             if sel:
@@ -1980,17 +2603,42 @@ class ChatInterfaceTab(BaseTab):
             ed.delete(1.0, tk.END)
             title.config(text='Select a prompt to view/edit')
 
-        def apply_cb():
-            name = current.get('name')
-            if not name:
-                return
-            if current.get('modified'):
-                save_cb()
-            self.current_system_prompt = name
+        # Off toggle + Set Default button row
+        ctl_row = ttk.Frame(parent)
+        ctl_row.grid(row=2, column=0, columnspan=2, sticky=tk.EW, pady=(6,0))
+        self._pm_off_var = tk.BooleanVar(value=(self.current_system_prompt in (None, '', 'None')))
+        ttk.Checkbutton(ctl_row, text='Off (no system prompt)', variable=self._pm_off_var, style='TCheckbutton').pack(side=tk.LEFT)
+        def _set_default_prompt():
+            val = None if self._pm_off_var.get() else (current.get('name') or (lst.get(lst.curselection()[0]) if lst.curselection() else 'default'))
             try:
-                self.add_message('system', f"✓ Loaded system prompt: {name}")
+                self._save_backend_setting('default_system_prompt', val)
+                self.backend_settings['default_system_prompt'] = val
+                self.add_message('system', f"Default system prompt set to: {val or 'Off'}")
             except Exception:
                 pass
+        ttk.Button(ctl_row, text='Set as Default', style='Select.TButton', command=_set_default_prompt).pack(side=tk.RIGHT)
+
+        def apply_cb():
+            name = current.get('name')
+            # If Off is checked, clear the prompt selection
+            if bool(self._pm_off_var.get()):
+                self.current_system_prompt = None
+                try:
+                    self.add_message('system', "✓ System prompt set to Off")
+                except Exception:
+                    pass
+            else:
+                if not name and lst.curselection():
+                    name = lst.get(lst.curselection()[0])
+                if not name:
+                    return
+                if current.get('modified'):
+                    save_cb()
+                self.current_system_prompt = name
+                try:
+                    self.add_message('system', f"✓ Loaded system prompt: {name}")
+                except Exception:
+                    pass
             try:
                 self._update_quick_indicators()
             except Exception:
@@ -2019,7 +2667,11 @@ class ChatInterfaceTab(BaseTab):
         lst = tk.Listbox(lf, yscrollcommand=sb.set, bg='#1e1e1e', fg='#ffffff', selectbackground='#61dafb', width=26)
         lst.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         sb.config(command=lst.yview)
-        schemas = sorted([f.stem for f in self.tool_schemas_dir.glob('*.json')])
+        try:
+            import config as C
+            schemas = list(C.list_tool_schemas())
+        except Exception:
+            schemas = sorted([f.stem for f in self.tool_schemas_dir.glob('*.json')])
         for i, name in enumerate(schemas):
             lst.insert(tk.END, name)
             if name == (self.current_tool_schema or 'default'):
@@ -2042,9 +2694,15 @@ class ChatInterfaceTab(BaseTab):
             name = lst.get(lst.curselection()[0])
             current['name'] = name
             try:
-                content = (self.tool_schemas_dir / f"{name}.json").read_text()
+                import config as C
+                data = C.load_tool_schema(name)
+                import json as _json
+                content = _json.dumps(data, indent=2)
             except Exception:
-                content = '{\n  "enabled_tools": "all"\n}'
+                try:
+                    content = (self.tool_schemas_dir / f"{name}.json").read_text()
+                except Exception:
+                    content = '{\n  "enabled_tools": "all"\n}'
             ed.delete(1.0, tk.END)
             ed.insert(tk.END, content)
             current['modified'] = False
@@ -2098,17 +2756,42 @@ class ChatInterfaceTab(BaseTab):
             current['name'] = None
             ed.delete(1.0, tk.END); title.config(text='Select a schema to view/edit')
 
-        def apply_cb():
-            name = current.get('name')
-            if not name:
-                return
-            if current.get('modified'):
-                save_cb()
-            self.current_tool_schema = name
+        # Off toggle + Set Default (Quick Actions schema panel)
+        ctl_row = ttk.Frame(parent)
+        ctl_row.grid(row=2, column=0, columnspan=2, sticky=tk.EW, pady=(6,0))
+        self._schema_off_var_qm = tk.BooleanVar(value=(self.current_tool_schema in (None, '', 'None')))
+        ttk.Checkbutton(ctl_row, text='Off (no tool schema)', variable=self._schema_off_var_qm, style='TCheckbutton').pack(side=tk.LEFT)
+        def _set_default_schema_qm():
+            val = None if self._schema_off_var_qm.get() else (current.get('name') or (lst.get(lst.curselection()[0]) if lst.curselection() else 'default'))
             try:
-                self.add_message('system', f"✓ Loaded tool schema: {name}")
+                self._save_backend_setting('default_tool_schema', val)
+                self.backend_settings['default_tool_schema'] = val
+                self.add_message('system', f"Default tool schema set to: {val or 'Off'}")
             except Exception:
                 pass
+        ttk.Button(ctl_row, text='Set as Default', style='Select.TButton', command=_set_default_schema_qm).pack(side=tk.RIGHT)
+
+        def apply_cb():
+            name = current.get('name')
+            # Respect Off toggle
+            if bool(self._schema_off_var_qm.get()):
+                self.current_tool_schema = None
+                try:
+                    self.add_message('system', "✓ Tool schema set to Off")
+                except Exception:
+                    pass
+            else:
+                if not name and lst.curselection():
+                    name = lst.get(lst.curselection()[0])
+                if not name:
+                    return
+                if current.get('modified'):
+                    save_cb()
+                self.current_tool_schema = name
+                try:
+                    self.add_message('system', f"✓ Loaded tool schema: {name}")
+                except Exception:
+                    pass
             try:
                 self._update_quick_indicators()
             except Exception:
@@ -2391,7 +3074,7 @@ class ChatInterfaceTab(BaseTab):
         self.send_btn.config(state=tk.NORMAL)
         self.add_message("system", f"{self.current_model} mounted successfully ✓")
         log_message(f"CHAT_INTERFACE: Model {self.current_model} mounted")
-
+        self._start_core_animation()
     def _on_mount_error(self, error_msg):
         """Handle model mount error"""
         self.add_message("error", error_msg)
@@ -2401,6 +3084,12 @@ class ChatInterfaceTab(BaseTab):
         """Dismount the current model"""
         if not self.current_model:
             return
+        # Ensure any in-flight generation is terminated
+        try:
+            if self.is_generating:
+                self.stop_generation()
+        except Exception:
+            pass
 
         log_message(f"CHAT_INTERFACE: Dismounting model {self.current_model}...")
         self.is_mounted = False
@@ -2413,7 +3102,7 @@ class ChatInterfaceTab(BaseTab):
 
         self.add_message("system", f"{self.current_model} dismounted")
         log_message(f"CHAT_INTERFACE: Model {self.current_model} dismounted")
-
+        self._stop_core_animation()
     def _set_model_label_with_class_color(self, model_tag: str):
         try:
             import config as C
@@ -2519,24 +3208,15 @@ class ChatInterfaceTab(BaseTab):
             if self.tool_executor:
                 success = self.tool_executor.set_working_directory(new_dir)
                 if success:
-                    # Update backend settings
+                    # Update backend settings FOR THE SESSION
                     self.backend_settings['working_directory'] = new_dir
+                    log_message(f"CHAT_INTERFACE: Session working directory changed to {new_dir}")
+                    self.add_message("system", f"Working directory for this session changed to: {new_dir}")
+                    # This change will be persisted with the session history via auto-save.
 
-                    # Save to settings file
-                    settings_file = Path(__file__).parent.parent / "custom_code_settings.json"
-                    try:
-                        with open(settings_file, 'r') as f:
-                            settings = json.load(f)
-                        settings['working_directory'] = new_dir
-                        with open(settings_file, 'w') as f:
-                            json.dump(settings, f, indent=2)
-
-                        log_message(f"CHAT_INTERFACE: Working directory changed to {new_dir}")
-                        self.add_message("system", f"Working directory changed to: {new_dir}")
-                        messagebox.showinfo("Directory Changed", f"Working directory set to:\n{new_dir}")
-                    except Exception as e:
-                        log_message(f"CHAT_INTERFACE ERROR: Failed to save working directory: {e}")
-                        messagebox.showerror("Save Error", f"Directory changed but failed to save to settings:\n{str(e)}")
+                    # Refresh tracker if it's open
+                    if self.is_tracker_active and self.tracker_window and self.tracker_window.winfo_exists():
+                        self.refresh_tracker_display()
                 else:
                     log_message(f"CHAT_INTERFACE ERROR: Failed to change working directory to {new_dir}")
                     messagebox.showerror("Directory Error", f"Failed to change working directory:\n{new_dir}\n\nDirectory may not exist or be inaccessible.")
@@ -2592,6 +3272,20 @@ class ChatInterfaceTab(BaseTab):
         self._skip_autosave_once = True
         try:
             self.clear_chat()
+            # Reset per-chat Quick Actions overrides to backend defaults
+            self.session_enabled_tools = None
+            # Reset schema and system prompt to configured defaults (allow Off)
+            try:
+                dsp = self.backend_settings.get('default_system_prompt', 'default')
+                dts = self.backend_settings.get('default_tool_schema', 'default')
+            except Exception:
+                dsp, dts = 'default', 'default'
+            self.current_system_prompt = dsp if dsp not in (None, 'None', '') else None
+            self.current_tool_schema = dts if dts not in (None, 'None', '') else None
+            try:
+                self._update_quick_indicators()
+            except Exception:
+                pass
         finally:
             self._skip_autosave_once = False
         messagebox.showinfo("New Chat", msg)
@@ -2759,31 +3453,17 @@ class ChatInterfaceTab(BaseTab):
         btn_frame.pack(pady=(20, 0))
 
         def apply_mode():
-            """Apply the selected mode"""
+            """Apply the selected mode FOR THE CURRENT SESSION"""
             new_mode = selected_mode.get()
             try:
-                # Load current settings
-                with open(mode_settings_file, 'r') as f:
-                    mode_settings = json.load(f)
+                log_message(f"CHAT_INTERFACE: Session mode changed to {new_mode}")
+                self.add_message("system", f"Mode for this session changed to: {new_mode.upper()}")
+                
+                self.current_mode = new_mode
+                self._update_quick_indicators()
 
-                # Update mode
-                mode_settings['current_mode'] = new_mode
-
-                # Get default parameters for this mode
+                # Get parameters for this mode
                 mode_parameters = self.get_mode_parameters(new_mode)
-                mode_settings['mode_parameters'] = mode_parameters
-
-                # Save to mode_settings.json
-                with open(mode_settings_file, 'w') as f:
-                    json.dump(mode_settings, f, indent=2)
-
-                log_message(f"CHAT_INTERFACE: Mode changed to {new_mode}")
-                self.add_message("system", f"Mode changed to: {new_mode.upper()}")
-                try:
-                    self.current_mode = new_mode
-                    self._update_quick_indicators()
-                except Exception:
-                    pass
 
                 # Notify Advanced Settings tab about mode change
                 if hasattr(self.parent_tab, 'settings_interface'):
@@ -2791,14 +3471,14 @@ class ChatInterfaceTab(BaseTab):
                         self.parent_tab.settings_interface.on_mode_changed(new_mode)
                         log_message(f"CHAT_INTERFACE: Notified Advanced Settings of mode change to {new_mode}")
 
-                # Apply mode to chat interface
+                # Apply mode to chat interface for the current session
                 if hasattr(self, 'set_mode_parameters'):
                     self.set_mode_parameters(new_mode, mode_parameters)
 
                 dialog.destroy()
             except Exception as e:
-                log_message(f"CHAT_INTERFACE ERROR: Failed to save mode: {e}")
-                messagebox.showerror("Error", f"Failed to save mode:\n{str(e)}")
+                log_message(f"CHAT_INTERFACE ERROR: Failed to apply session mode: {e}")
+                messagebox.showerror("Error", f"Failed to apply mode:\n{str(e)}")
 
         ok_btn = ttk.Button(
             btn_frame,
@@ -2938,13 +3618,20 @@ class ChatInterfaceTab(BaseTab):
         self.send_btn.config(state=tk.DISABLED)
         self.stop_btn.config(state=tk.NORMAL)
         self.is_generating = True
+        self._core_pulse_speed = 50
+        # Clear any previous stop request
+        try:
+            self._stop_event.clear()
+        except Exception:
+            pass
 
-        # Generate response in background thread
-        threading.Thread(
+        # Generate response in background thread and keep a handle
+        self._gen_thread = threading.Thread(
             target=self.generate_response,
             args=(message,),
             daemon=True
-        ).start()
+        )
+        self._gen_thread.start()
 
     def open_think_time_dialog(self):
         """Popup to set ThinkTime min/max (seconds) for next input."""
@@ -3105,7 +3792,9 @@ class ChatInterfaceTab(BaseTab):
 
             # Inject system prompt and optional RAG context at the start of conversation
             system_prompt = self.get_current_system_prompt()
-            messages_with_system = [{"role": "system", "content": system_prompt}]
+            messages_with_system = []
+            if isinstance(system_prompt, str) and system_prompt.strip():
+                messages_with_system.append({"role": "system", "content": system_prompt})
             try:
                 if self._is_rag_active():
                     lvl = int(getattr(self, 'panel_rag_level', 0) or 0)
@@ -3252,13 +3941,40 @@ class ChatInterfaceTab(BaseTab):
                     except Exception:
                         pass
                     proc = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, text=True, bufsize=1)
+                    # Track process for Stop button
+                    try:
+                        if self._proc_lock:
+                            with self._proc_lock:
+                                self._current_proc = proc
+                        else:
+                            self._current_proc = proc
+                    except Exception:
+                        self._current_proc = proc
                     final_text_chunks = []
                     def _append_thought(txt):
+                        # If show_thoughts is on and tracker exists, append to it.
+                        if self.show_thoughts and self.is_tracker_active and self.tracker_window.winfo_exists():
+                            try:
+                                self.tracker_thoughts_text.config(state=tk.NORMAL)
+                                self.tracker_thoughts_text.insert(tk.END, txt)
+                                self.tracker_thoughts_text.see(tk.END)
+                                self.tracker_thoughts_text.config(state=tk.DISABLED)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                self.root.after(0, lambda t=txt: self.chat_display.config(state=tk.NORMAL) or self.chat_display.insert(tk.END, t, 'thought') or self.chat_display.see(tk.END) or self.chat_display.config(state=tk.DISABLED))
+                            except Exception:
+                                pass
+                    stopped = False
+                    for line in proc.stdout:
+                        # Allow user requested stop mid-stream
                         try:
-                            self.root.after(0, lambda t=txt: self.chat_display.config(state=tk.NORMAL) or self.chat_display.insert(tk.END, t, 'thought') or self.chat_display.see(tk.END) or self.chat_display.config(state=tk.DISABLED))
+                            if self._stop_event.is_set():
+                                stopped = True
+                                break
                         except Exception:
                             pass
-                    for line in proc.stdout:
                         line = line.strip()
                         if not line:
                             continue
@@ -3275,6 +3991,17 @@ class ChatInterfaceTab(BaseTab):
                         except Exception:
                             # Fallback: append raw
                             final_text_chunks.append('')
+                    if stopped:
+                        try:
+                            proc.terminate()
+                        except Exception:
+                            pass
+                        try:
+                            proc.kill()
+                        except Exception:
+                            pass
+                        self.root.after(0, lambda: self.add_message('system', '⏹ Generation stopped'))
+                        return
                     stdout_full = "".join(final_text_chunks)
                     stderr_full = ''
                     class _Res:
@@ -3283,19 +4010,71 @@ class ChatInterfaceTab(BaseTab):
                         stderr = stderr_full
                     result = _Res()
                 else:
-                    result = subprocess.run(
-                        ["curl", "-s", "-X", "POST", "http://localhost:11434/api/chat",
-                         "-H", "Content-Type: application/json",
-                         "-d", f"@{payload_file}"],
-                        capture_output=True,
-                        text=True,
-                        timeout=120
-                    )
+                    # Non-streaming: use Popen so we can cancel
+                    import subprocess as sp
+                    cmd = [
+                        "curl", "-s", "-X", "POST", "http://localhost:11434/api/chat",
+                        "-H", "Content-Type: application/json",
+                        "-d", f"@{payload_file}"
+                    ]
+                    proc = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, text=True)
+                    # Track process for Stop button
+                    try:
+                        if self._proc_lock:
+                            with self._proc_lock:
+                                self._current_proc = proc
+                        else:
+                            self._current_proc = proc
+                    except Exception:
+                        self._current_proc = proc
+
+                    stopped = False
+                    # Wait in small increments to react to stop
+                    while True:
+                        try:
+                            proc.wait(timeout=0.2)
+                            break
+                        except subprocess.TimeoutExpired:
+                            try:
+                                if self._stop_event.is_set():
+                                    stopped = True
+                                    try:
+                                        proc.terminate()
+                                    except Exception:
+                                        pass
+                                    try:
+                                        proc.kill()
+                                    except Exception:
+                                        pass
+                                    break
+                            except Exception:
+                                pass
+                    if stopped:
+                        self.root.after(0, lambda: self.add_message('system', '⏹ Generation stopped'))
+                        return
+                    # Collect outputs
+                    try:
+                        _stdout, _stderr = proc.communicate(timeout=2)
+                    except Exception:
+                        _stdout, _stderr = proc.communicate()
+                    class _Res:
+                        returncode = proc.returncode
+                        stdout = _stdout
+                        stderr = _stderr
+                    result = _Res()
             finally:
                 Path(payload_file).unlink(missing_ok=True)
 
             if result.returncode != 0:
-                error_msg = f"Ollama error: {getattr(result,'stderr','')}"
+                # If user requested stop, prefer a clean stopped message
+                try:
+                    if self._stop_event.is_set():
+                        self.root.after(0, lambda: self.add_message('system', '⏹ Generation stopped'))
+                        return
+                except Exception:
+                    pass
+                err = (getattr(result, 'stderr', '') or '').strip()
+                error_msg = f"Ollama error: {err or 'unknown error'}"
                 log_message(f"CHAT_INTERFACE ERROR: {error_msg}")
                 self.root.after(0, lambda: self.add_message("error", error_msg))
             else:
@@ -3409,13 +4188,22 @@ class ChatInterfaceTab(BaseTab):
             log_message(f"CHAT_INTERFACE ERROR: {error_msg}")
             self.root.after(0, lambda: self.add_message("error", error_msg))
         finally:
+            # Clear tracked process when done
+            try:
+                if self._proc_lock:
+                    with self._proc_lock:
+                        self._current_proc = None
+                else:
+                    self._current_proc = None
+            except Exception:
+                self._current_proc = None
             # Re-enable send button and disable stop button
             self.root.after(0, self.reset_buttons)
 
     def reset_buttons(self):
         """Reset button states after generation"""
         self.is_generating = False
-        self.send_btn.config(state=tk.NORMAL)
+        self._core_pulse_speed = 150
         self.stop_btn.config(state=tk.DISABLED)
 
     def _maybe_trigger_auto_training(self):
@@ -3453,11 +4241,46 @@ class ChatInterfaceTab(BaseTab):
             pass
 
     def stop_generation(self):
-        """Stop ongoing generation (placeholder)"""
-        # Note: subprocess doesn't easily support stopping mid-execution
-        # This is a placeholder for future streaming implementation
-        log_message("CHAT_INTERFACE: Stop requested (not fully implemented)")
-        self.add_message("system", "Stop requested - waiting for current generation to complete")
+        """Stop ongoing generation by signalling and terminating the subprocess if present."""
+        # Signal stop to the background thread
+        try:
+            self._stop_event.set()
+        except Exception:
+            pass
+
+        # Try to terminate any active subprocess
+        proc = None
+        try:
+            if self._proc_lock:
+                with self._proc_lock:
+                    proc = self._current_proc
+            else:
+                proc = self._current_proc
+        except Exception:
+            proc = self._current_proc
+
+        if proc is not None:
+            try:
+                proc.terminate()
+            except Exception:
+                pass
+            try:
+                proc.wait(timeout=1.0)
+            except Exception:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+
+        log_message("CHAT_INTERFACE: Stop requested → terminating active generation")
+        try:
+            self.add_message("system", "⏹ Generation stopped")
+        except Exception:
+            pass
+        try:
+            self.reset_buttons()
+        except Exception:
+            pass
 
     def handle_tool_calls(self, tool_calls, message_data):
         """Handle tool calls from model response"""
@@ -3466,14 +4289,29 @@ class ChatInterfaceTab(BaseTab):
         # Add assistant message with tool calls to history
         self.chat_history.append(message_data)
 
-        # Get enabled tools from Tools tab
-        enabled_tools = []
-        if hasattr(self.parent_tab, 'tools_interface') and self.parent_tab.tools_interface:
-            enabled_tools = self.parent_tab.tools_interface.get_enabled_tools()
-            log_message(f"CHAT_INTERFACE: {len(enabled_tools)} tools are enabled in Tools tab")
-        else:
-            log_message("CHAT_INTERFACE WARNING: Tools tab not available, allowing all tools")
-            enabled_tools = None  # None means allow all
+        # Build effective enabled tool map:
+        # - Backend Tools tab provides defaults
+        # - Quick Actions (per-chat) overrides those defaults
+        effective_enabled: dict | None = None
+        try:
+            base_map = None
+            if hasattr(self.parent_tab, 'tools_interface') and self.parent_tab.tools_interface:
+                # Expect a dict of {tool_name: BoolVar}
+                ti = self.parent_tab.tools_interface
+                base_map = {k: bool(v.get()) for k, v in (getattr(ti, 'tool_vars', {}) or {}).items()}
+                log_message(f"CHAT_INTERFACE: Tools tab defaults loaded ({sum(1 for v in base_map.values() if v)} enabled)")
+            # Overlay per-chat overrides if present
+            overrides = getattr(self, 'session_enabled_tools', None)
+            if overrides and isinstance(overrides, dict):
+                eff = dict(base_map or {})
+                for k, v in overrides.items():
+                    eff[k] = bool(v)
+                effective_enabled = eff
+                log_message("CHAT_INTERFACE: Applied per-chat tool overrides from Quick Actions")
+            else:
+                effective_enabled = base_map  # may be None → allow all
+        except Exception:
+            effective_enabled = None  # fail open (allow all)
 
         # Display tool execution message
         self.add_message("system", f"🔧 Executing {len(tool_calls)} tool(s)...")
@@ -3486,16 +4324,18 @@ class ChatInterfaceTab(BaseTab):
             arguments = function_data.get("arguments", {})
 
             # Check if tool is enabled in Tools tab
-            if enabled_tools is not None and tool_name not in enabled_tools:
-                log_message(f"CHAT_INTERFACE: Tool '{tool_name}' is DISABLED in Tools tab, skipping")
-                self.add_message("system", f"  ✗ {tool_name}: Tool is disabled in Tools tab")
-                tool_results.append({
-                    "role": "tool",
-                    "content": json.dumps({"error": "Tool is disabled in settings"}),
-                    "tool_call_id": tool_call.get("id", ""),
-                    "name": tool_name
-                })
-                continue
+            if isinstance(effective_enabled, dict):
+                is_enabled = bool(effective_enabled.get(tool_name, False))
+                if not is_enabled:
+                    log_message(f"CHAT_INTERFACE: Tool '{tool_name}' disabled by effective settings; skipping")
+                    self.add_message("system", f"  ✗ {tool_name}: Tool is disabled for this chat")
+                    tool_results.append({
+                        "role": "tool",
+                        "content": json.dumps({"error": "Tool is disabled in settings"}),
+                        "tool_call_id": tool_call.get("id", ""),
+                        "name": tool_name
+                    })
+                    continue
 
             # Parse arguments if they're a JSON string (with JSON Fixer if enabled)
             if isinstance(arguments, str):
@@ -3587,6 +4427,17 @@ class ChatInterfaceTab(BaseTab):
                 if show_details:
                     output_preview = result['output'][:200] if len(result['output']) > 200 else result['output']
                     self.add_message("system", f"  ✓ {tool_name}: {output_preview}")
+                
+                # Animate energy arc for successful file operations
+                file_path_arg = None
+                if 'file_path' in arguments:
+                    file_path_arg = arguments['file_path']
+                elif 'absolute_path' in arguments:
+                    file_path_arg = arguments['absolute_path']
+                
+                if file_path_arg:
+                    self._animate_energy_arc(file_path_arg)
+
                 tool_results.append({
                     "role": "tool",
                     "content": result['output']
@@ -3801,7 +4652,15 @@ class ChatInterfaceTab(BaseTab):
                 Path(payload_file).unlink(missing_ok=True)
 
             if result.returncode != 0:
-                error_msg = f"Ollama error: {result.stderr}"
+                # Respect stop request without showing an empty error
+                try:
+                    if self._stop_event.is_set():
+                        self.root.after(0, lambda: self.add_message('system', '⏹ Generation stopped'))
+                        return
+                except Exception:
+                    pass
+                err = (getattr(result, 'stderr', '') or '').strip()
+                error_msg = f"Ollama error: {err or 'unknown error'}"
                 log_message(f"CHAT_INTERFACE ERROR: {error_msg}")
                 self.root.after(0, lambda: self.add_message("error", error_msg))
             else:
@@ -3889,21 +4748,37 @@ class ChatInterfaceTab(BaseTab):
         return {}
 
     def get_tool_schemas(self):
-        """Get Ollama tool schemas for enabled tools"""
-        try:
-            from tool_schemas import get_enabled_tool_schemas
-            # Prefer session overrides if present
-            enabled_tools = getattr(self, 'session_enabled_tools', None)
-            if not enabled_tools:
-                enabled_tools = self.load_enabled_tools()
-            schemas = get_enabled_tool_schemas(enabled_tools)
+        """Return tool schemas based ONLY on the selected tool schema configuration.
 
-            log_message(f"CHAT_INTERFACE: Loaded {len(schemas)} enabled tool schemas")
-            return schemas
-
-        except Exception as e:
-            log_message(f"CHAT_INTERFACE ERROR: Failed to load tool schemas: {e}")
+        Quick Actions tool checkboxes control execution (what is allowed to run),
+        not what schemas are sent to the model. This function therefore ignores
+        per‑chat overrides and backend defaults and reflects the current
+        schema selection exclusively.
+        """
+        # Off/None → no schemas
+        if not self.current_tool_schema:
             return []
+        try:
+            from tool_schemas import TOOL_SCHEMAS
+        except Exception as e:
+            log_message(f"CHAT_INTERFACE ERROR: Failed to load TOOL_SCHEMAS: {e}")
+            return []
+
+        try:
+            cfg = self.get_current_tool_schema_config() or {"enabled_tools": "all"}
+        except Exception:
+            cfg = {"enabled_tools": "all"}
+
+        # Determine which tool names this schema allows
+        if isinstance(cfg.get('enabled_tools'), list):
+            allowed_names = [name for name in cfg.get('enabled_tools') if name in TOOL_SCHEMAS]
+        else:
+            # "all" or invalid → allow all known schemas (by selection policy only)
+            allowed_names = list(TOOL_SCHEMAS.keys())
+
+        schemas = [TOOL_SCHEMAS[name] for name in allowed_names]
+        log_message(f"CHAT_INTERFACE: Selected schema '{self.current_tool_schema}' → {len(schemas)} tool schemas")
+        return schemas
 
     def _list_all_tools(self):
         try:
@@ -4662,8 +5537,12 @@ class ChatInterfaceTab(BaseTab):
         prompt_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.config(command=prompt_listbox.yview)
 
-        # Load prompts
-        prompts = sorted([f.stem for f in self.system_prompts_dir.glob("*.txt")])
+        # Load prompts (prefer central Training directories)
+        try:
+            import config as C
+            prompts = list(C.list_system_prompts())
+        except Exception:
+            prompts = sorted([f.stem for f in self.system_prompts_dir.glob("*.txt")])
         for prompt in prompts:
             prompt_listbox.insert(tk.END, prompt)
             if prompt == self.current_system_prompt:
@@ -4703,6 +5582,23 @@ class ChatInterfaceTab(BaseTab):
         current_prompt_name = [None]
         modified = [False]
 
+        def _resolve_prompt_path(name: str):
+            try:
+                import config as C
+                sp = C.SEMANTIC_DATA_DIR / f"system_prompt_{name}.json"
+                if sp.exists():
+                    return sp
+                for p in C.PROMPTS_DIR.rglob('*.json'):
+                    if p.stem == name:
+                        return p
+                pb = C.PROMPTBOX_DIR / f"{name}.txt"
+                if pb.exists():
+                    return pb
+                pb.parent.mkdir(parents=True, exist_ok=True)
+                return pb
+            except Exception:
+                return self.system_prompts_dir / f"{name}.txt"
+
         def load_prompt(event=None):
             """Load selected prompt into editor"""
             selection = prompt_listbox.curselection()
@@ -4721,13 +5617,27 @@ class ChatInterfaceTab(BaseTab):
             current_prompt_name[0] = prompt_name
             modified[0] = False
 
-            prompt_file = self.system_prompts_dir / f"{prompt_name}.txt"
-            if prompt_file.exists():
-                with open(prompt_file, 'r') as f:
-                    content = f.read()
-                editor.delete(1.0, tk.END)
-                editor.insert(1.0, content)
-                prompt_name_label.config(text=f"📝 {prompt_name}")
+            # Prefer central loader
+            content = None
+            try:
+                import config as C
+                data = C.load_system_prompt(prompt_name)
+                if isinstance(data, dict) and 'prompt' in data:
+                    content = str(data.get('prompt') or '')
+                else:
+                    content = str(data)
+            except Exception:
+                pass
+            if content is None:
+                prompt_file = self.system_prompts_dir / f"{prompt_name}.txt"
+                if prompt_file.exists():
+                    with open(prompt_file, 'r') as f:
+                        content = f.read()
+            if content is None:
+                content = ''
+            editor.delete(1.0, tk.END)
+            editor.insert(1.0, content)
+            prompt_name_label.config(text=f"📝 {prompt_name}")
 
         def on_text_change(event=None):
             """Mark as modified when text changes"""
@@ -4757,9 +5667,13 @@ class ChatInterfaceTab(BaseTab):
                 messagebox.showwarning("Empty Content", "Prompt content cannot be empty")
                 return
 
-            prompt_file = self.system_prompts_dir / f"{current_prompt_name[0]}.txt"
-            with open(prompt_file, 'w') as f:
-                f.write(content)
+            prompt_file = _resolve_prompt_path(current_prompt_name[0])
+            try:
+                with open(prompt_file, 'w') as f:
+                    f.write(content)
+            except Exception:
+                with open(self.system_prompts_dir / f"{current_prompt_name[0]}.txt", 'w') as f:
+                    f.write(content)
 
             modified[0] = False
             prompt_name_label.config(text=f"📝 {current_prompt_name[0]}")
@@ -4776,14 +5690,18 @@ class ChatInterfaceTab(BaseTab):
                     messagebox.showerror("Invalid Name", "Prompt name must contain alphanumeric characters")
                     return
 
-                prompt_file = self.system_prompts_dir / f"{name}.txt"
+                prompt_file = _resolve_prompt_path(name)
                 if prompt_file.exists():
                     messagebox.showerror("Exists", f"Prompt '{name}' already exists")
                     return
 
                 # Create empty prompt
-                with open(prompt_file, 'w') as f:
-                    f.write("You are a helpful AI assistant.")
+                try:
+                    with open(prompt_file, 'w') as f:
+                        f.write("You are a helpful AI assistant.")
+                except Exception:
+                    with open(self.system_prompts_dir / f"{name}.txt", 'w') as f:
+                        f.write("You are a helpful AI assistant.")
 
                 # Reload list
                 prompt_listbox.insert(tk.END, name)
@@ -4805,8 +5723,10 @@ class ChatInterfaceTab(BaseTab):
                 "Confirm Delete",
                 f"Are you sure you want to delete '{current_prompt_name[0]}'?"
             ):
-                prompt_file = self.system_prompts_dir / f"{current_prompt_name[0]}.txt"
-                prompt_file.unlink(missing_ok=True)
+                try:
+                    _resolve_prompt_path(current_prompt_name[0]).unlink(missing_ok=True)
+                except Exception:
+                    (self.system_prompts_dir / f"{current_prompt_name[0]}.txt").unlink(missing_ok=True)
 
                 # Reload list
                 selection = prompt_listbox.curselection()
@@ -4818,17 +5738,19 @@ class ChatInterfaceTab(BaseTab):
 
         def select_and_apply():
             """Select prompt and apply it"""
-            if not current_prompt_name[0]:
-                messagebox.showwarning("No Selection", "Please select a prompt first")
-                return
-
-            # Save if modified
-            if modified[0]:
-                save_prompt()
-
-            self.current_system_prompt = current_prompt_name[0]
-            self.add_message("system", f"✓ Loaded system prompt: {current_prompt_name[0]}")
-            log_message(f"CHAT_INTERFACE: Loaded system prompt: {current_prompt_name[0]}")
+            if bool(self._sp_off_var.get()):
+                self.current_system_prompt = None
+                self.add_message("system", "✓ System prompt set to Off")
+            else:
+                if not current_prompt_name[0]:
+                    messagebox.showwarning("No Selection", "Please select a prompt first")
+                    return
+                # Save if modified
+                if modified[0]:
+                    save_prompt()
+                self.current_system_prompt = current_prompt_name[0]
+                self.add_message("system", f"✓ Loaded system prompt: {current_prompt_name[0]}")
+                log_message(f"CHAT_INTERFACE: Loaded system prompt: {current_prompt_name[0]}")
 
             # Remount model to apply new prompt
             if self.is_mounted:
@@ -4923,8 +5845,12 @@ class ChatInterfaceTab(BaseTab):
         schema_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.config(command=schema_listbox.yview)
 
-        # Load schemas
-        schemas = sorted([f.stem for f in self.tool_schemas_dir.glob("*.json")])
+        # Load schemas (prefer central Training directories)
+        try:
+            import config as C
+            schemas = list(C.list_tool_schemas())
+        except Exception:
+            schemas = sorted([f.stem for f in self.tool_schemas_dir.glob("*.json")])
         for schema in schemas:
             schema_listbox.insert(tk.END, schema)
             if schema == self.current_tool_schema:
@@ -4982,13 +5908,24 @@ class ChatInterfaceTab(BaseTab):
             current_schema_name[0] = schema_name
             modified[0] = False
 
-            schema_file = self.tool_schemas_dir / f"{schema_name}.json"
-            if schema_file.exists():
-                with open(schema_file, 'r') as f:
-                    content = f.read()
-                editor.delete(1.0, tk.END)
-                editor.insert(1.0, content)
-                schema_name_label.config(text=f"🔧 {schema_name}")
+            # Prefer central loader
+            content = None
+            try:
+                import config as C
+                data = C.load_tool_schema(schema_name)
+                content = json.dumps(data, indent=2)
+            except Exception:
+                pass
+            if content is None:
+                schema_file = self.tool_schemas_dir / f"{schema_name}.json"
+                if schema_file.exists():
+                    with open(schema_file, 'r') as f:
+                        content = f.read()
+            if content is None:
+                content = '{\n  "enabled_tools": "all"\n}'
+            editor.delete(1.0, tk.END)
+            editor.insert(1.0, content)
+            schema_name_label.config(text=f"🔧 {schema_name}")
 
         def on_text_change(event=None):
             """Mark as modified when text changes"""
@@ -5006,6 +5943,21 @@ class ChatInterfaceTab(BaseTab):
         # Bottom buttons
         button_frame = ttk.Frame(dialog, style='Category.TFrame')
         button_frame.grid(row=1, column=0, columnspan=2, sticky=tk.EW, padx=10, pady=(0, 10))
+
+        # Helper to resolve central schema path
+        def _resolve_schema_path(name: str):
+            try:
+                import config as C
+                sp = C.SEMANTIC_DATA_DIR / f"tool_schema_{name}.json"
+                if sp.exists():
+                    return sp
+                for p in C.SCHEMAS_DIR.rglob('*.json'):
+                    if p.stem == name:
+                        return p
+                C.SCHEMAS_DIR.mkdir(parents=True, exist_ok=True)
+                return C.SCHEMAS_DIR / f"{name}.json"
+            except Exception:
+                return self.tool_schemas_dir / f"{name}.json"
 
         def save_schema():
             """Save current schema"""
@@ -5030,9 +5982,13 @@ class ChatInterfaceTab(BaseTab):
                 messagebox.showerror("Invalid Schema", "Schema must contain 'enabled_tools' field")
                 return
 
-            schema_file = self.tool_schemas_dir / f"{current_schema_name[0]}.json"
-            with open(schema_file, 'w') as f:
-                json.dump(schema_data, f, indent=2)
+            schema_file = _resolve_schema_path(current_schema_name[0])
+            try:
+                with open(schema_file, 'w') as f:
+                    json.dump(schema_data, f, indent=2)
+            except Exception:
+                with open(self.tool_schemas_dir / f"{current_schema_name[0]}.json", 'w') as f:
+                    json.dump(schema_data, f, indent=2)
 
             modified[0] = False
             schema_name_label.config(text=f"🔧 {current_schema_name[0]}")
@@ -5049,18 +6005,22 @@ class ChatInterfaceTab(BaseTab):
                     messagebox.showerror("Invalid Name", "Schema name must contain alphanumeric characters")
                     return
 
-                schema_file = self.tool_schemas_dir / f"{name}.json"
+                schema_file = _resolve_schema_path(name)
                 if schema_file.exists():
                     messagebox.showerror("Exists", f"Schema '{name}' already exists")
                     return
 
-                # Create default schema
+                # Create default schema (central)
                 default_schema = {
                     "enabled_tools": "all",
                     "description": f"Custom schema: {name}"
                 }
-                with open(schema_file, 'w') as f:
-                    json.dump(default_schema, f, indent=2)
+                try:
+                    with open(schema_file, 'w') as f:
+                        json.dump(default_schema, f, indent=2)
+                except Exception:
+                    with open(self.tool_schemas_dir / f"{name}.json", 'w') as f:
+                        json.dump(default_schema, f, indent=2)
 
                 # Reload list
                 schema_listbox.insert(tk.END, name)
@@ -5082,8 +6042,10 @@ class ChatInterfaceTab(BaseTab):
                 "Confirm Delete",
                 f"Are you sure you want to delete '{current_schema_name[0]}'?"
             ):
-                schema_file = self.tool_schemas_dir / f"{current_schema_name[0]}.json"
-                schema_file.unlink(missing_ok=True)
+                try:
+                    _resolve_schema_path(current_schema_name[0]).unlink(missing_ok=True)
+                except Exception:
+                    (self.tool_schemas_dir / f"{current_schema_name[0]}.json").unlink(missing_ok=True)
 
                 # Reload list
                 selection = schema_listbox.curselection()
@@ -5093,19 +6055,36 @@ class ChatInterfaceTab(BaseTab):
                 editor.delete(1.0, tk.END)
                 schema_name_label.config(text="Select a schema to view/edit")
 
+        # Off toggle + Default setter controls
+        ctl_row = ttk.Frame(dialog, style='Category.TFrame')
+        ctl_row.grid(row=1, column=0, columnspan=2, sticky=tk.EW, padx=10)
+        self._schema_off_var = tk.BooleanVar(value=(self.current_tool_schema in (None, '', 'None')))
+        ttk.Checkbutton(ctl_row, text='Off (no tool schema)', variable=self._schema_off_var, style='TCheckbutton').pack(side=tk.LEFT)
+        def _set_default_schema():
+            val = None if self._schema_off_var.get() else (current_schema_name[0] or (schema_listbox.get(schema_listbox.curselection()[0]) if schema_listbox.curselection() else 'default'))
+            try:
+                self._save_backend_setting('default_tool_schema', val)
+                self.backend_settings['default_tool_schema'] = val
+                self.add_message('system', f"Default tool schema set to: {val or 'Off'}")
+            except Exception:
+                pass
+        ttk.Button(ctl_row, text='Set as Default', style='Select.TButton', command=_set_default_schema).pack(side=tk.RIGHT)
+
         def select_and_apply():
             """Select schema and apply it"""
-            if not current_schema_name[0]:
-                messagebox.showwarning("No Selection", "Please select a schema first")
-                return
-
-            # Save if modified
-            if modified[0]:
-                save_schema()
-
-            self.current_tool_schema = current_schema_name[0]
-            self.add_message("system", f"✓ Loaded tool schema: {current_schema_name[0]}")
-            log_message(f"CHAT_INTERFACE: Loaded tool schema: {current_schema_name[0]}")
+            if bool(self._schema_off_var.get()):
+                self.current_tool_schema = None
+                self.add_message("system", "✓ Tool schema set to Off")
+            else:
+                if not current_schema_name[0]:
+                    messagebox.showwarning("No Selection", "Please select a schema first")
+                    return
+                # Save if modified
+                if modified[0]:
+                    save_schema()
+                self.current_tool_schema = current_schema_name[0]
+                self.add_message("system", f"✓ Loaded tool schema: {current_schema_name[0]}")
+                log_message(f"CHAT_INTERFACE: Loaded tool schema: {current_schema_name[0]}")
 
             # Reload tool schemas
             self.tool_executor.initialize_tools()
@@ -5154,20 +6133,50 @@ class ChatInterfaceTab(BaseTab):
         ).pack(side=tk.RIGHT, padx=5)
 
     def get_current_system_prompt(self):
-        """Get the current system prompt content"""
-        prompt_file = self.system_prompts_dir / f"{self.current_system_prompt}.txt"
-        if prompt_file.exists():
-            with open(prompt_file, 'r') as f:
-                return f.read()
-        return "You are a helpful AI assistant."
+        """Get the current system prompt content.
+
+        Prefer centrally managed prompts (Training tab locations) via config.
+        Falls back to local custom_code_tab prompt files.
+        """
+        # Off/None → no system message
+        if not self.current_system_prompt:
+            return ""
+        try:
+            import config as C
+            data = C.load_system_prompt(self.current_system_prompt)
+            if isinstance(data, dict) and 'prompt' in data:
+                return str(data.get('prompt') or '')
+            return str(data)
+        except Exception:
+            prompt_file = self.system_prompts_dir / f"{self.current_system_prompt}.txt"
+            if prompt_file.exists():
+                try:
+                    with open(prompt_file, 'r') as f:
+                        return f.read()
+                except Exception:
+                    pass
+            return "You are a helpful AI assistant."
 
     def get_current_tool_schema_config(self):
-        """Get the current tool schema configuration"""
-        schema_file = self.tool_schemas_dir / f"{self.current_tool_schema}.json"
-        if schema_file.exists():
-            with open(schema_file, 'r') as f:
-                return json.load(f)
-        return {"enabled_tools": "all"}
+        """Get the current tool schema configuration.
+
+        Prefer centrally managed schemas via config; fallback to local JSON.
+        """
+        # Off/None → treat as no schema selected
+        if not self.current_tool_schema:
+            return {"enabled_tools": "all"}
+        try:
+            import config as C
+            return C.load_tool_schema(self.current_tool_schema)
+        except Exception:
+            schema_file = self.tool_schemas_dir / f"{self.current_tool_schema}.json"
+            if schema_file.exists():
+                try:
+                    with open(schema_file, 'r') as f:
+                        return json.load(f)
+                except Exception:
+                    pass
+            return {"enabled_tools": "all"}
 
     def get_realtime_eval_scores(self):
         """Return the real-time evaluation scores"""
@@ -5307,6 +6316,8 @@ class ChatInterfaceTab(BaseTab):
                 "session_tools": getattr(self, 'session_enabled_tools', None),
                 # RAG per chat (if toggled)
                 "rag_enabled": bool(getattr(self, 'rag_enabled', False)),
+                # Show Thoughts toggle
+                "show_thoughts": bool(getattr(self, 'show_thoughts', False)),
             }
 
             # Save conversation
@@ -5609,13 +6620,12 @@ class ChatInterfaceTab(BaseTab):
         self.add_message("system", f"📚 Training mode has been {'enabled' if enabled else 'disabled'}.")
 
     def set_mode_parameters(self, mode, params):
-        """Set mode-specific parameters from the mode selector"""
-        log_message(f"CHAT_INTERFACE: Setting mode to '{mode}' with params: {params}")
+        """Set mode-specific parameters from the mode selector FOR THE CURRENT SESSION"""
+        log_message(f"CHAT_INTERFACE: Setting session mode to '{mode}' with params: {params}")
 
         if mode == 'standard':
             self.is_standard_mode = True
             self.add_message("system", "⚙️ Mode updated to Standard. Advanced systems bypassed.")
-            # We don't change advanced_settings.json in standard mode
             self.initialize_advanced_components() # Re-initialize to disable components
             return
 
@@ -5628,27 +6638,17 @@ class ChatInterfaceTab(BaseTab):
         }
         profile = profile_map.get(mode, 'balanced')
 
-        # Update advanced settings
+        # Update advanced settings FOR THE SESSION
         if 'resource_management' not in self.advanced_settings:
             self.advanced_settings['resource_management'] = {}
         self.advanced_settings['resource_management']['profile'] = profile
 
-        # Potentially map other parameters from params to advanced_settings here
-        # For now, we just handle the main profile
-
-        # Save the updated settings to file
-        try:
-            settings_file = Path(__file__).parent.parent / "advanced_settings.json"
-            with open(settings_file, 'w') as f:
-                json.dump(self.advanced_settings, f, indent=2)
-            log_message(f"CHAT_INTERFACE: Saved updated advanced settings for mode '{mode}'")
-        except Exception as e:
-            log_message(f"CHAT_INTERFACE ERROR: Failed to save advanced_settings.json: {e}")
-
-        # Re-initialize advanced components to apply new settings
+        # Potentially map other parameters from params to self.advanced_settings here
+        
+        # Re-initialize advanced components to apply new session settings
         self.initialize_advanced_components()
 
-        self.add_message("system", f"⚙️ Mode updated to '{mode.capitalize()}' ({profile} profile). Settings applied.")
+        self.add_message("system", f"⚙️ Mode for this session updated to '{mode.capitalize()}' ({profile} profile).")
 
     def refresh(self):
         """Refresh the chat interface"""

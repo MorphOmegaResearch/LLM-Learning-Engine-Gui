@@ -12,7 +12,8 @@ from tabs.base_tab import BaseTab
 from logger_util import log_message
 
 from .chat_interface_tab import ChatInterfaceTab
-from ..projects_manager import list_projects, list_conversations, ensure_project, save_conversation
+from ..projects_manager import list_projects, list_conversations, ensure_project, save_conversation, delete_project
+from config import get_project_todos_dir, get_project_working_dir, THE_SANDBOX_DIR
 
 
 class ProjectsInterfaceTab(ChatInterfaceTab):
@@ -74,13 +75,15 @@ class ProjectsInterfaceTab(ChatInterfaceTab):
         # Bottom actions
         actions = ttk.Frame(parent, style='Category.TFrame')
         actions.grid(row=2, column=0, sticky=tk.EW, padx=8, pady=(0,4))
-        actions.columnconfigure(0, weight=1)
-        actions.columnconfigure(1, weight=1)
+        for c in range(2):
+            actions.columnconfigure(c, weight=1)
+        # Row 0: Chat actions
         ttk.Button(actions, text='Open Chat', style='Action.TButton', command=self._open_selected_chat).grid(row=0, column=0, sticky=tk.EW, padx=(0,4))
         ttk.Button(actions, text='Delete Chat', style='Select.TButton', command=self._delete_selected_chat).grid(row=0, column=1, sticky=tk.EW, padx=(4,0))
-        # Rename project under Open Chat
-        ttk.Button(actions, text='Rename Project', style='Select.TButton', command=self._rename_selected_project).grid(row=1, column=0, columnspan=2, sticky=tk.EW, pady=(4,0))
-        # Rename chat within selected project
+        # Row 1: Project actions
+        ttk.Button(actions, text='Delete Project', style='Select.TButton', command=self._delete_selected_project).grid(row=1, column=0, sticky=tk.EW, pady=(4,0))
+        ttk.Button(actions, text='Rename Project', style='Select.TButton', command=self._rename_selected_project).grid(row=1, column=1, sticky=tk.EW, pady=(4,0))
+        # Row 2: Chat rename
         ttk.Button(actions, text='Rename Chat', style='Select.TButton', command=self._rename_selected_chat).grid(row=2, column=0, columnspan=2, sticky=tk.EW, pady=(4,0))
 
         # Panel-wide RAG controls for projects (🧠, 🧠+, 🧠++)
@@ -190,6 +193,27 @@ class ProjectsInterfaceTab(ChatInterfaceTab):
         if not name:
             return
         ensure_project(name)
+        # Create project todos directory
+        try:
+            get_project_todos_dir(name)
+            log_message(f"PROJECTS_TAB: Created todos directory for project '{name}'")
+        except Exception as e:
+            log_message(f"PROJECTS_TAB: Error creating todos dir for '{name}': {e}")
+        # Set Settings tab context to this project
+        try:
+            if hasattr(self.parent_tab, 'settings_interface') and self.parent_tab.settings_interface:
+                self.parent_tab.settings_interface.current_project_context = name
+        except Exception:
+            pass
+        # Set working directory to project's working_dir
+        try:
+            working_dir = get_project_working_dir(name)
+            if hasattr(self, 'tool_executor') and self.tool_executor:
+                self.tool_executor.set_working_directory(str(working_dir))
+                log_message(f"PROJECTS_TAB: Set working directory to {working_dir}")
+                self.add_message("system", f"📂 Working directory set to: {working_dir}")
+        except Exception as e:
+            log_message(f"PROJECTS_TAB: Error setting working dir for '{name}': {e}")
         self.current_project = name
         self._refresh_projects_tree()
         messagebox.showinfo('Project Created', f"Project '{name}' created and selected.")
@@ -209,6 +233,20 @@ class ProjectsInterfaceTab(ChatInterfaceTab):
                     self.rag_service.refresh_index_project(self.current_project)
             except Exception:
                 pass
+            # Update Settings tab context to selected project
+            try:
+                if hasattr(self.parent_tab, 'settings_interface') and self.parent_tab.settings_interface:
+                    self.parent_tab.settings_interface.current_project_context = self.current_project
+            except Exception:
+                pass
+            # Auto-switch working directory to selected project's working_dir
+            try:
+                working_dir = get_project_working_dir(self.current_project)
+                if hasattr(self, 'tool_executor') and self.tool_executor:
+                    self.tool_executor.set_working_directory(str(working_dir))
+                    log_message(f"PROJECTS_TAB: Switched working directory to {working_dir}")
+            except Exception as e:
+                log_message(f"PROJECTS_TAB: Error switching working dir: {e}")
         elif vals[0] == 'session':
             self.current_project = vals[1]
 
@@ -251,6 +289,45 @@ class ProjectsInterfaceTab(ChatInterfaceTab):
         if p.exists():
             p.unlink()
             self._refresh_projects_tree()
+
+    def _delete_selected_project(self):
+        try:
+            sel = self.proj_tree.selection()
+            if not sel:
+                messagebox.showinfo('Delete Project', 'Select a project to delete.')
+                return
+            vals = self.proj_tree.item(sel[0], 'values')
+            if not vals:
+                messagebox.showinfo('Delete Project', 'Select a project to delete.')
+                return
+            # If a session is selected, use its parent project
+            if vals[0] == 'session':
+                project = vals[1]
+            else:
+                project = vals[1]
+            if not messagebox.askyesno('Confirm Delete', f"Delete entire project '{project}' and all its data? This cannot be undone."):
+                return
+            ok = delete_project(project)
+            if not ok:
+                messagebox.showerror('Delete Project', 'Failed to delete project.')
+                return
+            # Reset working directory if we deleted the current project
+            if getattr(self, 'current_project', None) == project:
+                self.current_project = None
+                try:
+                    if hasattr(self, 'tool_executor') and self.tool_executor:
+                        self.tool_executor.set_working_directory(str(THE_SANDBOX_DIR))
+                        self.add_message('system', f"📂 Working directory set to: {THE_SANDBOX_DIR}")
+                except Exception:
+                    pass
+            self._refresh_projects_tree()
+            messagebox.showinfo('Project Deleted', f"Project '{project}' has been deleted.")
+        except Exception as e:
+            log_message(f"PROJECTS_TAB: Error deleting project: {e}")
+            try:
+                messagebox.showerror('Delete Project', f'Error deleting project: {e}')
+            except Exception:
+                pass
 
     def _rename_selected_chat(self):
         try:
@@ -333,6 +410,21 @@ class ProjectsInterfaceTab(ChatInterfaceTab):
         if not self.current_project and self.auto_project:
             self.current_project = f"Project_{Path.cwd().name}_{random.randint(100,999)}"
             ensure_project(self.current_project)
+            # Create project todos directory on auto-creation
+            try:
+                get_project_todos_dir(self.current_project)
+                log_message(f"PROJECTS_TAB: Created todos directory for auto-created project '{self.current_project}'")
+            except Exception as e:
+                log_message(f"PROJECTS_TAB: Error creating todos dir for '{self.current_project}': {e}")
+            # Ensure/set working directory for auto-created project
+            try:
+                working_dir = get_project_working_dir(self.current_project)
+                if hasattr(self, 'tool_executor') and self.tool_executor:
+                    self.tool_executor.set_working_directory(str(working_dir))
+                    log_message(f"PROJECTS_TAB: Set working directory to {working_dir}")
+                    self.add_message("system", f"📂 Working directory set to: {working_dir}")
+            except Exception as e:
+                log_message(f"PROJECTS_TAB: Error setting working dir for '{self.current_project}': {e}")
         if self.current_project:
             sid = save_conversation(self.current_project, self.current_model or 'unknown', self.chat_history, meta, self.current_session_id)
             self.current_session_id = sid
@@ -369,8 +461,20 @@ class ProjectsInterfaceTab(ChatInterfaceTab):
                     except Exception:
                         pass
                     self._update_quick_indicators()
+                def _open_project_todos():
+                    if not self.current_project:
+                        messagebox.showinfo('No Project Selected', 'Please select or create a project first.')
+                        return
+                    # Open the project-specific todo manager directly
+                    try:
+                        if hasattr(self.parent_tab, 'settings_interface') and self.parent_tab.settings_interface:
+                            self.parent_tab.settings_interface.show_project_todo_popup(self.current_project)
+                    except Exception as e:
+                        log_message(f"PROJECTS_TAB: Error opening project todos: {e}")
+                        messagebox.showerror('Error', f'Failed to open project todo list:\n{e}')
                 mk('🧠', 'Toggle RAG per project/chat', _toggle_rag)
                 mk('🗂', 'Create Project', self._create_project)
+                mk('📝', 'Project Todo List', _open_project_todos)
         except Exception:
             pass
 
@@ -379,11 +483,13 @@ class ProjectsInterfaceTab(ChatInterfaceTab):
         # Suppress base RAG indicator to avoid duplicates while parent rebuilds
         try:
             self._suppress_base_rag_indicator = True
+            self._suppress_base_workdir_indicator = True
         except Exception:
             pass
         super()._update_quick_indicators()
         try:
             self._suppress_base_rag_indicator = False
+            self._suppress_base_workdir_indicator = False
         except Exception:
             pass
         # Only append our project indicators once per parent rebuild cycle
@@ -404,6 +510,15 @@ class ProjectsInterfaceTab(ChatInterfaceTab):
                 self._make_indicator(self.qa_indicators, '🧠', lambda count=c, l=lvl: f"RAG: ON (L{l}) — Project chats: {count}")
             if self.current_project:
                 self._make_indicator(self.qa_indicators, '🗂', lambda: f"Project: {self.current_project}")
+            # Show single working directory indicator (short name) to avoid duplicate
+            if hasattr(self, 'tool_executor') and self.tool_executor:
+                try:
+                    wd = self.tool_executor.get_working_directory()
+                    if wd:
+                        wd_short = Path(wd).name
+                        self._make_indicator(self.qa_indicators, '📂', lambda d=wd_short: f"Working Dir: {d}")
+                except Exception:
+                    pass
         except Exception:
             pass
 
