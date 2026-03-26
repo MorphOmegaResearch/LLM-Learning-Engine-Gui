@@ -1,0 +1,702 @@
+[
+  {
+    "timestamp": "now",
+    "input": "What is a quantum computer?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.3333333333333333,
+    "primary_intent": "COMPARISON_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "Tell me more about quantum computer",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "Hello there!",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "SOCIAL_INITIATION"
+  },
+  {
+    "timestamp": "now",
+    "input": "What is the CPU temperature?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.3333333333333333,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "Why is the system efficiency dropping in the primary kernel layer?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.3333333333333333,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "How can I help you with the project?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.5,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "What is machine learning?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "SYSTEM_INQUIRY"
+  },
+  {
+    "timestamp": "now",
+    "input": "ok, got a type of AI",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "because neural networks are more intuitive to understand",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "LEARNING_MODE"
+  },
+  {
+    "timestamp": "now",
+    "input": "random unrelated input 0",
+    "lexical_match_pct": 0.75,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "random unrelated input 1",
+    "lexical_match_pct": 0.75,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "random unrelated input 2",
+    "lexical_match_pct": 0.75,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "random unrelated input 3",
+    "lexical_match_pct": 0.75,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "I prefer the second version, The algorithm learns from examples. is better",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.3333333333333333,
+    "primary_intent": "LEARNING_EXCHANGE"
+  },
+  {
+    "timestamp": "now",
+    "input": "random unrelated input number 0",
+    "lexical_match_pct": 0.8,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "random unrelated input number 1",
+    "lexical_match_pct": 0.8,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "random unrelated input number 2",
+    "lexical_match_pct": 0.8,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "random unrelated input number 3",
+    "lexical_match_pct": 0.8,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "because test makes more sense to me",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "I prefer the first option",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.3333333333333333,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "the second one is better",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "ok, I understand now",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "LEARNING_MODE"
+  },
+  {
+    "timestamp": "now",
+    "input": "yes, algorithm works",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "got test, thanks",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "EMOTIONAL_RESPONSE"
+  },
+  {
+    "timestamp": "now",
+    "input": "fine, lets move on",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "what is the weather like today",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "how many planets are there",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "What is deep learning?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "SYSTEM_INQUIRY"
+  },
+  {
+    "timestamp": "now",
+    "input": "I prefer \"a subset of machine learning\" because its clearer",
+    "lexical_match_pct": 0.8,
+    "syntactic_match_pct": 0.3333333333333333,
+    "primary_intent": "LEARNING_MODE"
+  },
+  {
+    "timestamp": "now",
+    "input": "Tell me more about learning",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "LEARNING_MODE"
+  },
+  {
+    "timestamp": "now",
+    "input": "how are you?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "SOCIAL_INITIATION"
+  },
+  {
+    "timestamp": "now",
+    "input": "quantum computing uses qubits",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "What is quantum computing?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "Quantum computing uses qubits instead of classical bits",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "Qubits can be in superposition",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "Quantum allows parallel processing of multiple states",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "Quantum computers are used for cryptography",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "drug discovery",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "Unlike classical computers, they can solve certain problems exponentially faster",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "Current quantum computers have about 100 qubits",
+    "lexical_match_pct": 0.8571428571428571,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "They need to be kept extremely cold to work",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "Why do they need to be cold?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.3333333333333333,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "Because quantum states are fragile",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "heat causes decoherence",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "Decoherence means the qubit loses its quantum properties",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "COMPARISON_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "So temperature control is critical for quantum computing reliability",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "COMPARISON_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "1 simultaneously",
+    "lexical_match_pct": 0.5,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "What have I taught you about quantum computing?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.3333333333333333,
+    "primary_intent": "SYSTEM_INQUIRY"
+  },
+  {
+    "timestamp": "now",
+    "input": "What is superposition?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "How do qubits differ from classical bits?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "LEARNING_EXCHANGE"
+  },
+  {
+    "timestamp": "now",
+    "input": "A server has a CPU for processing",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "It typically has 64GB of RAM",
+    "lexical_match_pct": 0.8333333333333334,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "Servers run Linux or Windows operating systems",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "They are usually rack-mounted in data centers",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "The server costs about $5000",
+    "lexical_match_pct": 0.8,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "It was manufactured by Dell",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "What is a neural network?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.3333333333333333,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "Define deep learning",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "LEARNING_MODE"
+  },
+  {
+    "timestamp": "now",
+    "input": "What is backpropagation used for?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "How does a neuron relate to a neural network?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.3333333333333333,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "Tell me more about backpropagation used for",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "Why is backpropagation important?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "Can you compare backpropagation used for to gradient descent?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.3333333333333333,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "quantum entanglement",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "How does superposition work?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "neural networks learn from data",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "LEARNING_EXCHANGE"
+  },
+  {
+    "timestamp": "now",
+    "input": "machine learning uses algorithms",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "LEARNING_MODE"
+  },
+  {
+    "timestamp": "now",
+    "input": "What is backpropagation?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "Tell me about photosynthesis",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "Photosynthesis converts light energy",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "Why does photosynthesis happen?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "Using chlorophyll molecules",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "quantum chromodynamics",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "hello there",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "SOCIAL_INITIATION"
+  },
+  {
+    "timestamp": "now",
+    "input": "The algorithm processes data quickly",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "quantum chromodynamics field theory applications",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "test input",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "quantum chromodynamics strange quarks",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "quantum chromodynamics",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "test input",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "quantum chromodynamics strange quarks",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "What files need consolidation?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "Hello there!",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "SOCIAL_INITIATION"
+  },
+  {
+    "timestamp": "now",
+    "input": "What is the CPU temperature?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.3333333333333333,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "Why is the system efficiency dropping in the primary kernel layer?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.3333333333333333,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "How can I help you with the project?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.5,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "what files have been modified recently",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "why is the import failing",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "Hello!",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "SOCIAL_INITIATION"
+  },
+  {
+    "timestamp": "now",
+    "input": "Hello!",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "SOCIAL_INITIATION"
+  },
+  {
+    "timestamp": "now",
+    "input": "Hello!",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "SOCIAL_INITIATION"
+  },
+  {
+    "timestamp": "now",
+    "input": "Hello",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "SOCIAL_INITIATION"
+  },
+  {
+    "timestamp": "now",
+    "input": "Active task: task_25_2 \u2014 Os_Toolkit latest \u2192 Latest Report right panel tab in planner. Working on: tabs/ag_forge_tab/modules/quick_clip/tabs/planner_tab.py. Gap severity: low. Recent: add chat_interface_tab.py, add chat_interface_tab.py, add chat_interface_tab.py",
+    "lexical_match_pct": 0.5555555555555556,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "LEARNING_MODE"
+  },
+  {
+    "timestamp": "now",
+    "input": "test cold start message",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "Active task: task_25_2 \u2014 Os_Toolkit latest \u2192 Latest Report right panel tab in planner. Working on: tabs/ag_forge_tab/modules/quick_clip/tabs/planner_tab.py. Gap severity: low. Recent: add chat_interface_tab.py, modify tools_tab.py, add Os_Toolkit.py",
+    "lexical_match_pct": 0.5555555555555556,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "LEARNING_MODE"
+  },
+  {
+    "timestamp": "now",
+    "input": "Hello",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "SOCIAL_INITIATION"
+  },
+  {
+    "timestamp": "now",
+    "input": "What Questions",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "gaps are presenthi",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  },
+  {
+    "timestamp": "now",
+    "input": "What Questions Do you have?",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.16666666666666666,
+    "primary_intent": "INFORMATION_QUERY"
+  },
+  {
+    "timestamp": "now",
+    "input": "moe",
+    "lexical_match_pct": 1.0,
+    "syntactic_match_pct": 0.0,
+    "primary_intent": "UNKNOWN_INTENT"
+  }
+]

@@ -1,0 +1,7 @@
+{
+  "description": "Tool schema for Gamer grand_master",
+  "type": "gamer",
+  "class": "grand_master",
+  "enabled_tools": {},
+  "tools": []
+}

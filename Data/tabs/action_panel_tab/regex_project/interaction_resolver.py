@@ -1,0 +1,299 @@
+import re
+import json
+import os
+
+class InteractionResolver:
+    """
+    Advanced Interaction Resolver based on a 7-level Linguistic Hierarchy.
+    Resolves inputs against a taxonomy to determine intent, context, and 5W1H.
+    """
+
+    def __init__(self, master_regex_path, taxonomy_path, academia_path=None):
+        with open(master_regex_path, 'r') as f:
+            self.master_regex = json.load(f)
+        with open(taxonomy_path, 'r') as f:
+            self.taxonomy = json.load(f)
+        
+        self.academia = {}
+        if academia_path and os.path.exists(academia_path):
+            with open(academia_path, 'r') as f:
+                self.academia = json.load(f)
+        
+    def resolve_5w1h(self, text): #[Mark:RESOLVE_5W1H]
+        """
+        Resolves the 5W1H dimensions of an input text using regex patterns.
+        """
+        results = {
+            "what": None,
+            "why": None,
+            "when": None,
+            "where": None,
+            "who": None,
+            "how": None
+        }
+        
+        # Simple extraction logic (to be expanded with Level 3/4/5 patterns)
+        patterns = {
+            "what": r"^(?:what|which|is|are|do|does)\s+(?:a|an|the|is|are|was|were|do|does)?\s*(.+?)(?:\s+(?:than|vs|and|different\s+from)\s+(.+))?\??$|\btell\s+me\s+about\s+(.*)|\bI\s+am\s+(?:building|making|creating|working\s+on|actually)\s+(?:a|an|the)?\s+(.*)|(?:actually|incorrect|wrong)\s+(?:a|an|the)?\s*(\w+)\s+(?:is|be)\s+(.*)|^(?:the|a|an)?\s*(.*?)\s+(?:material|weight|origin|magnitude|cost|environment|is)\s+is\b",
+            "why": r"\b(why|because)\b\s+(.*)",
+            "when": r"\b(when)\b\s+(.*)",
+            "where": r"\b(where)\b\s+(.*)",
+            "who": r"\b(who)\b\s+(.*)",
+            "how": r"\b(how)\b\s+(.*)"
+        }
+        
+        for key, pattern in patterns.items():
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                # Filter out None groups
+                groups = [g.strip() for g in match.groups() if g is not None]
+                if groups:
+                    # If multiple subjects (comparison), store as list or joined
+                    if key == "what" and len(groups) > 2:
+                        results[key] = f"{groups[-2]} and {groups[-1]}"
+                    else:
+                        results[key] = groups[-1]
+                
+        return results
+
+    def resolve_5w1h_weighted(self, text, priority_weights=None):
+        """
+        Weighted 5W1H resolution that prioritizes slots based on epistemic gaps.
+
+        Args:
+            text: Input text to analyze
+            priority_weights: Dict mapping 5W1H slots to priority% (0-1)
+                            Higher priority slots get more aggressive pattern matching
+
+        Returns:
+            Enhanced 5W1H results with priority-weighted extraction
+        """
+        # Start with standard resolution
+        results = self.resolve_5w1h(text)
+
+        # If no priority weights provided, return standard results
+        if not priority_weights:
+            return results
+
+        # Apply weighted enhancement
+        # For high-priority slots, try additional extraction strategies
+        for slot, priority in priority_weights.items():
+            if priority > 0.7 and results.get(slot) is None:
+                # High priority but no match - try more aggressive extraction
+                if slot == "what":
+                    # Try extracting any noun phrase
+                    noun_match = re.search(r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b', text)
+                    if noun_match:
+                        results[slot] = noun_match.group(1)
+                    else:
+                        # Extract first meaningful word
+                        words = [w for w in text.split() if len(w) > 3 and w.lower() not in ['what', 'when', 'where', 'this', 'that', 'have']]
+                        if words:
+                            results[slot] = words[0]
+
+                elif slot == "why" and priority > 0.7:
+                    # Look for causal markers
+                    causal_match = re.search(r'\b(because|since|due to|owing to|as)\s+(.*)', text, re.IGNORECASE)
+                    if causal_match:
+                        results[slot] = causal_match.group(2)
+
+                elif slot == "how" and priority > 0.7:
+                    # Look for method/manner markers
+                    manner_match = re.search(r'\b(by|using|with|through|via)\s+(.*)', text, re.IGNORECASE)
+                    if manner_match:
+                        results[slot] = manner_match.group(2)
+
+        # Add metadata about which slots were priority-boosted
+        results['_priority_boosted'] = [
+            slot for slot, priority in priority_weights.items()
+            if priority > 0.7
+        ]
+
+        return results
+
+    def analyze_levels(self, text):
+        """
+        Analyzes the input across the 7 levels of the hierarchy.
+        """
+        analysis = {}
+        for level, categories in self.master_regex.items():
+            analysis[level] = {}
+            for category, pattern in categories.items():
+                if isinstance(pattern, str):
+                    matches = re.findall(pattern, text, re.IGNORECASE)
+                    if matches:
+                        analysis[level][category] = matches
+        
+        # Deep Academic Integration (Task 7.2)
+        if self.academia:
+            analysis["domain_academic_deep"] = {}
+            for sector, sub in self.academia.get("academic_taxonomy", {}).items():
+                for sub_cat, pattern in sub.items():
+                    matches = re.findall(pattern, text, re.IGNORECASE)
+                    if matches:
+                        if sector not in analysis["domain_academic_deep"]:
+                            analysis["domain_academic_deep"][sector] = []
+                        analysis["domain_academic_deep"][sector].extend(matches)
+                        
+        return analysis
+
+    def get_logical_response(self, text):
+        """
+        Generates a logical response structure by synthesizing analysis across all levels.
+        """
+        levels_detected = self.analyze_levels(text)
+        levels_detected["input"] = text # Inject for _determine_primary_intent
+        five_ws = self.resolve_5w1h(text)
+        properties = self.resolve_properties(text)
+        
+        # Calculate Gap Metrics
+        entity_count = len(levels_detected.get("domain_technical", {})) + len(levels_detected.get("level_3_lexical", {}))
+        logic_count = len(levels_detected.get("level_5_semantics", {})) + len(levels_detected.get("level_6_pragmatics", {}))
+        
+        epistemic_gap = False
+        if entity_count > 3 and logic_count == 0:
+            epistemic_gap = True
+
+        # Sarcasm Detection (Basic Mismatch)
+        sarcasm = False
+        sentiment_matches = levels_detected.get("level_6_pragmatics", {}).get("sentiment_affect", [])
+        # Include words like "Excellent" or "Great" in positive check
+        pos_words = ["happy", "glad", "excited", "thrilled", "joy", "great", "excellent", "perfect"]
+        pos_sentiment = any(s.lower() in pos_words for s in sentiment_matches)
+        
+        # Strip punctuation from words for technical check
+        clean_words = [re.sub(r'[^\w]', '', w) for w in text.lower().split()]
+        neg_technical_words = ["melting", "failing", "error", "broken", "hot", "slow", "dead", "crashed"]
+        neg_technical = any(t in neg_technical_words for t in clean_words)
+        
+        if pos_sentiment and neg_technical:
+            sarcasm = True
+
+        response = {
+            "input": text,
+            "hierarchy_analysis": levels_detected,
+            "5w1h_resolution": five_ws,
+            "properties_resolution": properties,
+            "logical_intent": self._determine_primary_intent(levels_detected, five_ws, properties),
+            "epistemic_gap_detected": epistemic_gap,
+            "sarcasm_detected": sarcasm,
+            "orphaned_properties": [k for k in properties if not five_ws.get("what")], # Task 12.8
+            "suggested_action": "Process through realization engine"
+        }
+        return response
+
+    def resolve_properties(self, text):
+        """
+        Extracts specific object variables and performs basic Type-Validation.
+        """
+        props = {}
+        patterns = self.master_regex.get("entities_properties", {})
+        for prop_name, pattern in patterns.items():
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                val = [g for g in match.groups() if g is not None][-1]
+                
+                # Basic Type Validation (Task 12.7)
+                is_valid = True
+                if prop_name in ["weight", "cost", "magnitude"]:
+                    if not any(char.isdigit() for char in val):
+                        is_valid = False # Expected numeric/unit, got purely lexical
+                
+                if is_valid:
+                    props[prop_name] = val
+                else:
+                    props[prop_name] = f"DISSONANCE_DETECTED:{val}"
+        return props
+
+    def _determine_primary_intent(self, levels, five_ws, properties=None):
+        """
+        Internal logic to determine the primary intent.
+        """
+        pragmatics = levels.get("level_6_pragmatics", {})
+        meta = levels.get("domain_meta", {})
+        discourse = levels.get("level_7_discourse", {})
+        syntax = levels.get("level_4_syntax", {})
+        input_text = levels.get("input", "").lower()
+        
+        # Priority 1: Properties (Learning)
+        if properties:
+            return "LEARNING_EXCHANGE"
+            
+        # Priority 2: High-signal markers
+        if pragmatics.get("phrasing_critique") or pragmatics.get("phrasing_suggestion"):
+             return "PHRASING_CORRECTION"
+
+        if pragmatics.get("logic_critique"):
+             return "LOGIC_CALIBRATION"
+             
+        if meta.get("correction_markers"):
+             return "SYSTEM_CORRECTION"
+        
+        if any(token in input_text for token in ["play", "game", "something fun", "activity"]):
+            return "ACTIVITY_REQUEST"
+
+        # Logic Challenge (Task 9.4)
+        if syntax.get("subordinate_clause") or " if " in input_text or " assume " in input_text:
+            if "?" in input_text or any(token in input_text for token in ["then", "result", "lead to", "therefore"]):
+                return "LOGIC_CHALLENGE"
+
+        # Topic Re-entry (Task 6.4)
+        if "back to" in input_text or discourse.get("topic_shift"):
+             if any(token in input_text for token in ["back to", "return to", "discussing"]):
+                 return "TOPIC_REENTRY"
+
+        # Meta-System Inquiries
+        if (meta.get("system_state") or meta.get("learning_process")) and pragmatics.get("questions"):
+            return "SYSTEM_INQUIRY"
+            
+        if pragmatics.get("greetings"):
+            return "SOCIAL_INITIATION"
+        if meta.get("learning_process"):
+            return "LEARNING_MODE"
+        if pragmatics.get("social_acts") or pragmatics.get("sentiment_affect"):
+            return "EMOTIONAL_RESPONSE"
+        if pragmatics.get("confirmations"):
+            return "GRATIFICATION"
+        if pragmatics.get("questions") or five_ws.get("what"):
+            return "INFORMATION_QUERY"
+        if levels.get("level_4_syntax", {}).get("imperative_syntax"):
+            return "COMMAND_EXECUTION"
+        
+        # If technical entities are mentioned without a clear intent, treat as query
+        if levels.get("domain_technical"):
+            return "INFORMATION_QUERY"
+
+        return "UNKNOWN_INTENT"
+            
+        # Meta-System Inquiries
+        if meta.get("system_state") and pragmatics.get("questions"):
+            return "SYSTEM_INQUIRY"
+        
+        # Meta-Learning Inquiries (Questions about learning)
+        if meta.get("learning_process") and pragmatics.get("questions"):
+            return "SYSTEM_INQUIRY"
+            
+        if pragmatics.get("greetings"):
+            return "SOCIAL_INITIATION"
+        if meta.get("learning_process"):
+            return "LEARNING_MODE"
+        if pragmatics.get("social_acts") or pragmatics.get("sentiment_affect"):
+            return "EMOTIONAL_RESPONSE"
+        if pragmatics.get("confirmations"):
+            return "GRATIFICATION"
+        if pragmatics.get("questions") or five_ws.get("what"):
+            return "INFORMATION_QUERY"
+        if levels.get("level_4_syntax", {}).get("imperative_syntax"):
+            return "COMMAND_EXECUTION"
+        
+        # If technical entities are mentioned without a clear intent, treat as query
+        if levels.get("domain_technical"):
+            return "INFORMATION_QUERY"
+
+        return "UNKNOWN_INTENT"
+
+if __name__ == "__main__":
+    resolver = InteractionResolver("regex_project/master_regex.json", "regex_project/universal_taxonomy.json")
+    test_text = "What is the CPU temperature?"
+    result = resolver.get_logical_response(test_text)
+    print(json.dumps(result, indent=2))

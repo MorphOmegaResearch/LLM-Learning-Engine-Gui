@@ -1,0 +1,195 @@
+{
+  "packages": [
+    {
+      "name": "models_patch_bundle",
+      "version": "?",
+      "filename": "Models_patch_bundle.zip",
+      "path": "/home/commander/Trainer/Provisions/Models_patch_bundle.zip",
+      "kind": "zip",
+      "scope": "internal_bundle",
+      "install_status": "bundled",
+      "installed_version": null
+    },
+    {
+      "name": "annotated_types",
+      "version": "0.7.0",
+      "filename": "annotated_types-0.7.0-py3-none-any.whl",
+      "path": "/home/commander/Trainer/Provisions/annotated_types-0.7.0-py3-none-any.whl",
+      "kind": "whl",
+      "scope": "internal_bundle",
+      "install_status": "installed",
+      "installed_version": "0.7.0"
+    },
+    {
+      "name": "anyio",
+      "version": "4.12.1",
+      "filename": "anyio-4.12.1-py3-none-any.whl",
+      "path": "/home/commander/Trainer/Provisions/anyio-4.12.1-py3-none-any.whl",
+      "kind": "whl",
+      "scope": "internal_bundle",
+      "install_status": "installed",
+      "installed_version": "4.12.1"
+    },
+    {
+      "name": "certifi",
+      "version": "2026.1.4",
+      "filename": "certifi-2026.1.4-py3-none-any.whl",
+      "path": "/home/commander/Trainer/Provisions/certifi-2026.1.4-py3-none-any.whl",
+      "kind": "whl",
+      "scope": "internal_bundle",
+      "install_status": "installed",
+      "installed_version": "2026.1.4"
+    },
+    {
+      "name": "diskcache",
+      "version": "5.6.3",
+      "filename": "diskcache-5.6.3-py3-none-any.whl",
+      "path": "/home/commander/Trainer/Provisions/diskcache-5.6.3-py3-none-any.whl",
+      "kind": "whl",
+      "scope": "internal_bundle",
+      "install_status": "bundled",
+      "installed_version": null
+    },
+    {
+      "name": "exceptiongroup",
+      "version": "1.3.1",
+      "filename": "exceptiongroup-1.3.1-py3-none-any.whl",
+      "path": "/home/commander/Trainer/Provisions/exceptiongroup-1.3.1-py3-none-any.whl",
+      "kind": "whl",
+      "scope": "internal_bundle",
+      "install_status": "installed",
+      "installed_version": "1.3.1"
+    },
+    {
+      "name": "h11",
+      "version": "0.16.0",
+      "filename": "h11-0.16.0-py3-none-any.whl",
+      "path": "/home/commander/Trainer/Provisions/h11-0.16.0-py3-none-any.whl",
+      "kind": "whl",
+      "scope": "internal_bundle",
+      "install_status": "installed",
+      "installed_version": "0.16.0"
+    },
+    {
+      "name": "httpcore",
+      "version": "1.0.9",
+      "filename": "httpcore-1.0.9-py3-none-any.whl",
+      "path": "/home/commander/Trainer/Provisions/httpcore-1.0.9-py3-none-any.whl",
+      "kind": "whl",
+      "scope": "internal_bundle",
+      "install_status": "installed",
+      "installed_version": "1.0.9"
+    },
+    {
+      "name": "httpx",
+      "version": "0.28.1",
+      "filename": "httpx-0.28.1-py3-none-any.whl",
+      "path": "/home/commander/Trainer/Provisions/httpx-0.28.1-py3-none-any.whl",
+      "kind": "whl",
+      "scope": "internal_bundle",
+      "install_status": "installed",
+      "installed_version": "0.28.1"
+    },
+    {
+      "name": "idna",
+      "version": "3.11",
+      "filename": "idna-3.11-py3-none-any.whl",
+      "path": "/home/commander/Trainer/Provisions/idna-3.11-py3-none-any.whl",
+      "kind": "whl",
+      "scope": "internal_bundle",
+      "install_status": "installed",
+      "installed_version": "3.11"
+    },
+    {
+      "name": "jinja2",
+      "version": "3.1.6",
+      "filename": "jinja2-3.1.6-py3-none-any.whl",
+      "path": "/home/commander/Trainer/Provisions/jinja2-3.1.6-py3-none-any.whl",
+      "kind": "whl",
+      "scope": "internal_bundle",
+      "install_status": "installed",
+      "installed_version": "3.1.6"
+    },
+    {
+      "name": "llama_cpp_python",
+      "version": "0.3.16",
+      "filename": "llama_cpp_python-0.3.16.tar.gz",
+      "path": "/home/commander/Trainer/Provisions/llama_cpp_python-0.3.16.tar.gz",
+      "kind": "sdist",
+      "scope": "internal_bundle",
+      "install_status": "bundled",
+      "installed_version": null
+    },
+    {
+      "name": "markupsafe",
+      "version": "3.0.3",
+      "filename": "markupsafe-3.0.3-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "path": "/home/commander/Trainer/Provisions/markupsafe-3.0.3-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "kind": "whl",
+      "scope": "internal_bundle",
+      "install_status": "installed",
+      "installed_version": "2.0.1"
+    },
+    {
+      "name": "numpy",
+      "version": "2.2.6",
+      "filename": "numpy-2.2.6-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "path": "/home/commander/Trainer/Provisions/numpy-2.2.6-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "kind": "whl",
+      "scope": "internal_bundle",
+      "install_status": "installed",
+      "installed_version": "2.2.6"
+    },
+    {
+      "name": "ollama",
+      "version": "0.6.1",
+      "filename": "ollama-0.6.1-py3-none-any.whl",
+      "path": "/home/commander/Trainer/Provisions/ollama-0.6.1-py3-none-any.whl",
+      "kind": "whl",
+      "scope": "internal_bundle",
+      "install_status": "bundled",
+      "installed_version": null
+    },
+    {
+      "name": "pydantic",
+      "version": "2.12.5",
+      "filename": "pydantic-2.12.5-py3-none-any.whl",
+      "path": "/home/commander/Trainer/Provisions/pydantic-2.12.5-py3-none-any.whl",
+      "kind": "whl",
+      "scope": "internal_bundle",
+      "install_status": "installed",
+      "installed_version": "2.12.5"
+    },
+    {
+      "name": "pydantic_core",
+      "version": "2.41.5",
+      "filename": "pydantic_core-2.41.5-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "path": "/home/commander/Trainer/Provisions/pydantic_core-2.41.5-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "kind": "whl",
+      "scope": "internal_bundle",
+      "install_status": "installed",
+      "installed_version": "2.41.5"
+    },
+    {
+      "name": "typing_extensions",
+      "version": "4.15.0",
+      "filename": "typing_extensions-4.15.0-py3-none-any.whl",
+      "path": "/home/commander/Trainer/Provisions/typing_extensions-4.15.0-py3-none-any.whl",
+      "kind": "whl",
+      "scope": "internal_bundle",
+      "install_status": "installed",
+      "installed_version": "4.15.0"
+    },
+    {
+      "name": "typing_inspection",
+      "version": "0.4.2",
+      "filename": "typing_inspection-0.4.2-py3-none-any.whl",
+      "path": "/home/commander/Trainer/Provisions/typing_inspection-0.4.2-py3-none-any.whl",
+      "kind": "whl",
+      "scope": "internal_bundle",
+      "install_status": "installed",
+      "installed_version": "0.4.2"
+    }
+  ],
+  "_provisions_dir": "/home/commander/Trainer/Provisions"
+}

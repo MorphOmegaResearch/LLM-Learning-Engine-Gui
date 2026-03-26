@@ -1,4 +1,3 @@
-# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Chat History Manager - Save and load conversation histories
 Manages persistent storage of chat conversations for each model

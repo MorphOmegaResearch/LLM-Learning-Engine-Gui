@@ -1,0 +1,7 @@
+{
+  "description": "Tool schema for Gamer skilled",
+  "type": "gamer",
+  "class": "skilled",
+  "enabled_tools": {},
+  "tools": []
+}

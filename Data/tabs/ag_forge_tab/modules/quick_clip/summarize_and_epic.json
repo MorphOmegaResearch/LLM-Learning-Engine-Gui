@@ -1,0 +1,30 @@
+{
+    "name": "Summarize Clipboard and Generate Epic",
+    "steps": [
+        {
+            "name": "summarize_clipboard",
+            "provider": "ollama",
+            "prompt": "Please provide a concise, one-paragraph summary of the following text. Focus on the key topics and intent.",
+            "inputs": [
+                {
+                    "type": "clipboard"
+                }
+            ]
+        },
+        {
+            "name": "generate_epic",
+            "provider": "ollama",
+            "prompt": "Based on the following summary, write a detailed software development epic. The epic should include a high-level goal, a list of potential user stories or features, and any technical considerations or potential risks. Be creative and thorough.",
+            "inputs": [
+                {
+                    "type": "step_output",
+                    "source_step": "summarize_clipboard"
+                }
+            ],
+            "output": {
+                "type": "file",
+                "path": "PlannerSuite/Epics/generated_epic.md"
+            }
+        }
+    ]
+}

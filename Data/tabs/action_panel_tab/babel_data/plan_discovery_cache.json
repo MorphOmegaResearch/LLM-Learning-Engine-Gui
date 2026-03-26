@@ -1,0 +1,445 @@
+{
+  "generated": "2026-03-02T23:23:52.966626",
+  "plans": [
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/archive/Some_Insight.md",
+      "name": "Some_Insight.md",
+      "size": 1119,
+      "mtime": 1770418908.8556082,
+      "mtime_iso": "2026-02-07T12:01:48.855608",
+      "location": "archive/Some_Insight.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/Python_Actions.md",
+      "name": "Python_Actions.md",
+      "size": 153702,
+      "mtime": 1771759970.9497,
+      "mtime_iso": "2026-02-23T00:32:50.949700",
+      "location": "regex_project/Python_Actions.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/tests.md",
+      "name": "tests.md",
+      "size": 78,
+      "mtime": 1770285990.0529583,
+      "mtime_iso": "2026-02-05T23:06:30.052958",
+      "location": "regex_project/tests.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/diff_proposal.md",
+      "name": "diff_proposal.md",
+      "size": 3422,
+      "mtime": 1770285990.0529583,
+      "mtime_iso": "2026-02-05T23:06:30.052958",
+      "location": "regex_project/diff_proposal.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/domains/idiomatic/checklist.md",
+      "name": "checklist.md",
+      "size": 473,
+      "mtime": 1770285990.0599575,
+      "mtime_iso": "2026-02-05T23:06:30.059958",
+      "location": "regex_project/domains/idiomatic/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/domains/intents/checklist.md",
+      "name": "checklist.md",
+      "size": 850,
+      "mtime": 1770285990.0599575,
+      "mtime_iso": "2026-02-05T23:06:30.059958",
+      "location": "regex_project/domains/intents/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/domains/technical/checklist.md",
+      "name": "checklist.md",
+      "size": 747,
+      "mtime": 1770285990.0609574,
+      "mtime_iso": "2026-02-05T23:06:30.060957",
+      "location": "regex_project/domains/technical/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/domains/academic/checklist.md",
+      "name": "checklist.md",
+      "size": 934,
+      "mtime": 1770285990.0589576,
+      "mtime_iso": "2026-02-05T23:06:30.058958",
+      "location": "regex_project/domains/academic/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/domains/academic/biology/checklist.md",
+      "name": "checklist.md",
+      "size": 842,
+      "mtime": 1770285990.0589576,
+      "mtime_iso": "2026-02-05T23:06:30.058958",
+      "location": "regex_project/domains/academic/biology/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/domains/academic/statistics/checklist.md",
+      "name": "checklist.md",
+      "size": 890,
+      "mtime": 1770285990.0599575,
+      "mtime_iso": "2026-02-05T23:06:30.059958",
+      "location": "regex_project/domains/academic/statistics/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/domains/academic/chemistry/checklist.md",
+      "name": "checklist.md",
+      "size": 832,
+      "mtime": 1770285990.0599575,
+      "mtime_iso": "2026-02-05T23:06:30.059958",
+      "location": "regex_project/domains/academic/chemistry/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/domains/informal/checklist.md",
+      "name": "checklist.md",
+      "size": 620,
+      "mtime": 1770285990.0599575,
+      "mtime_iso": "2026-02-05T23:06:30.059958",
+      "location": "regex_project/domains/informal/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/domains/physics/checklist.md",
+      "name": "checklist.md",
+      "size": 800,
+      "mtime": 1770285990.0609574,
+      "mtime_iso": "2026-02-05T23:06:30.060957",
+      "location": "regex_project/domains/physics/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/clarifications/checklist.md",
+      "name": "checklist.md",
+      "size": 354,
+      "mtime": 1770285990.0509584,
+      "mtime_iso": "2026-02-05T23:06:30.050958",
+      "location": "regex_project/clarifications/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/uncertainty/checklist.md",
+      "name": "checklist.md",
+      "size": 381,
+      "mtime": 1770285990.0499585,
+      "mtime_iso": "2026-02-05T23:06:30.049958",
+      "location": "regex_project/uncertainty/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/entities/numerical/checklist.md",
+      "name": "checklist.md",
+      "size": 543,
+      "mtime": 1770285990.0609574,
+      "mtime_iso": "2026-02-05T23:06:30.060957",
+      "location": "regex_project/entities/numerical/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/entities/temporal/checklist.md",
+      "name": "checklist.md",
+      "size": 793,
+      "mtime": 1770285990.0609574,
+      "mtime_iso": "2026-02-05T23:06:30.060957",
+      "location": "regex_project/entities/temporal/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/negations/checklist.md",
+      "name": "checklist.md",
+      "size": 617,
+      "mtime": 1770285990.0499585,
+      "mtime_iso": "2026-02-05T23:06:30.049958",
+      "location": "regex_project/negations/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/greetings/checklist.md",
+      "name": "checklist.md",
+      "size": 694,
+      "mtime": 1770285990.0479586,
+      "mtime_iso": "2026-02-05T23:06:30.047959",
+      "location": "regex_project/greetings/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/common_phrases/checklist.md",
+      "name": "checklist.md",
+      "size": 677,
+      "mtime": 1770285990.0499585,
+      "mtime_iso": "2026-02-05T23:06:30.049958",
+      "location": "regex_project/common_phrases/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/endearments/checklist.md",
+      "name": "checklist.md",
+      "size": 275,
+      "mtime": 1770285990.0519583,
+      "mtime_iso": "2026-02-05T23:06:30.051958",
+      "location": "regex_project/endearments/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/activities/tools/INTEGRATION_GUIDE.md",
+      "name": "INTEGRATION_GUIDE.md",
+      "size": 19912,
+      "mtime": 1770285990.0669568,
+      "mtime_iso": "2026-02-05T23:06:30.066957",
+      "location": "regex_project/activities/tools/INTEGRATION_GUIDE.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/activities/tools/scripts/logs/latest.md",
+      "name": "latest.md",
+      "size": 3264,
+      "mtime": 1770285990.0659568,
+      "mtime_iso": "2026-02-05T23:06:30.065957",
+      "location": "regex_project/activities/tools/scripts/logs/latest.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/activities/training/training.md",
+      "name": "training.md",
+      "size": 34754,
+      "mtime": 1770285990.0639572,
+      "mtime_iso": "2026-02-05T23:06:30.063957",
+      "location": "regex_project/activities/training/training.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/affirmations/checklist.md",
+      "name": "checklist.md",
+      "size": 577,
+      "mtime": 1770285990.0489585,
+      "mtime_iso": "2026-02-05T23:06:30.048959",
+      "location": "regex_project/affirmations/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/level_6_pragmatics/social_acts/checklist.md",
+      "name": "checklist.md",
+      "size": 684,
+      "mtime": 1770285990.0589576,
+      "mtime_iso": "2026-02-05T23:06:30.058958",
+      "location": "regex_project/level_6_pragmatics/social_acts/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/farewell_extensions/checklist.md",
+      "name": "checklist.md",
+      "size": 395,
+      "mtime": 1770285990.0509584,
+      "mtime_iso": "2026-02-05T23:06:30.050958",
+      "location": "regex_project/farewell_extensions/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/constraints/negatives/checklist.md",
+      "name": "checklist.md",
+      "size": 686,
+      "mtime": 1770285990.0609574,
+      "mtime_iso": "2026-02-05T23:06:30.060957",
+      "location": "regex_project/constraints/negatives/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/level_2_morphology/checklist.md",
+      "name": "checklist.md",
+      "size": 400,
+      "mtime": 1770285990.0569577,
+      "mtime_iso": "2026-02-05T23:06:30.056958",
+      "location": "regex_project/level_2_morphology/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/level_2_morphology/extended/checklist.md",
+      "name": "checklist.md",
+      "size": 404,
+      "mtime": 1770285990.0569577,
+      "mtime_iso": "2026-02-05T23:06:30.056958",
+      "location": "regex_project/level_2_morphology/extended/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/exclamations/checklist.md",
+      "name": "checklist.md",
+      "size": 307,
+      "mtime": 1770285990.0499585,
+      "mtime_iso": "2026-02-05T23:06:30.049958",
+      "location": "regex_project/exclamations/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/hesitations/checklist.md",
+      "name": "checklist.md",
+      "size": 280,
+      "mtime": 1770285990.0509584,
+      "mtime_iso": "2026-02-05T23:06:30.050958",
+      "location": "regex_project/hesitations/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/requests/checklist.md",
+      "name": "checklist.md",
+      "size": 301,
+      "mtime": 1770285990.0509584,
+      "mtime_iso": "2026-02-05T23:06:30.050958",
+      "location": "regex_project/requests/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/introductions/checklist.md",
+      "name": "checklist.md",
+      "size": 363,
+      "mtime": 1770285990.0509584,
+      "mtime_iso": "2026-02-05T23:06:30.050958",
+      "location": "regex_project/introductions/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/level_5_semantics/checklist.md",
+      "name": "checklist.md",
+      "size": 837,
+      "mtime": 1770285990.0579576,
+      "mtime_iso": "2026-02-05T23:06:30.057958",
+      "location": "regex_project/level_5_semantics/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/level_7_discourse/state_manager.md",
+      "name": "state_manager.md",
+      "size": 566,
+      "mtime": 1770285990.0589576,
+      "mtime_iso": "2026-02-05T23:06:30.058958",
+      "location": "regex_project/level_7_discourse/state_manager.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/level_7_discourse/checklist.md",
+      "name": "checklist.md",
+      "size": 746,
+      "mtime": 1770285990.0579576,
+      "mtime_iso": "2026-02-05T23:06:30.057958",
+      "location": "regex_project/level_7_discourse/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/level_7_discourse/pragmatic_markers/checklist.md",
+      "name": "checklist.md",
+      "size": 719,
+      "mtime": 1770285990.0579576,
+      "mtime_iso": "2026-02-05T23:06:30.057958",
+      "location": "regex_project/level_7_discourse/pragmatic_markers/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/disagreement/checklist.md",
+      "name": "checklist.md",
+      "size": 361,
+      "mtime": 1770285990.0499585,
+      "mtime_iso": "2026-02-05T23:06:30.049958",
+      "location": "regex_project/disagreement/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/level_4_syntax/checklist.md",
+      "name": "checklist.md",
+      "size": 758,
+      "mtime": 1770285990.0579576,
+      "mtime_iso": "2026-02-05T23:06:30.057958",
+      "location": "regex_project/level_4_syntax/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/level_4_syntax/types/checklist.md",
+      "name": "checklist.md",
+      "size": 683,
+      "mtime": 1770285990.0579576,
+      "mtime_iso": "2026-02-05T23:06:30.057958",
+      "location": "regex_project/level_4_syntax/types/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/agreement/checklist.md",
+      "name": "checklist.md",
+      "size": 319,
+      "mtime": 1770285990.0499585,
+      "mtime_iso": "2026-02-05T23:06:30.049958",
+      "location": "regex_project/agreement/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/suggestions/checklist.md",
+      "name": "checklist.md",
+      "size": 333,
+      "mtime": 1770285990.0509584,
+      "mtime_iso": "2026-02-05T23:06:30.050958",
+      "location": "regex_project/suggestions/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/farewells/checklist.md",
+      "name": "checklist.md",
+      "size": 618,
+      "mtime": 1770285990.0489585,
+      "mtime_iso": "2026-02-05T23:06:30.048959",
+      "location": "regex_project/farewells/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/level_1_graphology/checklist.md",
+      "name": "checklist.md",
+      "size": 472,
+      "mtime": 1770285990.0559578,
+      "mtime_iso": "2026-02-05T23:06:30.055958",
+      "location": "regex_project/level_1_graphology/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/level_1_graphology/symbols/checklist.md",
+      "name": "checklist.md",
+      "size": 657,
+      "mtime": 1770285990.0569577,
+      "mtime_iso": "2026-02-05T23:06:30.056958",
+      "location": "regex_project/level_1_graphology/symbols/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/level_1_graphology/brackets/checklist.md",
+      "name": "checklist.md",
+      "size": 474,
+      "mtime": 1770285990.0569577,
+      "mtime_iso": "2026-02-05T23:06:30.056958",
+      "location": "regex_project/level_1_graphology/brackets/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/level_1_graphology/digital/checklist.md",
+      "name": "checklist.md",
+      "size": 498,
+      "mtime": 1770285990.0559578,
+      "mtime_iso": "2026-02-05T23:06:30.055958",
+      "location": "regex_project/level_1_graphology/digital/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/level_3_lexical/checklist.md",
+      "name": "checklist.md",
+      "size": 717,
+      "mtime": 1770285990.0569577,
+      "mtime_iso": "2026-02-05T23:06:30.056958",
+      "location": "regex_project/level_3_lexical/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/level_3_lexical/interjections/checklist.md",
+      "name": "checklist.md",
+      "size": 445,
+      "mtime": 1770285990.0579576,
+      "mtime_iso": "2026-02-05T23:06:30.057958",
+      "location": "regex_project/level_3_lexical/interjections/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/level_3_lexical/quantifiers_frequency/checklist.md",
+      "name": "checklist.md",
+      "size": 661,
+      "mtime": 1770285990.0569577,
+      "mtime_iso": "2026-02-05T23:06:30.056958",
+      "location": "regex_project/level_3_lexical/quantifiers_frequency/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/questions/yes_no_questions/checklist.md",
+      "name": "checklist.md",
+      "size": 315,
+      "mtime": 1770285990.0489585,
+      "mtime_iso": "2026-02-05T23:06:30.048959",
+      "location": "regex_project/questions/yes_no_questions/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/questions/tag_questions/checklist.md",
+      "name": "checklist.md",
+      "size": 378,
+      "mtime": 1770285990.0489585,
+      "mtime_iso": "2026-02-05T23:06:30.048959",
+      "location": "regex_project/questions/tag_questions/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/questions/wh_questions/checklist.md",
+      "name": "checklist.md",
+      "size": 500,
+      "mtime": 1770285990.0489585,
+      "mtime_iso": "2026-02-05T23:06:30.048959",
+      "location": "regex_project/questions/wh_questions/checklist.md"
+    },
+    {
+      "path": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/audit_logs/audit1.md",
+      "name": "audit1.md",
+      "size": 15787,
+      "mtime": 1770285990.0679567,
+      "mtime_iso": "2026-02-05T23:06:30.067957",
+      "location": "regex_project/audit_logs/audit1.md"
+    }
+  ]
+}

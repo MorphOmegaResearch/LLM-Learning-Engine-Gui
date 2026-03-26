@@ -1,0 +1,60 @@
+{
+  "pattern_library": {
+    "morphological_expansions": {
+      "verb_forms": {
+        "analyze": ["analyzes", "analyzing", "analyzed", "analyzer", "analysis"],
+        "organize": ["organizes", "organizing", "organized", "organizer", "organization"],
+        "fix": ["fixes", "fixing", "fixed", "fixer", "fixation"],
+        "scan": ["scans", "scanning", "scanned", "scanner", "scanning"],
+        "convert": ["converts", "converting", "converted", "converter", "conversion"],
+        "extract": ["extracts", "extracting", "extracted", "extractor", "extraction"],
+        "validate": ["validates", "validating", "validated", "validator", "validation"],
+        "generate": ["generates", "generating", "generated", "generator", "generation"],
+        "transform": ["transforms", "transforming", "transformed", "transformer", "transformation"],
+        "clean": ["cleans", "cleaning", "cleaned", "cleaner", "cleaning"]
+      },
+      
+      "noun_forms": {
+        "file": ["files", "file's", "files'"],
+        "directory": ["directories", "directory's"],
+        "path": ["paths", "path's"],
+        "code": ["codes", "code's"],
+        "import": ["imports", "import's"],
+        "dependency": ["dependencies", "dependency's"],
+        "module": ["modules", "module's"],
+        "package": ["packages", "package's"],
+        "project": ["projects", "project's"],
+        "tool": ["tools", "tool's"]
+      }
+    },
+    
+    "context_patterns": {
+      "file_context": [
+        "(?i)\\.(py|js|java|cpp|c|h|hpp|go|rs|rb|php|ts|json|xml|yaml|yml|toml|ini|cfg|conf|md|txt|csv|tsv)$"
+      ],
+      "directory_context": [
+        "(?i)(dir|directory|folder|path|location|root|parent|child|sub)"
+      ],
+      "code_context": [
+        "(?i)(code|source|src|script|program|application|app|function|method|class|object|variable|constant|import|export|require|include)"
+      ],
+      "data_context": [
+        "(?i)(data|content|information|record|entry|item|element|field|column|row|table|database|db)"
+      ]
+    },
+    
+    "action_intensity": {
+      "strong_actions": ["rewrite", "replace", "delete", "remove", "destroy", "eliminate"],
+      "moderate_actions": ["modify", "change", "adjust", "alter", "update", "edit"],
+      "weak_actions": ["check", "verify", "validate", "test", "inspect", "review"],
+      "neutral_actions": ["analyze", "scan", "read", "parse", "extract", "collect"]
+    },
+    
+    "tool_composition_patterns": {
+      "simple_tool": "^[a-z]+(_[a-z]+)?\\.py$",
+      "compound_tool": "^[a-z]+_[a-z]+(_[a-z]+)?\\.py$",
+      "multi_word_tool": "^[a-z]+[-_][a-z]+([-_][a-z]+)?\\.py$",
+      "acronym_tool": "^[A-Z]{2,}[a-z]*\\.py$"
+    }
+  }
+}

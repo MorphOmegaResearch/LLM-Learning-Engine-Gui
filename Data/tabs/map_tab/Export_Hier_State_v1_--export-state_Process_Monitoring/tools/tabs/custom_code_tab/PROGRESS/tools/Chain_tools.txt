@@ -1,0 +1,225 @@
+ - After successful auto-chain (file_search → file_read), model gets:
+  === END RESULTS ===
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ✅ TASK COMPLETE - All necessary information retrieved
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  RESPOND IN PLAIN ENGLISH NOW:
+  Use the information above to answer the user's question.
+  DO NOT call more tools - you have everything you need.
+
+  This should override the "RE-ACT" instruction and force the model to give
+  a natural language answer.
+
+  Modified: interactive.py:4091-4099
+
+
+How it works:
+  1. Model calls file_read with file_path="read2.txt" (just filename)
+  2. Orchestrator detects this at line 839-867
+  3. Returns auto_chain_required=True with chain definition
+  4. Interactive.py detects this at line 3866
+  5. Executes file_search for "read2.txt"
+  6. If found, updates tool_name and tool_args to use the real path
+  7. Continues to normal file_read execution
+
+  Files modified:
+  - tool_orchestrator.py:838-867 (reverse auto-chain detection)
+  - interactive.py:3865-3902 (auto-chain execution)
+
+
+
+
+
+Step 1: Locate the Insertion Point
+
+  File: /home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/o
+  pencode/interactive.pyLine: After 3247 (right after tool_call = None)
+
+  Current code ends:
+  console.print(f"\n[green]✓ Tool chain completed: {len([r for r in 
+  chain_results if r.get('success')])}/{len(tool_calls_to_execute)} 
+  successful[/green]")
+  tool_chain_detected = True  # Mark as handled
+  tool_call = None  # Prevent single-tool execution below
+  # ← INSERT NEW CODE HERE
+
+  ---
+  Step 2: Add Chain Result Processing Block
+
+  What to add: Complete feedback system after line 3247
+
+  Code to insert:
+
+                  # SEND CHAIN RESULTS TO MODEL
+                  if chain_results:
+                      # 1. TRUNCATE each step's output (reuse existing logic
+   pattern)
+                      for result in chain_results:
+                          output = str(result.get('output', ''))
+                          if len(output) > 500:  # Shorter limit for chains 
+  (multiple outputs)
+                              result['output'] = output[:500] +
+  f"\n[...truncated {len(output)-500} chars]"
+                              console.print(f"[dim yellow]⚠ Step output 
+  truncated: {len(output)} → 500 chars[/dim yellow]")
+
+                      # 2. FORMAT each step using existing formatter (reuse 
+  utility)
+                      formatted_steps = []
+                      for tc, result in zip(tool_calls_to_execute,
+  chain_results):
+                          formatted =
+  _format_tool_result_for_model(tc['name'], tc['args'], result)
+                          formatted_steps.append({
+                              "tool": tc['name'],
+                              "args": tc['args'],
+                              "result": formatted
+                          })
+
+                      # 3. BUILD chain-specific payload (custom structure)
+                      chain_payload = {
+                          "type": "tool_chain",
+                          "steps": formatted_steps,
+                          "summary": {
+                              "total": len(tool_calls_to_execute),
+                              "completed": len(chain_results),
+                              "successful": len([r for r in chain_results if
+   r.get('success')]),
+                              "stopped_early": len(chain_results) <
+  len(tool_calls_to_execute)
+                          }
+                      }
+
+                      # 4. ADD hint if chain stopped early or had failures
+                      if chain_payload["summary"]["stopped_early"]:
+                          failed = chain_results[-1]
+                          chain_payload["hint"] = f"Chain stopped at step 
+  {len(chain_results)}/{len(tool_calls_to_execute)}. Error: 
+  {failed.get('error', 'Unknown error')}. Try a different approach or fix 
+  the arguments."
+                      elif chain_payload["summary"]["successful"] <
+  chain_payload["summary"]["completed"]:
+                          # Some steps failed but chain continued
+                          failed_steps = [i+1 for i, r in
+  enumerate(chain_results) if not r.get('success')]
+                          chain_payload["hint"] = f"Steps {failed_steps} 
+  failed. Review errors and retry or try alternative tools."
+
+                      tool_result_str = json.dumps(chain_payload, indent=2)
+
+                      # 5. ESTIMATE tokens (reuse existing function)
+                      result_tokens = _estimate_tokens(tool_result_str)
+                      system_prompt_tokens =
+  _estimate_tokens(self._get_dynamic_system_prompt())
+                      total_context = result_tokens + system_prompt_tokens
+                      max_context = self.config.model.max_tokens if
+  hasattr(self.config.model, 'max_tokens') else 4096
+                      context_percent = (total_context / max_context) * 100
+
+                      console.print(f"[dim]📤 Passing chain to model: 
+  {result_tokens} tokens | Context: {context_percent:.0f}% 
+  ({total_context}/{max_context})[/dim]")
+
+                      # 6. SEND to model (custom - reduced turns for chains)
+                      try:
+                          response = await _call_model_with_tool_result(
+                              self, tool_result_str, user_input,
+                              turn_num=1,
+                              max_turns=2  # Chains get fewer follow-ups 
+  than single tools
+                          )
+                      except KeyboardInterrupt:
+                          console.print("\n[yellow]Model callback 
+  interrupted by user[/yellow]")
+                          response = "[Cancelled by user]"
+
+                      # 7. ALLOW one follow-up tool call (simplified vs 
+  single tool's multi-turn loop)
+                      follow_up = translate_tool_call(response)
+                      if follow_up:
+                          console.print(f"[dim cyan]🔗 Follow-up after 
+  chain: {follow_up.get('name')}[/dim cyan]")
+
+                          follow_name = follow_up.get('name')
+                          follow_args = follow_up.get('args', {})
+
+                          # Show what's being called
+                          target = follow_args.get('file_path') or
+  follow_args.get('path') or follow_args.get('pattern') or ''
+                          if target and len(str(target)) > 60:
+                              target = str(target)[:57] + "..."
+                          console.print(f"[cyan]→ {follow_name}[/cyan]: 
+  [dim]{target}[/dim]")
+
+                          try:
+                              # Execute follow-up
+                              follow_result = await _safe_execute_tool(self,
+   follow_name, follow_args)
+
+                              # Show result
+                              if follow_result.get("success"):
+                                  output_preview =
+  str(follow_result.get("output", ""))[:200]
+                                  console.print(f"[green]✓ Follow-up 
+  executed successfully[/green]")
+                                  if output_preview:
+                                      console.print(f"[dim]   
+  {output_preview}{'...' if len(str(follow_result.get('output', ''))) > 200 
+  else ''}[/dim]")
+                              else:
+                                  console.print(f"[yellow]⚠ Follow-up 
+  failed: {follow_result.get('error')}[/yellow]")
+
+                              # Format and send result back to model
+                              follow_formatted =
+  _format_tool_result_for_model(follow_name, follow_args, follow_result)
+                              follow_payload = json.dumps({
+                                  "tool": follow_name,
+                                  "args": follow_args,
+                                  "result": follow_formatted
+                              }, indent=2)
+
+                              response = await _call_model_with_tool_result(
+                                  self, follow_payload, user_input,
+                                  turn_num=2,
+                                  max_turns=2
+                              )
+
+                          except KeyboardInterrupt:
+                              console.print("\n[yellow]Follow-up interrupted
+   by user[/yellow]")
+                              response = "[Cancelled by user]"
+                          except Exception as e:
+                              console.print(f"[red]Follow-up execution 
+  failed: {e}[/red]")
+                              import traceback
+
+  console.print(f"[dim]{traceback.format_exc()}[/dim]")
+
+                  # Keep the tool_call = None to prevent single-tool path
+                  tool_call = None
+
+  ---
+  Step 3: Verify Dependencies Are Available
+
+  Check that these functions exist (they should already be defined):
+
+  3a. _format_tool_result_for_model() function
+
+● Search(pattern: "^def _format_tool_result_for_model", path:
+        "BackupOpencode/versions/v1.2/site-packages/opencode/interactive.py",
+        output_mode: "content")
+  ⎿  Found 4 lines (ctrl+o to expand)
+
+● 3b. _estimate_tokens() function
+
+● Search(pattern: "^def _estimate_tokens", path:
+        "BackupOpencode/versions/v1.2/site-packages/opencode/interactive.py",
+        output_mode: "content")
+  ⎿  Found 4 lines (ctrl+o to expand)
+
+● 3c. _call_model_with_tool_result() function (already verified earlier)
+
+  ✅ All dependencies exist!

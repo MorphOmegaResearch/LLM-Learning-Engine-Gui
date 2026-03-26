@@ -1,0 +1,271 @@
+{
+  "entity_stack": [
+    "questions do you have",
+    "questions",
+    "have",
+    "gap",
+    "files have been modified recently",
+    "files",
+    "been",
+    "modified",
+    "recently",
+    "cpu temperature"
+  ],
+  "confidence_score": 0.4625000000000001,
+  "turn_count": 156,
+  "active_domain": "general",
+  "active_persona": "Assistant",
+  "gratification_count": 2,
+  "session_start": 1769341155.3967772,
+  "session_history": [
+    {
+      "turn_id": 117,
+      "input": "Tell me more about it",
+      "logical_intent": "UNKNOWN_INTENT",
+      "response": "[Assistant Mode] <Standard Observation> I recognize the individual components of your input, but the structural intent is unclear within my current general weights. I must admit, Commander, our recent focus on data ingestion is reaching a point of satiety. Shall we pivot to an activity like 'Conceptual Deep-Dive: what' to maintain system engagement?",
+      "entities_mentioned": [
+        "backpropagation used for",
+        "backpropagation",
+        "used"
+      ],
+      "realization_path": "UNKNOWN_INTENT_general_Assistant_short",
+      "conversation_state": "idle",
+      "timestamp": "2026-01-26T02:26:42.525258"
+    },
+    {
+      "turn_id": 118,
+      "input": "Why is that important?",
+      "logical_intent": "INFORMATION_QUERY",
+      "response": "[Assistant Mode] <Standard Observation> Based on what I've learned previously: how neural networks learn from errors.",
+      "entities_mentioned": [
+        "backpropagation used for",
+        "backpropagation",
+        "used"
+      ],
+      "realization_path": "INFORMATION_QUERY_general_Assistant_short",
+      "conversation_state": "idle",
+      "timestamp": "2026-01-26T02:26:42.531012"
+    },
+    {
+      "turn_id": 120,
+      "input": "quantum entanglement",
+      "logical_intent": "INFORMATION_QUERY",
+      "response": "[Assistant Mode] <Standard Observation> (Recalling my previous internal state of 'ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for general context.')...",
+      "entities_mentioned": [
+        "can",
+        "backpropagation used for",
+        "backpropagation"
+      ],
+      "realization_path": "INFORMATION_QUERY_domain_physics_Assistant_short",
+      "conversation_state": "idle",
+      "timestamp": "2026-01-26T12:45:27.652963"
+    },
+    {
+      "turn_id": 121,
+      "input": "How does superposition work?",
+      "logical_intent": "INFORMATION_QUERY",
+      "response": "[Assistant Mode] <Standard Observation> I recall our previous interaction: 'Processed: What is a quantum server?...'.",
+      "entities_mentioned": [
+        "quantum",
+        "can",
+        "backpropagation used for"
+      ],
+      "realization_path": "INFORMATION_QUERY_domain_physics_Assistant_short",
+      "conversation_state": "idle",
+      "timestamp": "2026-01-26T12:45:27.769119"
+    },
+    {
+      "turn_id": 122,
+      "input": "neural networks learn from data",
+      "logical_intent": "LEARNING_EXCHANGE",
+      "response": "[Assistant Mode] <Standard Observation> (Acknowledging our Deep Ingestion slot)... I have successfully integrated the following properties into my internal model: origin: data. This data assists in resolving previous epistemic gaps.",
+      "entities_mentioned": [
+        "quantum",
+        "can",
+        "backpropagation used for"
+      ],
+      "realization_path": "LEARNING_EXCHANGE_domain_meta_Assistant_short",
+      "conversation_state": "idle",
+      "timestamp": "2026-01-26T12:45:27.894692"
+    },
+    {
+      "turn_id": 123,
+      "input": "machine learning uses algorithms",
+      "logical_intent": "LEARNING_MODE",
+      "response": "[Assistant Mode] <Standard Observation> (Acknowledging our Deep Ingestion slot)... I have flagged this interaction as a LEARNING_EXCHANGE. This is beneficial for our mutual coordination.",
+      "entities_mentioned": [
+        "quantum",
+        "can",
+        "backpropagation used for"
+      ],
+      "realization_path": "LEARNING_MODE_domain_meta_Assistant_short",
+      "conversation_state": "idle",
+      "timestamp": "2026-01-26T12:45:28.001159"
+    },
+    {
+      "turn_id": 125,
+      "input": "Tell me about photosynthesis",
+      "logical_intent": "INFORMATION_QUERY",
+      "response": "[Scholar Mode] <Standard Observation> I recall our previous interaction: 'Processed: What is backpropagation used f...'.",
+      "entities_mentioned": [
+        "backpropagation",
+        "learning",
+        "quantum"
+      ],
+      "realization_path": "INFORMATION_QUERY_domain_academic_Scholar_short",
+      "conversation_state": "idle",
+      "timestamp": "2026-01-26T12:45:45.099503"
+    },
+    {
+      "turn_id": 126,
+      "input": "It converts light energy",
+      "logical_intent": "UNKNOWN_INTENT",
+      "response": "[Scholar Mode] <Standard Observation> I recognize the individual components of your input, but the structural intent is unclear within my current domain_academic weights. I must admit, Commander, our recent focus on data ingestion is reaching a point of satiety. Shall we pivot to an activity like 'Conceptual Deep-Dive: what' to maintain system engagement?",
+      "entities_mentioned": [
+        "photosynthesis",
+        "backpropagation",
+        "learning"
+      ],
+      "realization_path": "UNKNOWN_INTENT_domain_academic_Scholar_short",
+      "conversation_state": "idle",
+      "timestamp": "2026-01-26T12:45:45.199249"
+    },
+    {
+      "turn_id": 127,
+      "input": "Why does it happen?",
+      "logical_intent": "INFORMATION_QUERY",
+      "response": "[Scholar Mode] <Standard Observation> I recall our previous interaction: 'Processed: Tell me about photosynthesis...'.",
+      "entities_mentioned": [
+        "photosynthesis",
+        "backpropagation",
+        "learning"
+      ],
+      "realization_path": "INFORMATION_QUERY_domain_academic_Scholar_short",
+      "conversation_state": "idle",
+      "timestamp": "2026-01-26T12:45:45.305873"
+    },
+    {
+      "turn_id": 129,
+      "input": "quantum chromodynamics",
+      "logical_intent": "INFORMATION_QUERY",
+      "response": "[Assistant Mode] <Standard Observation> I recall our previous interaction: 'Processed: Tell me about photosynthesis...'.",
+      "entities_mentioned": [
+        "photosynthesis",
+        "backpropagation",
+        "learning"
+      ],
+      "realization_path": "INFORMATION_QUERY_domain_physics_Assistant_short",
+      "conversation_state": "idle",
+      "timestamp": "2026-01-26T12:46:04.433298"
+    },
+    {
+      "turn_id": 130,
+      "input": "hello there",
+      "logical_intent": "SOCIAL_INITIATION",
+      "response": "[Assistant Mode] <Standard Observation> (Acknowledging our Deep Ingestion slot)...",
+      "entities_mentioned": [
+        "quantum",
+        "photosynthesis",
+        "backpropagation"
+      ],
+      "realization_path": "SOCIAL_INITIATION_general_Assistant_short",
+      "conversation_state": "idle",
+      "timestamp": "2026-01-26T12:46:04.543517"
+    },
+    {
+      "turn_id": 139,
+      "input": "Hello there!",
+      "logical_intent": "SOCIAL_INITIATION",
+      "response": "[Assistant Mode] <Standard Observation> Hello. I'm operating at peak efficiency. I must admit, Commander, our recent focus on data ingestion is reaching a point of satiety. Shall we pivot to an activity like 'Conceptual Deep-Dive: what' to maintain system engagement?",
+      "entities_mentioned": [
+        "files need consolidation",
+        "files",
+        "need"
+      ],
+      "realization_path": "SOCIAL_INITIATION_general_Assistant_short",
+      "conversation_state": "idle",
+      "timestamp": "2026-02-23T01:03:18.081907"
+    },
+    {
+      "turn_id": 140,
+      "input": "What is the CPU temperature?",
+      "logical_intent": "INFORMATION_QUERY",
+      "response": "[Engineer Mode] <Standard Observation> (Recalling my previous internal state of 'ACTIVITY_TRIGGER: Suggesting Socratic Dialogue for general context.')...",
+      "entities_mentioned": [
+        "files need consolidation",
+        "files",
+        "need"
+      ],
+      "realization_path": "INFORMATION_QUERY_domain_technical_Engineer_short",
+      "conversation_state": "idle",
+      "timestamp": "2026-02-23T01:03:18.179341"
+    },
+    {
+      "turn_id": 141,
+      "input": "Why is the system efficiency dropping in the primary kernel layer?",
+      "logical_intent": "INFORMATION_QUERY",
+      "response": "[Assistant Mode] <Standard Observation> (Recalling my previous internal state of 'ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for general context.')...",
+      "entities_mentioned": [
+        "cpu temperature",
+        "temperature",
+        "cpu"
+      ],
+      "realization_path": "INFORMATION_QUERY_general_Assistant_short",
+      "conversation_state": "idle",
+      "timestamp": "2026-02-23T01:03:18.297497"
+    },
+    {
+      "turn_id": 153,
+      "input": "What Questions",
+      "logical_intent": "INFORMATION_QUERY",
+      "response": "[Assistant Mode] <Standard Observation> Please provide a specific entity or concept for me to resolve.",
+      "entities_mentioned": [
+        "gap",
+        "files have been modified recently",
+        "files"
+      ],
+      "realization_path": "INFORMATION_QUERY_general_Assistant_short",
+      "conversation_state": "idle",
+      "timestamp": "2026-03-05T23:18:58.133369"
+    }
+  ],
+  "active_situation": {
+    "name": "Standard Observation",
+    "domain_weights": {
+      "general": 1.0
+    },
+    "description": "Default state of linguistic monitoring."
+  },
+  "recent_thoughts": [
+    "ACTIVITY_TRIGGER: Suggesting Socratic Dialogue for general context.",
+    "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for general context.",
+    "ACTIVITY_TRIGGER: Suggesting Pokemon CLI for domain_technical context.",
+    "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for general context.",
+    "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for general context."
+  ],
+  "boredom_score": 1.0,
+  "volition_score": 0.0,
+  "learning_velocity": 0.1,
+  "last_system_output": "[Assistant Mode] <Standard Observation> Please provide a specific entity or concept for me to resolve.",
+  "calibration_active": false,
+  "active_calibration_subject": "a type of AI",
+  "conversation_flow": {
+    "state": "idle",
+    "pending_context": {},
+    "state_turn_count": 0
+  },
+  "epistemic_loop": {
+    "category_weights": {
+      "level_3_lexical": 1.0,
+      "level_2_morphology": 1.0,
+      "level_4_syntax": 1.0,
+      "domain_academic": 1.0,
+      "domain_technical": 1.0,
+      "domain_informal": 1.0,
+      "domain_meta": 1.0
+    },
+    "understanding_pct": 0.0,
+    "priority_pct": 1.0,
+    "gap_severity": "critical"
+  }
+}

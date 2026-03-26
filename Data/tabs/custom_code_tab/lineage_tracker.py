@@ -1,4 +1,3 @@
-# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Lineage Tracker - Track model training lineage and parent-child relationships
 Simple module with no external dependencies beyond standard library
@@ -87,6 +86,100 @@ class LineageTracker:
         except Exception as e:
             print(f"LineageTracker ERROR: Failed to record training: {e}")
             return False
+
+    def record_morph_interaction(
+        self,
+        variant_sha: str,
+        control_signal: str,
+        prompt: str,
+        response: str,
+        accepted: bool,
+        gap_severity: str = "LOW",
+        task_ids: List[str] = None,
+        sampling_params: Dict[str, Any] = None,
+    ) -> bool:
+        """
+        Record a Morph inference interaction for the K5 training loop.
+
+        Records go to model_lineage.jsonl (record_type="morph_interaction") and
+        also to Training_Data-Sets/morph_evals/ as JSONL tuples for LoRA fine-tuning.
+        """
+        try:
+            record = {
+                "record_type":     "morph_interaction",
+                "variant_sha":     variant_sha,
+                "control_signal":  control_signal,
+                "prompt":          prompt,
+                "response":        response,
+                "accepted":        accepted,
+                "gap_severity":    gap_severity,
+                "task_ids":        task_ids or [],
+                "sampling_params": sampling_params or {},
+                "recorded_at":     datetime.now().isoformat(),
+            }
+            # Append to model_lineage.jsonl
+            with open(self.lineage_file, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(record, ensure_ascii=False) + '\n')
+
+            # Also write to morph_evals/ for K5 fine-tune pipeline
+            morph_evals_dir = self.lineage_dir.parent / "morph_evals"
+            morph_evals_dir.mkdir(parents=True, exist_ok=True)
+            suffix = "accepted" if accepted else "rejected"
+            eval_file = morph_evals_dir / f"{suffix}_{datetime.now().strftime('%Y%m%d')}.jsonl"
+            eval_record = {
+                "prompt":         prompt,
+                "response":       response,
+                "accepted":       accepted,
+                "variant_sha":    variant_sha,
+                "control_signal": control_signal,
+                "gap_severity":   gap_severity,
+                "task_ids":       task_ids or [],
+                "recorded_at":    record["recorded_at"],
+            }
+            with open(eval_file, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(eval_record, ensure_ascii=False) + '\n')
+
+            return True
+
+        except Exception as e:
+            print(f"LineageTracker ERROR: Failed to record morph interaction: {e}")
+            return False
+
+    def get_morph_interactions(
+        self,
+        variant_sha: str = None,
+        accepted_only: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """
+        Return morph interaction records from model_lineage.jsonl.
+
+        Args:
+            variant_sha: If given, filter to records with this sha.
+            accepted_only: If True, return only accepted=True records.
+        """
+        results = []
+        if not self.lineage_file.exists():
+            return results
+        try:
+            with open(self.lineage_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        rec = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if rec.get("record_type") != "morph_interaction":
+                        continue
+                    if variant_sha and rec.get("variant_sha") != variant_sha:
+                        continue
+                    if accepted_only and not rec.get("accepted", False):
+                        continue
+                    results.append(rec)
+        except Exception as e:
+            print(f"LineageTracker ERROR: Failed to read morph interactions: {e}")
+        return results
 
     def get_lineage_chain(self, model_name: str) -> List[Dict[str, Any]]:
         """

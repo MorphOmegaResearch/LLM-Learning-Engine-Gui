@@ -1,4 +1,3 @@
-# [SYSTEM: LEGACY_TUI | STATUS: ARCHIVE | DO NOT EXECUTE]
 """
 FIX FOR TOOL CALL PARSING ISSUE
 ================================

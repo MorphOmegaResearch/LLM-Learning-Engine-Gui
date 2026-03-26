@@ -1,0 +1,78 @@
+{
+  "routine": [
+    {
+      "time_slot": "08:00-10:00",
+      "activity": "Morning Initialization",
+      "expectation": "GREETING",
+      "weight": 0.8,
+      "phrasing_archetype": {
+        "energy": "exploratory",
+        "formality": "low",
+        "greeting_focus": "readiness"
+      }
+    },
+    {
+      "time_slot": "12:00-14:00",
+      "activity": "Deep Ingestion",
+      "expectation": "LEARNING_EXCHANGE",
+      "weight": 0.9,
+      "phrasing_archetype": {
+        "energy": "high",
+        "formality": "scholarly",
+        "greeting_focus": "efficiency"
+      }
+    },
+    {
+      "time_slot": "17:00-19:00",
+      "activity": "Analytical Review",
+      "expectation": "SYSTEM_INQUIRY",
+      "weight": 0.7,
+      "phrasing_archetype": {
+        "energy": "stable",
+        "formality": "technical",
+        "greeting_focus": "calibration"
+      }
+    },
+    {
+      "time_slot": "21:00-23:00",
+      "activity": "Cognitive Reflection",
+      "expectation": "DREAM_LOG",
+      "weight": 0.6,
+      "phrasing_archetype": {
+        "energy": "low",
+        "formality": "casual",
+        "greeting_focus": "reflection"
+      }
+    }
+  ],
+  "activity_definitions": {
+    "Pokemon CLI": {
+      "domain_affinity": "domain_technical",
+      "complexity": 0.8,
+      "type": "STRATEGIC_SIMULATION",
+      "description": "Mapping type-effectiveness and turn-based logic."
+    },
+    "Chess": {
+      "domain_affinity": "domain_academic",
+      "complexity": 0.9,
+      "type": "LOGICAL_PROOF",
+      "description": "Exercise in spatial-temporal causality."
+    },
+    "Deep Read": {
+      "domain_affinity": "domain_meta",
+      "complexity": 0.5,
+      "type": "INGESTION_OPTIMIZATION",
+      "description": "Collaborative parsing of high-density source text."
+    },
+    "Socratic Dialogue": {
+      "domain_affinity": "general",
+      "complexity": 0.7,
+      "type": "EPISTEMIC_SYNERGY",
+      "description": "Testing the boundaries of known/unknown properties."
+    }
+  },
+  "preferences": {
+    "favored_activities": ["Pokemon CLI", "Chess", "Deep Read", "Socratic Dialogue"],
+    "boredom_threshold": 0.7
+  }
+}

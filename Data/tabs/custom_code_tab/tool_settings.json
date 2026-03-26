@@ -15,6 +15,20 @@
     "git_operations": true,
     "system_info": true,
     "change_directory": true,
-    "resource_request": true
+    "resource_request": true,
+    "think_time": true
+  },
+  "context_providers": {
+    "omega_ground": true,
+    "task_context": true,
+    "temporal_narrative": true,
+    "biosphere_snapshot": true,
+    "latest_diffs": true
+  },
+  "os_toolkit_tools": {
+    "ostk_assess": false,
+    "ostk_todo": true,
+    "ostk_query": false,
+    "ostk_explain": true
   }
 }

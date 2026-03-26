@@ -1,0 +1,22 @@
+# Affirmations Regex Checklist
+
+- [x] `\b(yes|yeah|yep)\b`
+- [x] `\b(of course)\b`
+- [x] `\b(sure|sure thing)\b`
+- [x] `\b(absolutely)\b`
+- [x] `\b(definitely)\b`
+- [x] `\b(I agree)\b`
+- [x] `\b(that's right|that is right)\b`
+- [x] `\b(sounds good)\b`
+- [x] `\b(for sure)\b`
+- [x] `\b(no problem)\b`
+- [x] `\b(you bet)\b`
+- [x] `\b(I couldn't agree more)\b`
+- [x] `\b(that's for sure)\b`
+- [x] `\b(exactly)\b`
+- [x] `\b(without a doubt)\b`
+- [x] `\b(I suppose so)\b`
+- [x] `\b(that's a good point)\b`
+- [x] `\b(I think so too)\b`
+- [x] `\b(you got it)\b`
+- [x] `\b(right on)\b`

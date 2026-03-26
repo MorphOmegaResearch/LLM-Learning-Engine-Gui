@@ -1,0 +1,99 @@
+{
+  "timestamp": "2026-01-26T01-42-20.210259",
+  "input_text": "recursion is when a function calls itself",
+  "gap_analysis": {
+    "text": "recursion is when a function calls itself",
+    "unrecognized_tokens": [
+      "itself",
+      "recursion",
+      "calls",
+      "function",
+      "when",
+      "a",
+      "is"
+    ],
+    "pattern_coverage": {
+      "level_1_graphology": 1.0,
+      "level_2_morphology": 0.2857142857142857,
+      "level_3_lexical": 0.14285714285714285,
+      "level_4_syntax": 0.42857142857142855,
+      "level_5_semantics": 0.0,
+      "level_6_pragmatics": 0.0,
+      "level_7_discourse": 0.0,
+      "domain_academic": 0.0,
+      "domain_physics": 0.0,
+      "domain_intents": 0.0,
+      "domain_informal": 0.0,
+      "domain_idiomatic": 0.0,
+      "entities_temporal": 0.0,
+      "entities_numerical": 0.0,
+      "entities_properties": 0.0,
+      "domain_technical": 0.14285714285714285,
+      "domain_meta": 0.0
+    },
+    "suggested_patterns": [
+      {
+        "token": "itself",
+        "pattern": "\\bitself\\b",
+        "category": "level_3_lexical",
+        "confidence": 0.5
+      },
+      {
+        "token": "recursion",
+        "pattern": "\\brecursion\\b",
+        "category": "level_3_lexical",
+        "confidence": 0.5
+      },
+      {
+        "token": "calls",
+        "pattern": "\\b\\w+s\\b",
+        "category": "level_2_morphology",
+        "confidence": 0.7
+      },
+      {
+        "token": "function",
+        "pattern": "\\bfunction\\b",
+        "category": "level_3_lexical",
+        "confidence": 0.5
+      },
+      {
+        "token": "when",
+        "pattern": "\\bwhen\\b",
+        "category": "level_3_lexical",
+        "confidence": 0.5
+      },
+      {
+        "token": "a",
+        "pattern": "\\ba\\b",
+        "category": "level_3_lexical",
+        "confidence": 0.5
+      },
+      {
+        "token": "is",
+        "pattern": "\\b\\w+s\\b",
+        "category": "level_2_morphology",
+        "confidence": 0.7
+      }
+    ],
+    "confidence_score": 0.1176470588235294,
+    "recommendations": [
+      "Low coverage in level_2_morphology: 29%. Consider adding more patterns.",
+      "Low coverage in level_3_lexical: 14%. Consider adding more patterns.",
+      "Low coverage in level_5_semantics: 0%. Consider adding more patterns.",
+      "Low coverage in level_6_pragmatics: 0%. Consider adding more patterns.",
+      "Low coverage in level_7_discourse: 0%. Consider adding more patterns.",
+      "Low coverage in domain_academic: 0%. Consider adding more patterns.",
+      "Low coverage in domain_physics: 0%. Consider adding more patterns.",
+      "Low coverage in domain_intents: 0%. Consider adding more patterns.",
+      "Low coverage in domain_informal: 0%. Consider adding more patterns.",
+      "Low coverage in domain_idiomatic: 0%. Consider adding more patterns.",
+      "Low coverage in entities_temporal: 0%. Consider adding more patterns.",
+      "Low coverage in entities_numerical: 0%. Consider adding more patterns.",
+      "Low coverage in entities_properties: 0%. Consider adding more patterns.",
+      "Low coverage in domain_technical: 14%. Consider adding more patterns.",
+      "Low coverage in domain_meta: 0%. Consider adding more patterns.",
+      "Found 7 unrecognized tokens. Consider adding patterns for: itself, recursion, calls, function, when"
+    ],
+    "missing_hierarchy_levels": []
+  }
+}

@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+# Babel - Unified System Launcher
+# Version: 0.1.0
+
+BABEL_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BIN_DIR="$BABEL_ROOT/bin"
+
+# If bin/ doesn't exist, we're in dev mode
+if [ ! -d "$BIN_DIR" ]; then
+    BIN_DIR="$BABEL_ROOT"
+fi
+
+# Route commands to appropriate script
+case "$1" in
+    # Os_Toolkit commands
+    analyze|query|file|manifest|journal|export|latest|actions|todo|plan|sequence|stats|save|interactive)
+        python3 "$BIN_DIR/Os_Toolkit.py" "$@"
+        ;;
+
+    # Filesync commands
+    timeline|organize|sync|report)
+        python3 "$BIN_DIR/Filesync.py" "$@"
+        ;;
+
+    # Onboarder commands
+    discover|consolidate|catalog|list|info|gui)
+        python3 "$BIN_DIR/onboarder.py" "$@"
+        ;;
+
+    # Convenience aliases
+    morning|startup)
+        python3 "$BIN_DIR/Os_Toolkit.py" sequence startup -z
+        ;;
+
+    checkin)
+        python3 "$BIN_DIR/Os_Toolkit.py" sequence checkin -z
+        ;;
+
+    shutdown|evening)
+        python3 "$BIN_DIR/Os_Toolkit.py" sequence shutdown -z
+        ;;
+
+    menu)
+        python3 "$BIN_DIR/onboarder.py" run-menu
+        ;;
+
+    backup)
+        python3 "$BIN_DIR/Os_Toolkit.py" actions --run backup_core
+        ;;
+
+    sync-todos)
+        python3 "$BIN_DIR/Os_Toolkit.py" actions --run sync_all_todos
+        ;;
+
+    update-memory)
+        python3 "$BIN_DIR/Os_Toolkit.py" actions --run update_memory
+        ;;
+
+    task-gui|tasks)
+        bash "$BABEL_ROOT/babel_data/inventory/task_actions_zenity.sh"
+        ;;
+
+    --version|-v)
+        echo "Babel v0.1.0 - System Unification & Script Binder"
+        ;;
+
+    --help|-h|"")
+        cat << 'EOF'
+Babel - System Unification & Script Binder
+
+USAGE:
+  babel <command> [options]
+
+OS TOOLKIT COMMANDS:
+  analyze       Analyze system
+  query         Query session data
+  file          Analyze specific file
+  latest        Show latest state
+  actions       Manage conformity actions
+  todo          Manage tasks
+  plan          Manage plans
+  sequence      Run coordination sequences
+
+FILESYNC COMMANDS:
+  timeline      View file timeline
+  organize      Organize files
+  sync          Sync file catalogs
+
+ONBOARDER COMMANDS:
+  discover      Discover tools
+  catalog       Generate full system catalog
+  list          List discovered tools
+  menu          Run consolidated tool menu
+
+CONVENIENCE ALIASES:
+  morning       Morning briefing (latest + security + backup)
+  checkin       Workflow audit + mark sync
+  shutdown      Final backup + report
+  backup        Quick backup of core scripts
+  sync-todos    Sync todos across systems
+  update-memory Update session memory
+  task-gui      Task Manager GUI (Zenity)
+
+EXAMPLES:
+  babel latest -z               Show system state (GUI)
+  babel query "Os_Toolkit.py"   Query file
+  babel morning                 Run startup sequence
+  babel catalog                 Full system catalog
+  babel sync-todos              Sync all todos
+
+For detailed help on a command:
+  babel <command> --help
+
+VERSION: 0.1.0
+EOF
+        ;;
+
+    *)
+        echo "Unknown command: $1"
+        echo "Run 'babel --help' for usage"
+        exit 1
+        ;;
+esac

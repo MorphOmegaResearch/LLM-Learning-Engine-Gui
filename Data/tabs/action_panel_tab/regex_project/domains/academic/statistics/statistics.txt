@@ -1,0 +1,10 @@
+\b(p-value|significance|alpha level|confidence interval)\b
+\b(mean|median|mode|standard deviation|variance)\b
+\b(correlation|causation|regression|coefficient)\b
+\b(null hypothesis|alternative hypothesis|type I error|type II error)\b
+\b(independent variable|dependent variable|control variable|covariate)\b
+\b(qualitative|quantitative|mixed-methods|longitudinal|cross-sectional)\b
+\b(random sampling|stratified|bias|validity|reliability)\b
+\b(ANOVA|t-test|chi-square|standard error)\b
+\b(distribution|gaussian|normal|skewness|kurtosis)\b
+\b(sample size|N=|population|outlier)\b

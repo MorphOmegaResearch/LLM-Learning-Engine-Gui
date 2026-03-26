@@ -1,4 +1,3 @@
-# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 import tkinter as tk
 from tkinter import ttk, scrolledtext
 import subprocess

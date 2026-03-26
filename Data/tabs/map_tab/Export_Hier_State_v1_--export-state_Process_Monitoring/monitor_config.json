@@ -1,0 +1,194 @@
+{
+    "integrity": {
+        "verified_hash": "c001f3750012543b59384e5a953a7101f3f4c688325a66a1a473849767664321",
+        "last_verified": "2026-01-26 16:39:12",
+        "file_hashes": {},
+        "config_baseline": {
+            "known_apis": [],
+            "allow": [],
+            "alias": [],
+            "server": []
+        }
+    },
+    "security": {
+        "known_apis": [
+            "api.openai.com",
+            "anthropic.com",
+            "googleapis.com",
+            "github.com",
+            "huggingface.co",
+            "pypi.org",
+            "localhost",
+            "127.0.0.1",
+            "duckduckgo.com",
+            "ddg.gg",
+            "example.com"
+        ],
+        "suspicious_keywords": [
+            "telemetry",
+            "analytics",
+            "tracking",
+            "mixpanel",
+            "segment.io",
+            "sentry",
+            "crashlytics",
+            "eval(",
+            "exec(",
+            "base64.b64decode"
+        ],
+        "allow": [],
+        "alias": [],
+        "server": []
+    },
+    "user_prefs": {
+        "theme": "dark",
+        "show_line_numbers": true,
+        "refresh_rate": 2000,
+        "window_geometry": "1280x800",
+        "ui_dim": {
+            "left_panel": 250,
+            "right_panel": 320,
+            "menu_est_width": 140,
+            "menu_est_height": 150,
+            "standard_offset": 10,
+            "sticky_gap": 5
+        },
+        "hier_colors": {
+            "Import": "#c586c0",
+            "Class": "#ffd93d",
+            "Function": "#6bcb77",
+            "Method": "#4d96ff",
+            "Variable": "#9cdcfe",
+            "String/IP": "#ce9178",
+            "File": "#ffffff"
+        },
+        "context_menu_actions": [
+            {
+                "label": "Route to Editor",
+                "action": "route_to_editor"
+            },
+            {
+                "label": "Route to Hier-View",
+                "action": "route_to_hier"
+            },
+            {
+                "label": "Deep Inspect",
+                "action": "inspect_current_file"
+            },
+            {
+                "label": "Quick Scan",
+                "action": "run_security_scan"
+            },
+            {
+                "label": "Export Context",
+                "action": "export_entity_context"
+            }
+        ],
+        "inspection_config": {
+            "auto_open": true,
+            "show_all_strings": false,
+            "highlight_risks": true,
+            "hover_delay": 500,
+            "enable_hover": true,
+            "indicator_pos": "right",
+            "sticky_bind_selection": true
+        },
+        "brain_map": {
+            "enable_debug": true,
+            "auto_rotate": false,
+            "show_edges": true,
+            "show_labels": true,
+            "start_frozen": true,
+            "live_comms": false,
+            "update_interval_ms": 2000,
+            "show_fps_overlay": true,
+            "sensitivity": 0.5,
+            "zoom_speed": 1.0,
+            "pan_speed": 0.01,
+            "resource_level": 50,
+            "high_perf_mode": false,
+            "fps_target": 30,
+            "region_colors": {
+                " \ud83e\udde0 MY SCRIPTS": "#FF6B6B",
+                " \ud83c\udfa8 GPU & MEDIA": "#95E1D3",
+                " \ud83c\udf10 WEB & COMMS": "#F38181",
+                " \ud83d\udee0\ufe0f  DEV TOOLS": "#4ECDC4",
+                " \ud83d\udc1a TERMINALS": "#AA96DA",
+                " \u2699\ufe0f  SYSTEM / BACKGROUND": "#FFFFD2"
+            }
+        },
+        "process_monitor": {
+            "start_frozen": true,
+            "filters": {
+                "show_categories": [],
+                "hide_categories": [],
+                "hide_system_idle": true,
+                "min_cpu_threshold": 0.1,
+                "min_mem_threshold": 0.1
+            },
+            "alerts": {
+                "cpu_threshold": 80.0,
+                "mem_threshold": 85.0,
+                "enable_notifications": false,
+                "alert_sound": false
+            },
+            "grouping": {
+                "auto_group_children": true,
+                "max_group_size": 50,
+                "collapse_system_groups": true
+            },
+            "safety": {
+                "enable_auto_kill": false,
+                "kill_rules": []
+            }
+        },
+        "logging": {
+            "custom_destination": "",
+            "retention_days": 30,
+            "max_log_size_mb": 100,
+            "auto_cleanup": true,
+            "levels": {
+                "gui": "INFO",
+                "popup": "INFO",
+                "monitor": "INFO",
+                "scanner": "WARNING",
+                "brain_viz": "INFO"
+            },
+            "rotation": {
+                "enabled": true,
+                "when": "midnight",
+                "backup_count": 7
+            }
+        },
+        "editor": {
+            "font": {
+                "family": "Monospace",
+                "size": 11,
+                "weight": "normal"
+            },
+            "behavior": {
+                "tab_width": 4,
+                "use_spaces": true,
+                "auto_indent": true,
+                "line_wrap": false,
+                "auto_save": false,
+                "auto_save_interval": 30
+            },
+            "limits": {
+                "max_file_size_mb": 10,
+                "warn_large_files": true,
+                "large_file_threshold_mb": 5
+            },
+            "syntax": {
+                "theme": "vscode_dark",
+                "enable_highlighting": true
+            }
+        },
+        "automata": {
+            "enable_conflict_resolution": true,
+            "resolution_strategy": "inform",
+            "security_pulse_interval_ms": 10000,
+            "track_intents": true
+        }
+    }
+}

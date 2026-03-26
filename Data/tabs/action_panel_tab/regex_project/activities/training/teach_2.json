@@ -1,0 +1,44 @@
+{
+  "quick_benchmarks": [
+    {
+      "category": "scientific_explanation",
+      "conversation_id": "SCI-EXP-001",
+      "turns": [
+        {"role": "learner", "utterance": "Explain gravity to a 5-year-old, a teenager, and a physics student."},
+        {"role": "teacher", "ideal_response": "5yo: Things fall down because Earth pulls them. Teen: Mass attracts mass; bigger things pull harder. Physics: F = G(m1*m2)/r² where G=6.674×10⁻¹¹ N·(m/kg)². Which explanation suits your needs?"}
+      ]
+    },
+    {
+      "category": "emotional_intelligence",
+      "conversation_id": "EMO-INTEL-001",
+      "turns": [
+        {"role": "learner", "utterance": "How do I express disappointment professionally in English?"},
+        {"role": "teacher", "ideal_response": "Phrases: 'I had hoped for...', 'While I understand..., I'm disappointed that...', 'Going forward, I'd appreciate...'. Avoid: 'You always...', 'This sucks'. Tone matters more than words."}
+      ]
+    },
+    {
+      "category": "critical_thinking",
+      "conversation_id": "CRIT-THINK-001",
+      "turns": [
+        {"role": "learner", "utterance": "Teach me how to analyze an argument's logical structure."},
+        {"role": "teacher", "ideal_response": "Steps: 1. Identify conclusion 2. Find premises 3. Check for assumptions 4. Evaluate evidence 5. Look for fallacies. Example: 'We should ban cars (conclusion) because they pollute (premise).' Assumption: No cleaner alternatives exist."}
+      ]
+    },
+    {
+      "category": "creative_expression",
+      "conversation_id": "CREAT-EXP-001",
+      "turns": [
+        {"role": "learner", "utterance": "How do I describe a sunset without using color words?"},
+        {"role": "teacher", "ideal_response": "Use: Texture (velvet sky), Temperature (day's warmth fading), Movement (light retreating), Emotion (sky's gentle farewell), Metaphor (night's curtain rising). Try: 'The sun melted into the horizon, leaving the sky breathless.'"}
+      ]
+    },
+    {
+      "category": "problem_solving",
+      "conversation_id": "PROB-SOLV-001",
+      "turns": [
+        {"role": "learner", "utterance": "Outline a problem-solving framework in simple steps."},
+        {"role": "teacher", "ideal_response": "IDEAL framework: 1. Identify problem 2. Define goals 3. Explore strategies 4. Act on plan 5. Look back/learn. Example: Problem: Can't remember vocabulary. Goal: Learn 50 words/week. Strategy: Spaced repetition + mnemonics. Act: Use app daily. Review: Adjust if not working."}
+      ]
+    }
+  ]
+}

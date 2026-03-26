@@ -1,0 +1,10 @@
+\b(I'm sorry|I am sorry|sorry)\b
+\b(thank you|thanks|thx|cheers)\b
+\b(I apologize|my apologies)\b
+\b(you're welcome|no problem|my pleasure|don't mention it)\b
+\b(congratulations|congrats)\b
+\b(good luck|all the best)\b
+\b(I'm afraid|regrettably|unfortunately)\b
+\b(excuse me|pardon me)\b
+\b(I appreciate it|I'm grateful)\b
+\b(happy birthday|merry christmas|happy holidays)\b

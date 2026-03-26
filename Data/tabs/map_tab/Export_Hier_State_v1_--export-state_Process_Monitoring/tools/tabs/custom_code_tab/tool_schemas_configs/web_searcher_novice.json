@@ -1,0 +1,9 @@
+{
+  "description": "Tool schema for Web Searcher novice",
+  "type": "web_searcher",
+  "class": "novice",
+  "enabled_tools": {
+    "web_fetch": true
+  },
+  "tools": []
+}

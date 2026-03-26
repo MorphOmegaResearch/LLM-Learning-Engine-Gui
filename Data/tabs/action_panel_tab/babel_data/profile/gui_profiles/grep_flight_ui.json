@@ -1,0 +1,351 @@
+{
+  "timestamp": "2026-02-13T14:12:11.791301",
+  "summary": {
+    "buttons": 34,
+    "labels": 5,
+    "entries": 2,
+    "frames": 11,
+    "listboxes": 0
+  },
+  "structure": {
+    "type": "Frame",
+    "name": "!frame",
+    "children": [
+      {
+        "type": "Frame",
+        "name": "!frame",
+        "visible": 1,
+        "children": [
+          {
+            "type": "Label",
+            "name": "!label",
+            "visible": 1,
+            "children": []
+          },
+          {
+            "type": "Entry",
+            "name": "!entry",
+            "visible": 1,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button",
+            "visible": 1,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button2",
+            "visible": 1,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button3",
+            "visible": 1,
+            "children": []
+          },
+          {
+            "type": "Label",
+            "name": "!label2",
+            "visible": 1,
+            "children": []
+          },
+          {
+            "type": "Entry",
+            "name": "!entry2",
+            "visible": 1,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button4",
+            "visible": 1,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button5",
+            "visible": 1,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button6",
+            "visible": 1,
+            "children": []
+          }
+        ]
+      },
+      {
+        "type": "Frame",
+        "name": "!frame2",
+        "visible": 1,
+        "children": [
+          {
+            "type": "Label",
+            "name": "!label",
+            "visible": 1,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button",
+            "visible": 1,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button2",
+            "visible": 1,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button3",
+            "visible": 1,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button4",
+            "visible": 1,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button5",
+            "visible": 1,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button6",
+            "visible": 1,
+            "children": []
+          },
+          {
+            "type": "Frame",
+            "name": "!frame",
+            "visible": 1,
+            "children": [
+              {
+                "type": "Button",
+                "name": "!button",
+                "visible": 1,
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Frame",
+        "name": "!frame3",
+        "visible": 1,
+        "children": [
+          {
+            "type": "Frame",
+            "name": "!frame",
+            "visible": 1,
+            "children": [
+              {
+                "type": "Frame",
+                "name": "!frame",
+                "visible": 1,
+                "children": [
+                  {
+                    "type": "Button",
+                    "name": "!button",
+                    "visible": 1,
+                    "children": []
+                  },
+                  {
+                    "type": "Button",
+                    "name": "!button2",
+                    "visible": 1,
+                    "children": []
+                  },
+                  {
+                    "type": "Button",
+                    "name": "!button3",
+                    "visible": 1,
+                    "children": []
+                  },
+                  {
+                    "type": "Button",
+                    "name": "!button4",
+                    "visible": 1,
+                    "children": []
+                  },
+                  {
+                    "type": "Button",
+                    "name": "!button5",
+                    "visible": 1,
+                    "children": []
+                  },
+                  {
+                    "type": "Button",
+                    "name": "!button6",
+                    "visible": 1,
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "type": "Frame",
+                "name": "!frame2",
+                "visible": 1,
+                "children": [
+                  {
+                    "type": "Button",
+                    "name": "!button",
+                    "visible": 1,
+                    "children": []
+                  },
+                  {
+                    "type": "Button",
+                    "name": "!button2",
+                    "visible": 1,
+                    "children": []
+                  },
+                  {
+                    "type": "Button",
+                    "name": "!button3",
+                    "visible": 1,
+                    "children": []
+                  },
+                  {
+                    "type": "Frame",
+                    "name": "!frame",
+                    "visible": 1,
+                    "children": [
+                      {
+                        "type": "Button",
+                        "name": "!button",
+                        "visible": 1,
+                        "children": []
+                      },
+                      {
+                        "type": "Label",
+                        "name": "!label",
+                        "visible": 1,
+                        "children": []
+                      },
+                      {
+                        "type": "Button",
+                        "name": "!button2",
+                        "visible": 1,
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Frame",
+        "name": "!frame4",
+        "visible": 1,
+        "children": [
+          {
+            "type": "Label",
+            "name": "!label",
+            "visible": 1,
+            "children": []
+          },
+          {
+            "type": "Frame",
+            "name": "!frame",
+            "visible": 1,
+            "children": [
+              {
+                "type": "Scrollbar",
+                "name": "!scrollbar",
+                "visible": 1,
+                "children": []
+              },
+              {
+                "type": "Text",
+                "name": "!scrolledtext",
+                "visible": 1,
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Frame",
+        "name": "!frame5",
+        "visible": 0,
+        "children": [
+          {
+            "type": "Button",
+            "name": "!button",
+            "visible": 0,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button2",
+            "visible": 0,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button3",
+            "visible": 0,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button4",
+            "visible": 0,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button5",
+            "visible": 0,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button6",
+            "visible": 0,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button7",
+            "visible": 0,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button8",
+            "visible": 0,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button9",
+            "visible": 0,
+            "children": []
+          },
+          {
+            "type": "Button",
+            "name": "!button10",
+            "visible": 0,
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

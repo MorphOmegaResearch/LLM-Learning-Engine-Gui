@@ -1,0 +1,916 @@
+{
+  "verb_system_uname": {
+    "verb_id": "verb_system_uname",
+    "name": "uname",
+    "domain": "system",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "uname",
+      "why": "Operating system artifacts, logs, configurations, and tool behaviors. | System information",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/uname",
+      "when": "2026-02-17T03:27:01.257621",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: -a, -r, -m"
+    },
+    "native_syntax": "uname [options]",
+    "arguments": [
+      "-a",
+      "-r",
+      "-m"
+    ],
+    "options": {
+      "-a": "See documentation",
+      "-r": "See documentation",
+      "-m": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "uname -a",
+      "uname -r"
+    ]
+  },
+  "verb_system_hostname": {
+    "verb_id": "verb_system_hostname",
+    "name": "hostname",
+    "domain": "system",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "hostname",
+      "why": "Operating system artifacts, logs, configurations, and tool behaviors. | Display/set hostname",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/hostname",
+      "when": "2026-02-17T03:27:01.257777",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: "
+    },
+    "native_syntax": "hostname [options]",
+    "arguments": [],
+    "options": {},
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": []
+  },
+  "verb_system_uptime": {
+    "verb_id": "verb_system_uptime",
+    "name": "uptime",
+    "domain": "system",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "uptime",
+      "why": "Operating system artifacts, logs, configurations, and tool behaviors. | System uptime",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/uptime",
+      "when": "2026-02-17T03:27:01.257958",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: "
+    },
+    "native_syntax": "uptime [options]",
+    "arguments": [],
+    "options": {},
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": []
+  },
+  "verb_system_dmesg": {
+    "verb_id": "verb_system_dmesg",
+    "name": "dmesg",
+    "domain": "system",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "dmesg",
+      "why": "Operating system artifacts, logs, configurations, and tool behaviors. | Kernel messages",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/dmesg",
+      "when": "2026-02-17T03:27:01.258095",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: -T, -w"
+    },
+    "native_syntax": "dmesg [options]",
+    "arguments": [
+      "-T",
+      "-w"
+    ],
+    "options": {
+      "-T": "See documentation",
+      "-w": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "dmesg -T",
+      "dmesg -w"
+    ]
+  },
+  "verb_system_shutdown": {
+    "verb_id": "verb_system_shutdown",
+    "name": "shutdown",
+    "domain": "system",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "shutdown",
+      "why": "Operating system artifacts, logs, configurations, and tool behaviors. | Shutdown/reboot",
+      "who": "linux system",
+      "where": "Command path: /usr/sbin/shutdown",
+      "when": "2026-02-17T03:27:01.258215",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: -h, -r, now"
+    },
+    "native_syntax": "shutdown [options]",
+    "arguments": [
+      "-h",
+      "-r",
+      "now"
+    ],
+    "options": {
+      "-h": "See documentation",
+      "-r": "See documentation",
+      "now": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "shutdown -h",
+      "shutdown -r"
+    ]
+  },
+  "verb_system_reboot": {
+    "verb_id": "verb_system_reboot",
+    "name": "reboot",
+    "domain": "system",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "reboot",
+      "why": "Operating system artifacts, logs, configurations, and tool behaviors. | Reboot system",
+      "who": "linux system",
+      "where": "Command path: /usr/sbin/reboot",
+      "when": "2026-02-17T03:27:01.258332",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: "
+    },
+    "native_syntax": "reboot [options]",
+    "arguments": [],
+    "options": {},
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": []
+  },
+  "verb_filesystem_ls": {
+    "verb_id": "verb_filesystem_ls",
+    "name": "ls",
+    "domain": "filesystem",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "ls",
+      "why": "Operating system artifacts, logs, configurations, and tool behaviors. | List directory",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/ls",
+      "when": "2026-02-17T03:27:01.258468",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: -l, -a, -h"
+    },
+    "native_syntax": "ls [options]",
+    "arguments": [
+      "-l",
+      "-a",
+      "-h"
+    ],
+    "options": {
+      "-l": "See documentation",
+      "-a": "See documentation",
+      "-h": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "ls -l",
+      "ls -a"
+    ]
+  },
+  "verb_filesystem_cd": {
+    "verb_id": "verb_filesystem_cd",
+    "name": "cd",
+    "domain": "filesystem",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "cd",
+      "why": "Operating system artifacts, logs, configurations, and tool behaviors. | Change directory",
+      "who": "linux system",
+      "where": "Command path: Unknown",
+      "when": "2026-02-17T03:27:01.258567",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: path"
+    },
+    "native_syntax": "cd [options]",
+    "arguments": [
+      "path"
+    ],
+    "options": {
+      "path": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "cd path"
+    ]
+  },
+  "verb_filesystem_pwd": {
+    "verb_id": "verb_filesystem_pwd",
+    "name": "pwd",
+    "domain": "filesystem",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "pwd",
+      "why": "Operating system artifacts, logs, configurations, and tool behaviors. | Print working directory",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/pwd",
+      "when": "2026-02-17T03:27:01.258719",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: "
+    },
+    "native_syntax": "pwd [options]",
+    "arguments": [],
+    "options": {},
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": []
+  },
+  "verb_filesystem_cp": {
+    "verb_id": "verb_filesystem_cp",
+    "name": "cp",
+    "domain": "filesystem",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "cp",
+      "why": "Operating system artifacts, logs, configurations, and tool behaviors. | Copy files",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/cp",
+      "when": "2026-02-17T03:27:01.258848",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: -r, -v"
+    },
+    "native_syntax": "cp [options]",
+    "arguments": [
+      "-r",
+      "-v"
+    ],
+    "options": {
+      "-r": "See documentation",
+      "-v": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "cp -r",
+      "cp -v"
+    ]
+  },
+  "verb_filesystem_mv": {
+    "verb_id": "verb_filesystem_mv",
+    "name": "mv",
+    "domain": "filesystem",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "mv",
+      "why": "Operating system artifacts, logs, configurations, and tool behaviors. | Move/rename files",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/mv",
+      "when": "2026-02-17T03:27:01.258948",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: "
+    },
+    "native_syntax": "mv [options]",
+    "arguments": [],
+    "options": {},
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": []
+  },
+  "verb_filesystem_rm": {
+    "verb_id": "verb_filesystem_rm",
+    "name": "rm",
+    "domain": "filesystem",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "rm",
+      "why": "Operating system artifacts, logs, configurations, and tool behaviors. | Remove files",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/rm",
+      "when": "2026-02-17T03:27:01.259041",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: -r, -f, -v"
+    },
+    "native_syntax": "rm [options]",
+    "arguments": [
+      "-r",
+      "-f",
+      "-v"
+    ],
+    "options": {
+      "-r": "See documentation",
+      "-f": "See documentation",
+      "-v": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "rm -r",
+      "rm -f"
+    ]
+  },
+  "verb_filesystem_mkdir": {
+    "verb_id": "verb_filesystem_mkdir",
+    "name": "mkdir",
+    "domain": "filesystem",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "mkdir",
+      "why": "Operating system artifacts, logs, configurations, and tool behaviors. | Create directory",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/mkdir",
+      "when": "2026-02-17T03:27:01.259145",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: -p, -v"
+    },
+    "native_syntax": "mkdir [options]",
+    "arguments": [
+      "-p",
+      "-v"
+    ],
+    "options": {
+      "-p": "See documentation",
+      "-v": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "mkdir -p",
+      "mkdir -v"
+    ]
+  },
+  "verb_filesystem_find": {
+    "verb_id": "verb_filesystem_find",
+    "name": "find",
+    "domain": "filesystem",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "find",
+      "why": "Operating system artifacts, logs, configurations, and tool behaviors. | Find files",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/find",
+      "when": "2026-02-17T03:27:01.259268",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: -name, -type, -exec"
+    },
+    "native_syntax": "find [options]",
+    "arguments": [
+      "-name",
+      "-type",
+      "-exec"
+    ],
+    "options": {
+      "-name": "See documentation",
+      "-type": "See documentation",
+      "-exec": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "find -name",
+      "find -type"
+    ]
+  },
+  "verb_filesystem_grep": {
+    "verb_id": "verb_filesystem_grep",
+    "name": "grep",
+    "domain": "filesystem",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "grep",
+      "why": "Operating system artifacts, logs, configurations, and tool behaviors. | Search text",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/grep",
+      "when": "2026-02-17T03:27:01.259358",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: -r, -i, -n"
+    },
+    "native_syntax": "grep [options]",
+    "arguments": [
+      "-r",
+      "-i",
+      "-n"
+    ],
+    "options": {
+      "-r": "See documentation",
+      "-i": "See documentation",
+      "-n": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "grep -r",
+      "grep -i"
+    ]
+  },
+  "verb_process_ps": {
+    "verb_id": "verb_process_ps",
+    "name": "ps",
+    "domain": "process",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "ps",
+      "why": "Process status",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/ps",
+      "when": "2026-02-17T03:27:01.259449",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: aux, -ef"
+    },
+    "native_syntax": "ps [options]",
+    "arguments": [
+      "aux",
+      "-ef"
+    ],
+    "options": {
+      "aux": "See documentation",
+      "-ef": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "ps aux",
+      "ps -ef"
+    ]
+  },
+  "verb_process_top": {
+    "verb_id": "verb_process_top",
+    "name": "top",
+    "domain": "process",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "top",
+      "why": "Interactive process viewer",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/top",
+      "when": "2026-02-17T03:27:01.259540",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: "
+    },
+    "native_syntax": "top [options]",
+    "arguments": [],
+    "options": {},
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": []
+  },
+  "verb_process_kill": {
+    "verb_id": "verb_process_kill",
+    "name": "kill",
+    "domain": "process",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "kill",
+      "why": "Terminate process",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/kill",
+      "when": "2026-02-17T03:27:01.259666",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: -9, -15"
+    },
+    "native_syntax": "kill [options]",
+    "arguments": [
+      "-9",
+      "-15"
+    ],
+    "options": {
+      "-9": "See documentation",
+      "-15": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "kill -9",
+      "kill -15"
+    ]
+  },
+  "verb_process_pkill": {
+    "verb_id": "verb_process_pkill",
+    "name": "pkill",
+    "domain": "process",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "pkill",
+      "why": "Kill by name",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/pkill",
+      "when": "2026-02-17T03:27:01.259786",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: "
+    },
+    "native_syntax": "pkill [options]",
+    "arguments": [],
+    "options": {},
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": []
+  },
+  "verb_process_nice": {
+    "verb_id": "verb_process_nice",
+    "name": "nice",
+    "domain": "process",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "nice",
+      "why": "Set priority",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/nice",
+      "when": "2026-02-17T03:27:01.259932",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: -n"
+    },
+    "native_syntax": "nice [options]",
+    "arguments": [
+      "-n"
+    ],
+    "options": {
+      "-n": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "nice -n"
+    ]
+  },
+  "verb_process_renice": {
+    "verb_id": "verb_process_renice",
+    "name": "renice",
+    "domain": "process",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "renice",
+      "why": "Change priority",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/renice",
+      "when": "2026-02-17T03:27:01.260047",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: "
+    },
+    "native_syntax": "renice [options]",
+    "arguments": [],
+    "options": {},
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": []
+  },
+  "verb_hardware_lspci": {
+    "verb_id": "verb_hardware_lspci",
+    "name": "lspci",
+    "domain": "hardware",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "lspci",
+      "why": "PCI devices",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/lspci",
+      "when": "2026-02-17T03:27:01.260172",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: -v, -k"
+    },
+    "native_syntax": "lspci [options]",
+    "arguments": [
+      "-v",
+      "-k"
+    ],
+    "options": {
+      "-v": "See documentation",
+      "-k": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "lspci -v",
+      "lspci -k"
+    ]
+  },
+  "verb_hardware_lsusb": {
+    "verb_id": "verb_hardware_lsusb",
+    "name": "lsusb",
+    "domain": "hardware",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "lsusb",
+      "why": "USB devices",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/lsusb",
+      "when": "2026-02-17T03:27:01.260266",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: -v"
+    },
+    "native_syntax": "lsusb [options]",
+    "arguments": [
+      "-v"
+    ],
+    "options": {
+      "-v": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "lsusb -v"
+    ]
+  },
+  "verb_hardware_lscpu": {
+    "verb_id": "verb_hardware_lscpu",
+    "name": "lscpu",
+    "domain": "hardware",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "lscpu",
+      "why": "CPU information",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/lscpu",
+      "when": "2026-02-17T03:27:01.260394",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: "
+    },
+    "native_syntax": "lscpu [options]",
+    "arguments": [],
+    "options": {},
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": []
+  },
+  "verb_hardware_lsblk": {
+    "verb_id": "verb_hardware_lsblk",
+    "name": "lsblk",
+    "domain": "hardware",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "lsblk",
+      "why": "Block devices",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/lsblk",
+      "when": "2026-02-17T03:27:01.260518",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: "
+    },
+    "native_syntax": "lsblk [options]",
+    "arguments": [],
+    "options": {},
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": []
+  },
+  "verb_hardware_free": {
+    "verb_id": "verb_hardware_free",
+    "name": "free",
+    "domain": "hardware",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "free",
+      "why": "Memory usage",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/free",
+      "when": "2026-02-17T03:27:01.260633",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: -h, -m"
+    },
+    "native_syntax": "free [options]",
+    "arguments": [
+      "-h",
+      "-m"
+    ],
+    "options": {
+      "-h": "See documentation",
+      "-m": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "free -h",
+      "free -m"
+    ]
+  },
+  "verb_hardware_dmidecode": {
+    "verb_id": "verb_hardware_dmidecode",
+    "name": "dmidecode",
+    "domain": "hardware",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "dmidecode",
+      "why": "DMI table decoder",
+      "who": "linux system",
+      "where": "Command path: /usr/sbin/dmidecode",
+      "when": "2026-02-17T03:27:01.260750",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: -t"
+    },
+    "native_syntax": "dmidecode [options]",
+    "arguments": [
+      "-t"
+    ],
+    "options": {
+      "-t": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "dmidecode -t"
+    ]
+  },
+  "verb_network_ip": {
+    "verb_id": "verb_network_ip",
+    "name": "ip",
+    "domain": "network",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "ip",
+      "why": "Network configuration",
+      "who": "linux system",
+      "where": "Command path: /usr/sbin/ip",
+      "when": "2026-02-17T03:27:01.260840",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: addr, link, route"
+    },
+    "native_syntax": "ip [options]",
+    "arguments": [
+      "addr",
+      "link",
+      "route"
+    ],
+    "options": {
+      "addr": "See documentation",
+      "link": "See documentation",
+      "route": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "ip addr",
+      "ip link"
+    ]
+  },
+  "verb_network_ifconfig": {
+    "verb_id": "verb_network_ifconfig",
+    "name": "ifconfig",
+    "domain": "network",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "ifconfig",
+      "why": "Interface configuration",
+      "who": "linux system",
+      "where": "Command path: Unknown",
+      "when": "2026-02-17T03:27:01.260946",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: "
+    },
+    "native_syntax": "ifconfig [options]",
+    "arguments": [],
+    "options": {},
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": []
+  },
+  "verb_network_netstat": {
+    "verb_id": "verb_network_netstat",
+    "name": "netstat",
+    "domain": "network",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "netstat",
+      "why": "Network statistics",
+      "who": "linux system",
+      "where": "Command path: Unknown",
+      "when": "2026-02-17T03:27:01.261104",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: -tulpn, -r"
+    },
+    "native_syntax": "netstat [options]",
+    "arguments": [
+      "-tulpn",
+      "-r"
+    ],
+    "options": {
+      "-tulpn": "See documentation",
+      "-r": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "netstat -tulpn",
+      "netstat -r"
+    ]
+  },
+  "verb_network_ss": {
+    "verb_id": "verb_network_ss",
+    "name": "ss",
+    "domain": "network",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "ss",
+      "why": "Socket statistics",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/ss",
+      "when": "2026-02-17T03:27:01.261255",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: -tulpn"
+    },
+    "native_syntax": "ss [options]",
+    "arguments": [
+      "-tulpn"
+    ],
+    "options": {
+      "-tulpn": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "ss -tulpn"
+    ]
+  },
+  "verb_network_ping": {
+    "verb_id": "verb_network_ping",
+    "name": "ping",
+    "domain": "network",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "ping",
+      "why": "Network connectivity",
+      "who": "linux system",
+      "where": "Command path: /usr/bin/ping",
+      "when": "2026-02-17T03:27:01.261363",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: -c, -i"
+    },
+    "native_syntax": "ping [options]",
+    "arguments": [
+      "-c",
+      "-i"
+    ],
+    "options": {
+      "-c": "See documentation",
+      "-i": "See documentation"
+    },
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": [
+      "ping -c",
+      "ping -i"
+    ]
+  },
+  "verb_network_traceroute": {
+    "verb_id": "verb_network_traceroute",
+    "name": "traceroute",
+    "domain": "network",
+    "os_type": "linux",
+    "sixw1h": {
+      "what": "traceroute",
+      "why": "Trace network route",
+      "who": "linux system",
+      "where": "Command path: Unknown",
+      "when": "2026-02-17T03:27:01.261484",
+      "which": "level_1_graphology (capitalization_start)",
+      "how": "Arguments: "
+    },
+    "native_syntax": "traceroute [options]",
+    "arguments": [],
+    "options": {},
+    "equivalents": {},
+    "dependencies": [],
+    "required_permissions": [],
+    "examples": []
+  }
+}

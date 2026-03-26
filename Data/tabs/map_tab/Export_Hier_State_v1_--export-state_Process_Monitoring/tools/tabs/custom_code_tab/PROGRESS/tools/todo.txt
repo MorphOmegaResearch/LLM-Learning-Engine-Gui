@@ -1,0 +1,1075 @@
+ Investigation Plan: Tool System Coherence
+
+  1. Tool Registration Consistency
+
+  Check: Are all tools registered in all necessary locations?
+
+  Where to look:
+  - tools.py line ~1145 - ToolManager.tools dict (tool class instances)
+  - tools.py line ~1238 - tool_definitions dict (schemas for model)
+  - tool_orchestrator.py line ~100 - risk_profiles dict (risk assessment)
+  - config.yaml line ~135 - tools.enabled list (runtime enablement)
+
+  Why: If a tool exists in one place but not others, the model might be told
+   about it but can't execute it (or vice versa), causing failures.
+
+  ---
+  2. Tool Call Detection & Parsing
+
+  Check: Can all tool call formats be detected and parsed correctly?
+
+  Where to look:
+  - interactive.py line ~3225 - Tool call detection (LangChain adapter
+  first, then format_translator)
+  - langchain_adapter_simple.py line ~50 - parse_and_validate()
+  multi-strategy parsing
+  - format_translator.py - Fallback parser for quirky formats
+  - interactive.py line ~90 - _extract_one_line_json_ENHANCED() JSON
+  extraction
+
+  Why: If parser can't recognize a tool call format the model uses, tool
+  execution fails even though model followed instructions.
+
+  ---
+  3. Tool Execution Flow
+
+  Check: When model calls a tool, does it go through proper validation and
+  execution?
+
+  Where to look:
+  - interactive.py line ~3270 - After parsing, tool_call is extracted
+  - tools.py line ~1566 - execute_tool() method (validation, caching, retry,
+   confirmation)
+  - tool_orchestrator.py line ~743 - validate_tool_call() (parameter
+  validation, risk assessment)
+  - interactive.py line ~424 - _format_tool_result_as_text() (plain text
+  result formatting)
+
+  Why: Tool must be validated, executed with proper
+  permissions/confirmations, and results must be formatted so model can
+  understand them.
+
+  ---
+  4. Tool Chains: Detection
+
+  Check: Are tool chains properly detected vs single tool calls?
+
+  Where to look:
+  - interactive.py line ~3273 - _extract_one_line_json_ENHANCED(response, 
+  "tool_chain")
+  - interactive.py line ~3500 - Multiple tool_call detection via regex
+  pattern
+  - config.yaml line ~129 - System prompt CHAINING POLICY rules
+
+  Why: Model needs to know which operations can be chained (safe) vs must be
+   sequential (unsafe). Misdetection causes execution errors.
+
+  ---
+  5. Tool Chains: Individual Tool Handling
+
+  Check: In a chain, is each tool validated and executed independently?
+
+  Where to look:
+  - interactive.py line ~3334 - Building tool_calls_to_execute list from
+  chain
+  - tool_orchestrator.py line ~574 - _execute_sequential() - executes chain
+  tools one by one
+  - tool_orchestrator.py line ~589 - Individual tool execution with
+  try/catch per step
+  - interactive.py line ~4018 - Auto-chain result formatting (separate
+  results per tool)
+
+  Why: Each tool in chain must be validated independently. If one fails,
+  chain should stop gracefully and report which step failed.
+
+  ---
+  6. Tool Chains: Auto-Chaining Logic
+
+  Check: Which tools trigger auto-chaining and under what conditions?
+
+  Where to look:
+  - config.yaml line ~37 - auto_chain: true setting
+  - config.yaml line ~129 - Safe chains: file_search → file_read, 
+  directory_list → file_read
+  - interactive.py line ~3930 - Auto-chain execution after file_search
+  - interactive.py line ~4018 - Combining initial + chained results
+
+  Why: Auto-chains must ONLY trigger for safe read operations. Chaining
+  destructive operations (write/delete) without confirmation would be
+  dangerous.
+
+  ---
+  7. Tool Chains: Result Communication
+
+  Check: Do chain results get sent back to model in understandable format?
+
+  Where to look:
+  - interactive.py line ~4018-4058 - Plain text formatting for chains
+  - interactive.py line ~424 - _format_tool_result_as_text() per-tool
+  formatting
+  - Result shows: Step numbers, STATUS indicators, [AUTO-CHAIN] markers
+
+  Why: Model must see EACH step's result clearly to understand what happened
+   and use the information. Nested JSON was causing model blindness.
+
+  ---
+  8. Tool Confirmation Gates
+
+  Check: Do tools requiring confirmation actually prompt user?
+
+  Where to look:
+  - tool_orchestrator.py line ~128 - confirmation_rules mapping risk → gate
+  type
+  - tool_orchestrator.py line ~555 - _get_user_confirmation() user prompt
+  - tools.py ThinkTimeTool line ~1107 - Explicit Confirm.ask() in think_time
+  - config.yaml line ~36 - confirmation_level: MEDIUM setting
+
+  Why: MEDIUM/HIGH risk tools (file_delete, bash_execute, think_time) must
+  get user approval before executing. Silent execution would be dangerous.
+
+  ---
+  9. Tool Schema → Model Communication
+
+  Check: Do schemas sent to model match what tools actually expect?
+
+  Where to look:
+  - tools.py line ~1238 - tool_definitions schemas (what model sees)
+  - Tool class execute() method signatures (what tool actually accepts)
+  - interactive.py line ~1590 - Schema injection into {available_tools}
+  - /tools --verbose output (user can verify schemas)
+
+  Why: If schema says parameter is "file_path" but tool expects "path",
+  model calls fail even with correct intent.
+
+  ---
+  10. Tool Timing & Budgets
+
+  Check: Are tool timeouts and think_time budgets enforced?
+
+  Where to look:
+  - tool_orchestrator.py line ~464 - TimeBudget creation for operations
+  - tool_orchestrator.py line ~578 - Budget checking before each operation
+  - tools.py ThinkTimeTool line ~1096 - Validates seconds range (30-900)
+  - tools.py line ~1123 - Returns resource_level: 75 for think mode
+
+  Why: Tools must complete within time budgets. think_time must allocate
+  proper inference timeout or model gets cut off mid-analysis.
+
+  ---
+  11. Tool Error Handling & Retry
+
+  Check: When tools fail, are errors communicated and retries attempted?
+
+  Where to look:
+  - config.yaml line ~32 - auto_retry: true and max_retries: 2
+  - tools.py line ~1566 - execute_tool() retry logic
+  - tool_orchestrator.py line ~602 - Exception handling in sequential
+  execution
+  - interactive.py line ~424 - _format_tool_result_as_text() includes ERROR
+  field
+
+  Why: Transient failures (network, file locks) should retry. Permanent
+  failures must be clearly reported to model so it can try alternative
+  approach.
+
+  ---
+  12. Conflict: Multiple Tool Detection Systems
+
+  Check: Are there conflicting tool detection paths?
+
+  Where to look:
+  - interactive.py line ~3225 - LangChain adapter parsing
+  - interactive.py line ~3270 - format_translator fallback
+  - interactive.py line ~3273 - tool_chain detection
+  - interactive.py line ~3500 - Multiple tool_call regex
+
+  Why: If multiple detection systems try to handle same input differently,
+  could cause duplicate execution or missed tools.
+
+  ---
+  13. Conflict: Tool Result Formatting
+
+  Check: Is there consistent result formatting across all execution paths?
+
+  Where to look:
+  - interactive.py line ~424 - _format_tool_result_as_text() function
+  - interactive.py line ~4018 - Auto-chain result formatting
+  - interactive.py line ~3900 - Single tool result sending
+  - Tool classes - Individual ToolResult returns
+
+  Why: If some paths return nested JSON and others plain text, model gets
+  inconsistent data and can't parse results reliably.
+
+  ---
+  14. System Prompt ↔ Tool Reality Mismatch
+
+  Check: Does system prompt accurately describe tool capabilities?
+
+  Where to look:
+  - config.yaml line ~111 - Tool count claim: "20 enabled"
+  - config.yaml line ~112-115 - Listed tools
+  - config.yaml line ~135 - Actual enabled list
+  - config.yaml line ~117-121 - Example tool calls
+
+  Why: If prompt says "11 tools" but there are 20, or examples show wrong
+  format, model gets confused and makes malformed calls.
+
+  ---
+  15. Validator Integration
+
+  Check: Where is tool call validation happening and is it consistent?
+
+  Where to look:
+  - tool_orchestrator.py line ~743 - validate_tool_call() main validation
+  - tool_schema_validator.py or tool_schema_validator_v2.py - Schema-based
+  validation (if used)
+  - tools.py line ~1568 - Enabled check before execution
+
+  Why: Validation must happen BEFORE execution to catch parameter errors,
+  unknown tools, disabled tools. Multiple validators could conflict or one
+  might be bypassed.
+---------------------------------------------------------
+/prompt - Shows current system prompt (from config.yaml)
+
+  /prompt <custom text> - Sets temporary prompt, REPLACES config prompt
+  - Does NOT automatically inject {available_tools}
+  - Model won't see tool schemas unless YOU manually include them in your
+  custom prompt
+
+  /prompt enable/disable - Toggles whether system prompt is used at all
+
+  Tool schema injection:
+
+  Tool schemas are controlled by /tools prompt enable/disable, which sets
+  tools_prompt_enabled flag.
+
+  If tools_prompt_enabled = True:
+  - System prompt gets {available_tools} replaced with JSON schemas
+  - Works with BOTH config.yaml prompt AND custom /prompt <text>
+
+  So if you want tools in a custom prompt:
+  /prompt You are a helpful assistant. Available tools: {available_tools}
+  The {available_tools} placeholder will be replaced with the JSON schemas
+  IF /tools prompt is enabled.
+
+  TL;DR: /prompt sets the template, /tools prompt controls whether schemas
+  get injected into that template.
+
+
+
+
+
+The Flow:
+
+  1. Add tool to config.yaml enabled list:
+  tools:
+    enabled:
+      - new_tool_name
+  2. Create the tool class in tools.py:
+  class NewToolTool(BaseTool):
+      async def execute(self, param1: str) -> ToolResult:
+          # implementation
+  3. Register in ToolManager (tools.py line ~1145):
+  self.tools = {
+      ...
+      "new_tool_name": NewToolTool(config),
+  }
+  4. Add schema definition in tool_definitions dict (tools.py line ~1238):
+  tool_definitions = {
+      ...
+      "new_tool_name": {
+          "type": "function",
+          "function": {
+              "name": "new_tool_name",
+              "description": "What the tool does",
+              "parameters": {
+                  "type": "object",
+                  "properties": {
+                      "param1": {"type": "string", "description": "..."}
+                  },
+                  "required": ["param1"]
+              }
+          }
+      }
+  }
+
+  Then /tools --verbose will automatically show it because:
+  - It calls lc_adapter.get_tool_schemas_for_model()
+  - Which calls tool_manager.get_tool_schemas()
+  - Which filters tool_definitions by get_available_tools()
+  - Which checks what's in config.enabled
+
+one more step:
+
+  Complete 5-Step Process for Adding a New Tool:
+
+  1. Create tool class in tools.py
+  2. Register in ToolManager.tools dict (tools.py ~line 1145)
+  3. Add to config.yaml enabled list
+  4. Add schema in tool_definitions dict (tools.py ~line 1238)
+  5. Add to tool_orchestrator risk profiles (tool_orchestrator.py ~line 100)
+  self.risk_profiles = {
+      ...
+      'new_tool_name': ToolRiskLevel.MEDIUM,  # or SAFE/LOW/HIGH/CRITICAL
+  }
+
+  Optional but recommended:
+  6. Add to system prompt example (config.yaml ~line 117) - so model knows
+  it exists
+  7. Update system prompt tool count (config.yaml line 111) - increment the
+  number
+
+
+
+
+---------------------------------------------------------
+RANDOM THINGS ON THE TODO LIST (some done, some not, some worse, oops)
+
+  🔴 CRITICAL - Must Fix Before Testing (From Your Log)
+
+  1. System Prompt Python Signatures - 
+    - Fixed in: config.yaml, site-packages/config.yaml, config.py
+    - Action needed: Test to confirm new prompt is used and functional
+  2. Translator 'content' Parameter - Added to filter but need to test
+    - Added 'content' to noise_params filter
+    - Action needed: Run test to verify it's blocked
+  3. Double Model Invocation - tools must call and present to the model gracefully in sequence
+       or timed chain results with consideration to conversaion history and context systems.
+
+  ---
+  🟡 HIGH PRIORITY - Critical Improvements
+
+  4. Schema Validation - Prevent invalid parameters reaching tools
+    - Build TOOL_SCHEMAS dict with valid parameters
+    - Add validate_tool_args() before execution
+    - Reject calls with unknown parameters
+  5. Python Format Detection - Catch before parsing
+    - Implement looks_like_python_code()
+    - Reject tool_name(param="value") format early
+    - Guide model back to JSON format
+  6. Edit Button Implementation - Complete the conformer
+    - Allow manual parameter editing
+    - Re-validate before execution
+
+  ---
+  🟢 MEDIUM PRIORITY - Reliability & Recovery
+
+  7. Retry Logic & Circuit Breaker
+    - Smart retry strategies (different args, different tool)
+    - Circuit breaker after N failures
+    - Backoff timing
+  8. Hallucination Detection
+    - Build whitelist from actual tool signatures
+    - Log which params get rejected most
+    - Dynamic filter updates
+
+  ---
+  🔵 LOW PRIORITY - System Robustness
+
+  9. Safe Mode Fixes
+    - Investigate crash triggers
+    - Unify config loading
+    - Same config/model in safe mode
+    - Announce changes to user
+  10. Type Safety & Validation
+    - Make task_type required (no defaults)
+    - Use TypedDict for parameters
+    - Runtime validation
+  11. Exception Handling Audit
+    - Top-level try/catch in main loop
+    - Proper cleanup on exit
+    - Health checks
+  12. Monitoring & Diagnostics
+    - Track failure patterns
+    - Log hallucinated parameters
+    - Performance metrics
+
+  ---
+  🧪 TESTING REQUIRED
+
+  13. Verify Our Fixes Work
+    - System prompt: No Python signatures in output
+    - Translator: 'content' parameter blocked
+    - No double invocation on failure
+    - Remediation conformer displays correctly
+    - Retry button executes corrected call
+    - Cancel button stops execution
+
+  ---
+  🎯 RECOMMENDED ORDER
+
+  Next 5 Tasks:
+  1. TEST: Run with your original query to verify fixes work
+  2. Schema Validation: Build tool schemas & validator
+  3. Python Detector: Catch wrong format before parsing
+  4. Edit Button: Complete conformer functionality
+  5. Circuit Breaker: Prevent infinite retry loops
+
+  Total Items: 34 remaining (13 critical fixes + 21 enhancements)
+
+  What should we tackle first? I recommend running a test to verify our
+  fixes work before adding more features.
+
+  Todos
+  ☐ BUG: System prompt still shows Python signatures in debug output
+  ☐ BUG: Translator still extracting 'content' parameter
+  ☐ BUG: Double model invocation on tool failure
+  ☐ TODO: Implement Edit button for manual parameter correction
+  ☐ TODO: Add JSON schema validation before tool execution
+  ☐ TODO: Build TOOL_SCHEMAS dict with parameter definitions
+  ☐ TODO: Add model output pre-validation (detect Python format)
+  ☐ TODO: Implement looks_like_python_code() validator
+  ☐ TODO: Reject Python syntax before parsing
+  ☐ TODO: Add retry logic with intelligent strategies
+  ☐ TODO: Implement circuit breaker for repeated failures
+  ☐ TODO: Build dynamic parameter whitelist from tool signatures
+  ☐ TODO: Add hallucination detection for invalid parameters
+  ☐ TODO: Log rejected parameters for analysis
+  ☐ TODO: Audit safe mode trigger conditions
+  ☐ TODO: Investigate launcher code for safe mode logic
+  ☐ TODO: Source config loading ()
+  ☐ TODO: Make safe mode use same config as normal mode
+  ☐ TODO: Add config validation on load
+  ☐ TODO: Remove hardcoded fallback configs
+  ☐ TODO: Announce model changes explicitly to user
+  ☐ TODO: Add user confirmation for model switches
+  ☐ TODO: Make task_type a required parameter
+  ☐ TODO: Use TypedDict or dataclass for generation parameters
+  ☐ TODO: Add runtime validation for critical parameters
+  ☐ TODO: Audit ALL exception handlers for proper cleanup
+  ☐ TODO: Add top-level try/catch in main loop
+  ☐ TODO: Implement proper cleanup on exit/interrupt
+  ☐ TODO: Add health checks for system components
+  ☐ TODO: Track failure patterns for diagnostics
+  ☐ TODO: Monitor which parameters models hallucinate most
+  ☐ TEST: End-to-end test of remediation conformer
+  ☐ TEST: Verify system prompt fixes with actual model
+  ☐ TEST: Verify translator filter blocks 'content'
+  ☐ TEST: Verify no double invocation on tool failure
+---------------------------
+
+Critical user interfacing issues-
+
+-Crtl + o : Displays are not tied to "hide/display" functions and
+   mearly display place holder control.print lines.
+
+-
+
+
+✦ Of course, Commander. Here are 10 refinement methods tailored to 
+  improving our agent's intelligence and efficiency:
+
+   1. Dynamic Context Sizing: Instead of just incrementing, the context 
+      size could shrink when the topic changes (detected via semantic 
+      similarity) and expand when the conversation deepens, making it truly
+       adaptive.
+
+   2. Stateful System Prompts: The system prompt itself could be 
+      dynamically rebuilt based on the current task. For example, if you 
+      start a coding task, the prompt would be injected with specific 
+      instructions about coding standards, file structure, and relevant 
+      APIs for that project.
+
+   3. Confidence-Based Routing Gates: Instead of a simple threshold, 
+      routing decisions could be based on a combination of confidence 
+      score, query complexity, and the history of recent actions. A 
+      low-confidence route would trigger a clarification question rather 
+      than a potentially wrong action.
+
+   4. Automated Prompt Refinement (RLHF): We can implement a mechanism 
+      where your corrections directly contribute to refining the system 
+      prompt. When you say "that's not what I wanted," the system could ask
+       for the correct approach and use that feedback to create a new 
+      version of the prompt for future use.
+
+   5. Proactive Action Suggestions: The agent could anticipate your next 
+      move. For example, after a file_search returns a list of files, it 
+      could analyze the file names and your initial query to proactively 
+      suggest reading the most relevant one, rather than waiting for your 
+      command.
+
+   6. User Profile for Personalization: The agent can build a profile of 
+      your preferences. It could learn your preferred coding style, 
+      frequently used commands, and common project directories, leading to 
+      more personalized and efficient interactions. I can use my 
+      save_memory tool for this.
+
+   7. "Mixture of Experts" Model Strategy: We can use a multi-model 
+      approach. A small, fast model for simple tasks like routing and 
+      intent recognition, and a larger, more capable model for complex 
+      reasoning and code generation. This would optimize both speed and 
+      quality.
+
+   8. Intelligent Error Recovery: When a tool fails, the agent could 
+      automatically analyze the error and attempt to fix it. For example, 
+      if a file_not_found error occurs, it could trigger a file_search to 
+      locate the correct path.
+
+   9. Long-Term Project Memory: We can build a persistent memory for each 
+      project. When you switch projects, the agent would load a summary of 
+      key files, architectural decisions, and past conversations related to
+       that project, giving it immediate and relevant context.
+
+   10. Tool Discovery and Learning: The agent could be empowered to 
+       "discover" new tools. By providing it with documentation for a new 
+       tool, it could learn the tool's purpose, arguments, and how to use 
+       it, expanding its own capabilities over time.
+
+
+ DECISION TREE & HOOK SYSTEM
+
+  ---
+  PHASE 1: INPUT ANALYSIS (Before Model Call)
+
+  def prepare_system_prompt(user_input: str, history: ConversationHistory) 
+  -> dict:
+      """
+      Analyze input and return system prompt configuration
+      
+      Returns:
+          {
+              'prompt_level': 'minimal'|'contextual'|'full',
+              'prompt_text': str,
+              'reasoning': str,
+              'hooks_triggered': []
+          }
+      """
+
+      hooks_triggered = []
+
+      # ============ HOOK 1: CHAT DETECTION ============
+      if _detect_pure_chat(user_input):
+          hooks_triggered.append('CHAT_MODE')
+          return {
+              'prompt_level': 'minimal',
+              'prompt_text': _get_minimal_prompt(),
+              'reasoning': 'Pure chat detected - no tools needed',
+              'hooks_triggered': hooks_triggered
+          }
+
+      # ============ HOOK 2: PROJECT STATE CHECK ============
+      in_project = history.current_project_file is not None
+      if in_project:
+          hooks_triggered.append('IN_PROJECT')
+
+      # ============ HOOK 3: TOOL USAGE HISTORY ============
+      recent_tool_use = history.tools_used_in_last_n_turns(3)
+      if recent_tool_use:
+          hooks_triggered.append('RECENT_TOOLS')
+
+      # ============ HOOK 4: CONTINUATION DETECTION ============
+      if _is_continuation_phrase(user_input) and recent_tool_use:
+          hooks_triggered.append('CONTINUATION')
+          return {
+              'prompt_level': 'full',
+              'prompt_text': _get_full_prompt() +
+  _get_project_context(history),
+              'reasoning': 'Continuation of tool work detected',
+              'hooks_triggered': hooks_triggered
+          }
+
+      # ============ HOOK 5: EXPLICIT TOOL REQUEST ============
+      if _has_tool_keywords(user_input):
+          hooks_triggered.append('EXPLICIT_TOOL_REQUEST')
+          return {
+              'prompt_level': 'full',
+              'prompt_text': _get_full_prompt() +
+  _get_project_context(history),
+              'reasoning': 'Explicit tool/file reference detected',
+              'hooks_triggered': hooks_triggered
+          }
+
+      # ============ HOOK 6: CONTEXTUAL QUESTION ============
+      if _is_question(user_input) and in_project:
+          hooks_triggered.append('PROJECT_QUESTION')
+          return {
+              'prompt_level': 'contextual',
+              'prompt_text': _get_minimal_prompt() +
+  _get_project_context(history),
+              'reasoning': 'Question about current project - light context',
+              'hooks_triggered': hooks_triggered
+          }
+
+      # ============ HOOK 7: DEFAULT FALLBACK ============
+      if in_project:
+          hooks_triggered.append('PROJECT_DEFAULT')
+          return {
+              'prompt_level': 'contextual',
+              'prompt_text': _get_minimal_prompt() +
+  _get_project_context(history),
+              'reasoning': 'In project - maintain context',
+              'hooks_triggered': hooks_triggered
+          }
+      else:
+          hooks_triggered.append('IDLE_DEFAULT')
+          return {
+              'prompt_level': 'minimal',
+              'prompt_text': _get_minimal_prompt(),
+              'reasoning': 'Idle state - minimal prompt',
+              'hooks_triggered': hooks_triggered
+          }
+
+  ---
+  HOOK TRIGGERS - WHAT EACH ONE DOES
+
+  Hook 1: CHAT_MODE
+
+  Triggers when: text.startswith(('hey', 'hi', 'btw', 'thanks')) OR text in 
+  ['yes', 'no', 'ok', 'cool']
+
+  What it does:
+  # System Prompt: MINIMAL (50 tokens)
+  system_prompt = """
+  You are an AI programming assistant.
+  Respond conversationally and helpfully.
+  """
+
+  # Resource Allocation
+  resources = 25%  # Minimal
+  context_tokens = 2048  # Small
+
+  # Expected Speed
+  first_request: ~1s
+  cached: ~0.3s
+
+  Example:
+  User: "hey how are you"
+  → CHAT_MODE triggered
+  → Prompt: 50 tokens
+  → Speed: 0.5s ✅
+
+  ---
+  Hook 2: IN_PROJECT
+
+  Triggers when: history.current_project_file != None
+
+  What it does:
+  # Updates state
+  project_active = True
+
+  # Influences other hooks
+  # - Makes questions tool-relevant
+  # - Keeps context warm
+  # - Biases toward tools available
+
+  Example:
+  State: current_project_file = "login.py"
+  User: "what does that function do?"
+  → IN_PROJECT triggered
+  → Combines with PROJECT_QUESTION hook
+  → Result: Contextual prompt with project info
+
+  ---
+  Hook 3: RECENT_TOOLS
+
+  Triggers when: any(entry.tool_calls for entry in history.last_3_entries())
+
+  What it does:
+  # Flag that tools were just used
+  tools_warm = True
+
+  # Influences decisions
+  # - Continuations likely need tools
+  # - "that" and "it" refer to tool results
+  # - Keep tool definitions cached
+
+  # Cache hint to Ollama
+  keep_tool_context_warm = True
+
+  Example:
+  Turn N-1: file_read(login.py) executed
+  Turn N: User says "now modify it"
+  → RECENT_TOOLS triggered
+  → "it" = login.py (from recent tool use)
+  → Full prompt with tools loaded
+
+  ---
+  Hook 4: CONTINUATION
+
+  Triggers when: _is_continuation_phrase(text) AND recent_tool_use
+
+  Continuation phrases:
+  - "now", "next", "then", "also", "continue", "keep going"
+  - "do that", "same thing", "it", "that", "this"
+
+  What it does:
+  # System Prompt: FULL (650 tokens) + PROJECT CONTEXT
+  system_prompt = f"""
+  {FULL_WORKFLOW_PROMPT}
+  {TOOL_DEFINITIONS}
+
+  [Current context: Working on {current_file}]
+  [Last action: {last_tool_used}]
+  """
+
+  # Resource Allocation
+  resources = 50-75%  # Based on conversation floor
+  context_tokens = 8192  # Full context
+
+  # Ollama caching
+  reuse_cached_tools = True  # Tools already processed
+
+  # Expected Speed
+  first_request: ~3s (load tools)
+  cached: ~0.1s (tools already in memory) ✅
+
+  Example:
+  Turn 1: "add error handling to login.py"
+  → Tools loaded (3s)
+
+  Turn 2: "now add logging too"
+  → CONTINUATION + RECENT_TOOLS triggered
+  → Full prompt, but tools already cached
+  → Speed: 0.1s ✅
+
+  ---
+  Hook 5: EXPLICIT_TOOL_REQUEST
+
+  Triggers when:
+  tool_keywords = [
+      'file_read', 'file_write', 'bash', 'grep', 'git',  # Direct tool names
+      r'\w+\.(py|js|java|cpp)',  # file.ext pattern
+      r'^(read|write|create|modify|delete|run|execute|search|find)',  # 
+  Action verbs
+  ]
+  return any(keyword in text.lower() for keyword in tool_keywords)
+
+  What it does:
+  # System Prompt: FULL + TOOLS
+  system_prompt = f"""
+  {IDENTITY}
+  {WORKFLOW}
+  {FULL_TOOL_DEFINITIONS}  # All 21 tools
+
+  [Working directory: {cwd}]
+  """
+
+  # Resource Allocation  
+  resources = 75%  # Tool boost kicks in
+  context_tokens = 8192
+
+  # Tool schemas prepared
+  prepare_tool_schemas_for_ollama()
+
+  # Expected Speed
+  first_in_session: ~3s (load everything)
+  same_session: ~0.1s (cached)
+
+  Example:
+  User: "read config.yaml"
+  → EXPLICIT_TOOL_REQUEST triggered (has 'read' + file pattern)
+  → Full prompt with tools
+  → Speed: 3s first time, then 0.1s
+
+  ---
+  Hook 6: PROJECT_QUESTION
+
+  Triggers when: _is_question(text) AND in_project
+
+  Questions:
+  - Starts with: what, how, why, where, when, show, explain
+
+  What it does:
+  # System Prompt: MINIMAL + PROJECT CONTEXT (150 tokens)
+  system_prompt = f"""
+  You are an AI programming assistant.
+
+  [Context: Currently working on {current_file}]
+  [Recent changes: {recent_tool_results_summary}]
+  [Working directory: {cwd}]
+
+  Answer the question considering the current project context.
+  """
+
+  # Resource Allocation
+  resources = 35%  # Light
+  context_tokens = 4096  # Medium
+
+  # Expected Speed
+  ~1s (smaller prompt than full)
+
+  Example:
+  State: current_file = "login.py"
+  User: "btw how does async work?"
+  → CHAT_MODE triggered (starts with 'btw')
+  → But also IN_PROJECT
+  → Result: Minimal prompt + project context
+  → Model knows: "Still working on login.py, but answering general question"
+  → Speed: 1s
+
+  ---
+  Hook 7: PROJECT_DEFAULT
+
+  Triggers when: in_project AND no_other_hooks_matched
+
+  What it does:
+  # System Prompt: MINIMAL + PROJECT CONTEXT
+  # Same as PROJECT_QUESTION
+
+  # Keeps project context alive
+  # Ready to switch to tools if needed
+  # Maintains session continuity
+
+  Example:
+  State: current_file = "login.py"
+  User: "hmm, I'm thinking..."
+  → No specific hook, but IN_PROJECT
+  → PROJECT_DEFAULT triggered
+  → Keep context warm
+
+  ---
+  Hook 8: IDLE_DEFAULT
+
+  Triggers when: NOT in_project AND no_other_hooks_matched
+
+  What it does:
+  # System Prompt: MINIMAL (50 tokens)
+  # Lightest possible
+  # No project context
+  # No tools loaded
+
+  # Expected Speed
+  ~0.5s
+
+  ---
+  COMPLETE SCENARIO FLOWS
+
+  Scenario 1: Starting New Task
+
+  User: "Add error handling to login.py"
+
+  ANALYSIS:
+  ✓ _has_tool_keywords("login.py") → True
+  ✓ Hook: EXPLICIT_TOOL_REQUEST
+
+  ACTION:
+  → prompt_level = 'full'
+  → prompt_text = FULL_PROMPT (650 tokens)
+  → resources = 75%
+  → context = 8192
+
+  RESULT:
+  → Speed: 3s (loading tools)
+  → State: current_project_file = "login.py"
+  → Tools executed successfully
+
+  ---
+  Scenario 2: Mid-Project Chat
+
+  User: "btw how does async work?"
+  State: current_project_file = "login.py"
+
+  ANALYSIS:
+  ✓ _detect_pure_chat("btw...") → True
+  ✓ Hook: CHAT_MODE
+  ✓ But also: IN_PROJECT → True
+
+  ACTION:
+  → prompt_level = 'minimal'  (chat wins)
+  → But ADD: project_context
+  → prompt_text = MINIMAL + "[Working on: login.py]" (100 tokens)
+  → resources = 25%
+  → context = 2048
+
+  RESULT:
+  → Speed: 0.5s ✅ (much smaller prompt!)
+  → State: current_project_file = "login.py" (preserved!)
+  → Model knows context but stays conversational
+
+  ---
+  Scenario 3: Continuation
+
+  User: "ok now add logging"
+  State: current_project_file = "login.py", last_tool = "file_edit"
+
+  ANALYSIS:
+  ✓ _is_continuation_phrase("now") → True
+  ✓ recent_tool_use → True
+  ✓ Hook: CONTINUATION + RECENT_TOOLS
+
+  ACTION:
+  → prompt_level = 'full'
+  → prompt_text = FULL_PROMPT + PROJECT_CONTEXT (700 tokens)
+  → resources = 75% (already boosted from before)
+  → context = 8192
+  → **Tools already cached in Ollama!**
+
+  RESULT:
+  → Speed: 0.1s ✅ (tools cached from Turn 1!)
+  → State: current_project_file = "login.py"
+  → Executes logging addition
+
+  ---
+  Scenario 4: Project Question
+
+  User: "what does that function do?"
+  State: current_project_file = "login.py"
+
+  ANALYSIS:
+  ✓ _is_question("what...") → True
+  ✓ in_project → True
+  ✓ Hook: PROJECT_QUESTION
+
+  ACTION:
+  → prompt_level = 'contextual'
+  → prompt_text = MINIMAL + PROJECT_CONTEXT (150 tokens)
+  → resources = 35%
+  → context = 4096
+
+  RESULT:
+  → Speed: 1s (medium prompt)
+  → State: current_project_file = "login.py" (preserved)
+  → May use file_read if needed (tools available via context)
+
+  ---
+  HOOK PRIORITY ORDER
+
+  When multiple hooks trigger, this is the priority:
+
+  1. CHAT_MODE (highest) - Always respect pure chat
+  2. EXPLICIT_TOOL_REQUEST - Direct tool mention
+  3. CONTINUATION - Continue recent work
+  4. PROJECT_QUESTION - Question in context
+  5. IN_PROJECT (modifier) - Influences others
+  6. RECENT_TOOLS (modifier) - Influences others
+  7. DEFAULT (lowest) - Fallback
+
+  ---
+  SPEED COMPARISON
+
+  | Scenario                                | Old (Always Full Prompt) | New
+   (Smart Hooks)       |
+  |-----------------------------------------|--------------------------|----
+  ---------------------|
+  | "hey how are you"                       | 155s (2459 chars)        |
+  0.5s (50 chars) ✅       |
+  | "btw how does async work?" (in project) | 155s                     | 1s
+  (150 chars) ✅        |
+  | "Add error handling"                    | 3s                       | 3s
+  (same, tools needed) |
+  | "now add logging" (continuation)        | 3s                       |
+  0.1s (cached!) ✅        |
+
+
+ Quality Recovery System (quality_recovery.enabled: true)
+
+  Purpose: Three-tier response system for speed optimization
+  - Instant Hook Recognition - Pattern matching for common queries (e.g.,
+  "what is X?", "list Y") to return cached responses instantly
+  - Three-Tier System:
+    - INSTANT: Pre-cached pattern responses (< 0.1s)
+    - STANDARD: Normal LLM generation
+    - OBSERVER: Complex multi-step workflows
+  - RAG Feedback Learning - Learns from user feedback to improve responses
+  - Adaptive Workflow - Optimizes complex task execution
+
+  Current Status: NOT WORKING - Line 67-69 in quality_integration.py
+  bypasses it every time because system_prompt is always provided. It's
+  checking if system_prompt: then falling back immediately. All you're
+  getting is the overhead of function calls with zero benefit.
+
+  Optimization System (optimization.enabled: false)
+
+  Purpose: Pre-RAG context optimization
+  - Context Compression - Intelligently compresses conversation history
+  - Semantic Chunking - Breaks content into meaningful chunks
+  - Query Enhancement - Rewrites user queries for better results
+  - Relevance Filtering - Removes irrelevant context
+  - Token Efficiency - Optimizes prompts to fit token budgets
+
+  Current Status: DISABLED - enabled: false in your config, so it's not
+  running.
+
+  Summary:
+  - Quality Recovery: Enabled but broken - adds overhead, provides no
+  benefit
+  - Optimization: Disabled - not running at all
+
+  Recommendation: Disable quality_recovery since it's not working and just
+  adding latency:
+
+  quality_recovery:
+    enabled: false
+
+  This should immediately improve first-turn speed by eliminating the
+  overhead.
+
+> where is the setting, is it availible in my tui "/commands" 
+
+● Search(pattern: "quality_recovery|quality.enabled|'quality'", path:
+        "opencode/interactive.py", output_mode: "content")
+  ⎿  Found 42 lines (ctrl+o to expand)
+
+● Search(pattern: "def handle_quality_command|async def handle_quality_command",
+         path: "opencode/interactive.py", output_mode: "content")
+  ⎿  Found 81 lines (ctrl+o to expand)
+
+● Perfect! The /quality command exists. Let me check if there's a disable
+  option:
+
+● Read(opencode/interactive.py)
+  ⎿  Read 50 lines (ctrl+o to expand)
+
+● Perfect! Yes, it's available via TUI commands:
+
+  /quality disable
+
+  This will disable the quality recovery system at runtime without editing
+  the config file.
+
+  Available quality commands:
+  - /quality status - Show current status and metrics
+  - /quality disable - Disable quality system (removes overhead)
+  - /quality enable - Re-enable quality system
+  - /quality mode <mode> - Set mode (fast/auto/think/learning)
+  - /quality optimize - Apply optimizations
+
+  You can also check its current status with /quality status to see how many
+   times it's actually being used vs falling back.
+
+  Try running /quality disable in your next session to see if it improves
+  first-turn speed.
+
+> if i disable it (i just did) will /mode smart ect still function 
+correctly? or is it connected somehow 
+
+● Search(pattern:
+        "def.*handle_mode|_current_mode.*=|mode.*smart|mode.*fast|mode.*think",
+        path: "opencode/interactive.py", output_mode: "content")
+  ⎿  Found 379 lines (ctrl+o to expand)
+
+● Perfect! Yes, /mode commands work completely independently of the quality 
+  system.
+
+  Looking at the code:
+
+  /mode system (lines 4750-4960):
+  - Sets self._current_mode = 'fast'/'auto'/'think'/'smart'
+  - Controls resource allocation (25%, 50%, 75%)
+  - Controls token budgets and timeouts
+  - Optionally syncs with quality system (lines 4773-4776, 4810-4812) but
+  only if it exists:
+  try:
+      if self.quality_manager:
+          self.quality_manager.set_quality_mode('fast')
+  except Exception:
+      pass
+
+  The try/except means if quality_manager is disabled or doesn't exist,
+  /mode still works fine.
+
+  What /mode does independently:
+  - fast → 25% resources, 120 token cap, minimal context
+  - auto → 50% resources, 300 token cap, balanced
+  - think → 75% resources, 600 token cap, verification enabled
+  - smart → Complexity-based auto resource allocation
+  - thinktime 15m → Think mode with soft time budgets
+
+  What quality system does (when enabled):
+  - Pattern matching for instant responses
+  - RAG feedback learning
+  - Observer workflows
+
+  They're separate systems that can coordinate but don't depend on each 
+  other. Disabling quality recovery won't affect /mode functionality at all.
+

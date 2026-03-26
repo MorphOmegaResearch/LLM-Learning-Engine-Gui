@@ -1,0 +1,53 @@
+{
+  "task_id": "INTEGRATION_ONBOARDER_20260126",
+  "mark": "#[MARK:{INTEGRATION_ONBOARDER_20260126}]",
+  "file": "onboarder.py",
+  "backup": "onboarder.py_backup_MARK_INTEGRATION_20260126_131550",
+  "description": "Add 5W1H classification to ToolMetadata during discovery",
+  "status": "pending",
+  "created_at": "2026-01-26T13:15:50",
+  "integration_points": [
+    {
+      "location": "Line ~100 (ToolMetadata dataclass)",
+      "action": "Add classification and relevance_weight fields",
+      "code_modification": "classification: Dict[str, str] = field(default_factory=dict)\nrelevance_weight: float = 0.5"
+    },
+    {
+      "location": "ToolDiscoverer._parse_tool method",
+      "action": "Classify tool using FiveWOneHClassifier",
+      "code_block": "_parse_tool",
+      "dependencies": ["FiveWOneHClassifier", "file content"]
+    }
+  ],
+  "graceful_fallbacks": [
+    "If FiveWOneHClassifier import fails: skip classification, set classification={}",
+    "If classification fails: set classification={'confidence': 0.0}",
+    "If config files missing: classifier returns minimal classification",
+    "Tool discovery continues normally even if classification fails"
+  ],
+  "implementation_steps": [
+    "1. Import FiveWOneHClassifier with try/except",
+    "2. Add classification field to ToolMetadata",
+    "3. In _parse_tool(), read file content",
+    "4. Call classifier.classify(tool_name, file_content)",
+    "5. Handle exceptions gracefully",
+    "6. Store classification in ToolMetadata"
+  ],
+  "testing_criteria": [
+    "Tool discovery works without activity_integration_bridge",
+    "Classification field populated when classifier available",
+    "No errors when classifier unavailable",
+    "GUI still displays tools even without classification"
+  ],
+  "journal_marks_required": [
+    "#[MARK:{INTEGRATION_ONBOARDER_20260126}] - Integration complete",
+    "#[MARK:{FIRST_TOOL_CLASSIFIED}] - First successful classification",
+    "#[MARK:{CLASSIFICATION_FALLBACK_TESTED}] - Fallback behavior verified"
+  ],
+  "completion_criteria": {
+    "dataclass_updated": false,
+    "classifier_integrated": false,
+    "graceful_fallback_tested": false,
+    "journal_marks_logged": false
+  }
+}

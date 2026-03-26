@@ -1,0 +1,57 @@
+{
+  "timestamp": "2026-01-26T01-41-50.743212",
+  "input_text": "quickly",
+  "gap_analysis": {
+    "text": "quickly",
+    "unrecognized_tokens": [
+      "quickly"
+    ],
+    "pattern_coverage": {
+      "level_1_graphology": 1.0,
+      "level_2_morphology": 1.0,
+      "level_3_lexical": 0.0,
+      "level_4_syntax": 0.0,
+      "level_5_semantics": 0.0,
+      "level_6_pragmatics": 0.0,
+      "level_7_discourse": 0.0,
+      "domain_academic": 0.0,
+      "domain_physics": 0.0,
+      "domain_intents": 0.0,
+      "domain_informal": 0.0,
+      "domain_idiomatic": 0.0,
+      "entities_temporal": 0.0,
+      "entities_numerical": 0.0,
+      "entities_properties": 0.0,
+      "domain_technical": 0.0,
+      "domain_meta": 0.0
+    },
+    "suggested_patterns": [
+      {
+        "token": "quickly",
+        "pattern": "\\b\\w+ly\\b",
+        "category": "level_2_morphology",
+        "confidence": 0.8
+      }
+    ],
+    "confidence_score": 0.11764705882352941,
+    "recommendations": [
+      "Low coverage in level_3_lexical: 0%. Consider adding more patterns.",
+      "Low coverage in level_4_syntax: 0%. Consider adding more patterns.",
+      "Low coverage in level_5_semantics: 0%. Consider adding more patterns.",
+      "Low coverage in level_6_pragmatics: 0%. Consider adding more patterns.",
+      "Low coverage in level_7_discourse: 0%. Consider adding more patterns.",
+      "Low coverage in domain_academic: 0%. Consider adding more patterns.",
+      "Low coverage in domain_physics: 0%. Consider adding more patterns.",
+      "Low coverage in domain_intents: 0%. Consider adding more patterns.",
+      "Low coverage in domain_informal: 0%. Consider adding more patterns.",
+      "Low coverage in domain_idiomatic: 0%. Consider adding more patterns.",
+      "Low coverage in entities_temporal: 0%. Consider adding more patterns.",
+      "Low coverage in entities_numerical: 0%. Consider adding more patterns.",
+      "Low coverage in entities_properties: 0%. Consider adding more patterns.",
+      "Low coverage in domain_technical: 0%. Consider adding more patterns.",
+      "Low coverage in domain_meta: 0%. Consider adding more patterns.",
+      "Found 1 unrecognized tokens. Consider adding patterns for: quickly"
+    ],
+    "missing_hierarchy_levels": []
+  }
+}

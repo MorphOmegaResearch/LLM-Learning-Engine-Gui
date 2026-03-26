@@ -1,0 +1,104 @@
+{
+  "orchestrator": {
+    "name": "Chat Tab Orchestrator",
+    "version": "0.1.0",
+    "description": "Provider-agnostic AI orchestrator with persistent plan/todo context",
+    "providers": [
+      {
+        "id": "claude",
+        "name": "Claude (Anthropic)",
+        "cli": "claude",
+        "models": [
+          {"id": "opus", "name": "Claude Opus 4.6", "flag": "--model opus"},
+          {"id": "sonnet", "name": "Claude Sonnet 4.5", "flag": "--model sonnet"},
+          {"id": "haiku", "name": "Claude Haiku 4.5", "flag": "--model haiku"}
+        ],
+        "base_flags": [
+          "--print",
+          "--add-dir /home/commander/plans",
+          "--add-dir /home/commander/Desktop/System_Journal/System_Journal/inventory/tools/scripts/Babel_v01a",
+          "--permission-mode acceptEdits"
+        ]
+      },
+      {
+        "id": "gemini",
+        "name": "Gemini (Google)",
+        "cli": "gemini",
+        "models": [
+          {"id": "gemini-3-pro", "name": "Gemini 3 Pro Preview", "flag": "-m gemini-3-pro-preview"},
+          {"id": "gemini-2-flash", "name": "Gemini 2 Flash", "flag": "-m gemini-2.0-flash-exp"}
+        ],
+        "base_flags": [
+          "-p",
+          "--include-directories /home/commander/plans",
+          "--approval-mode auto_edit"
+        ]
+      },
+      {
+        "id": "ollama",
+        "name": "Ollama (Local)",
+        "cli": "ollama",
+        "models": [
+          {"id": "llama3.1", "name": "Llama 3.1", "cmd": "ollama run llama3.1"},
+          {"id": "qwen2.5", "name": "Qwen 2.5", "cmd": "ollama run qwen2.5"},
+          {"id": "deepseek-r1", "name": "DeepSeek-R1", "cmd": "ollama run deepseek-r1"}
+        ],
+        "base_flags": []
+      },
+      {
+        "id": "morph",
+        "name": "Morph (Regex-based)",
+        "cli": "morph",
+        "models": [
+          {"id": "morph-v1", "name": "Morph v1", "cmd": "python3 morph.py"}
+        ],
+        "base_flags": [
+          "--context-dir /home/commander/plans",
+          "--state-grounding true"
+        ],
+        "notes": "Non-tokenizer, non-ollama reliant. Needs grounded state context integration."
+      }
+    ],
+    "orchestration_modes": {
+      "overseer_below": {
+        "description": "Big model in Chat Tab orchestrates smaller workers in CLI spawns above",
+        "chat_tab": "opus or sonnet",
+        "cli_spawns": "haiku or ollama",
+        "use_case": "Complex planning with fast execution"
+      },
+      "overseer_above": {
+        "description": "Smaller model implements in CLI spawn, big model watches from Chat Tab",
+        "chat_tab": "opus for observation/guidance",
+        "cli_spawns": "sonnet for implementation",
+        "use_case": "Quality control and architectural oversight"
+      }
+    },
+    "context_persistence": {
+      "todos": "/home/commander/plans/todos.json",
+      "plans": "/home/commander/plans/strategy.md",
+      "os_toolkit_session": "babel_data/profile/sessions/babel_catalog_*",
+      "marks": "**/*.py (#[Mark:*] annotations)",
+      "sync_command": "python3 Os_Toolkit.py actions --run sync_all_todos"
+    },
+    "example_workflows": [
+      {
+        "name": "Quick Task Assignment",
+        "steps": [
+          "User: 'Implement backup validation for Os_Toolkit.py'",
+          "Orchestrator (Chat Tab): Analyzes request, creates todo, assigns to CLI spawn",
+          "Worker (CLI Spawn): Reads file, implements feature, reports back",
+          "Orchestrator: Reviews output, suggests improvements or marks complete"
+        ]
+      },
+      {
+        "name": "Multi-Agent Collaboration",
+        "steps": [
+          "Orchestrator: Breaks complex task into subtasks",
+          "Worker 1 (Haiku): Fast simple implementation",
+          "Worker 2 (Ollama): Local model for sensitive data processing",
+          "Orchestrator: Integrates results, validates consistency"
+        ]
+      }
+    ]
+  }
+}

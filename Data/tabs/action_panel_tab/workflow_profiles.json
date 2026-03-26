@@ -1,0 +1,147 @@
+{
+  "profiles": {
+    "my_tools": {
+      "workflow_actions": [
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        }
+      ],
+      "last_updated": "2026-02-08T19:54:44.393000",
+      "tool_locations": {}
+    },
+    "Custom 1": {
+      "workflow_actions": [
+        {
+          "name": "2306 Pathfixer",
+          "type": "custom",
+          "command": "2306 pathfixer_subcommand1 --output --session",
+          "source": "2306 pathfixer_subcommand1",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        }
+      ],
+      "last_updated": "2026-02-08T19:54:44.393044",
+      "tool_locations": {
+        "2306 Pathfixer": "2306 pathfixer_subcommand1"
+      }
+    }
+  }
+}

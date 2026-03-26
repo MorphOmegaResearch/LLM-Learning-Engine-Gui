@@ -1,0 +1,51 @@
+{
+  "session_id": "mouse_test",
+  "started_at": "2025-10-31T01:00:39.291262",
+  "task": "Move the mouse to the center of the screen at coordinates (960, 540)",
+  "steps": [
+    {
+      "step_number": 0,
+      "timestamp": "2025-10-31T01:00:43.512713",
+      "screenshot": "/mnt/data/Custom-Applications/LLM-Learning-Engine-Gui-dev/Data/tabs/automation_tab/sessions/mouse_test/step_000_screenshot.png",
+      "action": {
+        "type": "click",
+        "x": 960,
+        "y": 540
+      },
+      "success": true,
+      "notes": ""
+    },
+    {
+      "step_number": 1,
+      "timestamp": "2025-10-31T01:00:48.833174",
+      "screenshot": "/mnt/data/Custom-Applications/LLM-Learning-Engine-Gui-dev/Data/tabs/automation_tab/sessions/mouse_test/step_001_screenshot.png",
+      "action": {
+        "type": "click",
+        "x": 960,
+        "y": 540
+      },
+      "success": true,
+      "notes": ""
+    },
+    {
+      "step_number": 2,
+      "timestamp": "2025-10-31T01:00:54.568904",
+      "screenshot": "/mnt/data/Custom-Applications/LLM-Learning-Engine-Gui-dev/Data/tabs/automation_tab/sessions/mouse_test/step_002_screenshot.png",
+      "action": {
+        "type": "click",
+        "x": 960,
+        "y": 540
+      },
+      "success": true,
+      "notes": ""
+    }
+  ],
+  "status": "completed",
+  "performance_metrics": {
+    "tasks_completed": 0,
+    "success_rate": 1.5,
+    "novel_solutions": 0,
+    "total_time_seconds": 16.22197151184082
+  },
+  "completed_at": "2025-10-31T01:00:55.570603"
+}

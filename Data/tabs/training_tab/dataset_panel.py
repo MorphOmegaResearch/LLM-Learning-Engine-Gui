@@ -1,4 +1,3 @@
-# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Dataset Panel - Training dataset selection and management
 """

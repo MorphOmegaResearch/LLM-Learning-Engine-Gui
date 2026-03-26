@@ -1,0 +1,10 @@
+\b(all|every|each|any)\b
+\b(some|many|few|several|most)\b
+\b(always|never|often|sometimes|rarely)\b
+\b(none|nothing|nobody|nowhere)\b
+\b(once|twice|thrice)\b
+\b(firstly|secondly|lastly)\b
+\b(more|less|fewer)\b
+\b(enough|too many|too much)\b
+\b(daily|weekly|monthly|yearly)\b
+\b(a lot|heaps|tons)\b

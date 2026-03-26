@@ -1,0 +1,10 @@
+\b(genus|species|family|order|class|phylum|kingdom|domain)\b
+\b(DNA|RNA|nucleotide|genome|chromosome|allele)\b
+\b(mitochondria|nucleus|cytoplasm|organelle|ribosome)\b
+\b(photosynthesis|respiration|metabolism|homeostasis)\b
+\b(enzyme|protein|amino acid|lipid|carbohydrate)\b
+\b(ecosystem|biosphere|habitat|biodiversity|niche)\b
+\b(mitosis|meiosis|replication|transcription|translation)\b
+\b(evolution|natural selection|adaptation|speciation)\b
+\b(pathogen|bacteria|virus|fungi|parasite)\b
+\b(cardiovascular|nervous|endocrine|immune|digestive)\b

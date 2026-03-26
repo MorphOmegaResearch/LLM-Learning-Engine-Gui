@@ -1,0 +1,10 @@
+\b(what do you mean)\b
+\b(can you explain)\b
+\b(I don't understand)\b
+\b(what was that)\b
+\b(pardon me|excuse me)\b
+\b(could you repeat that)\b
+\b(I'm not following)\b
+\b(what are you trying to say)\b
+\b(I'm confused)\b
+\b(in other words)\b

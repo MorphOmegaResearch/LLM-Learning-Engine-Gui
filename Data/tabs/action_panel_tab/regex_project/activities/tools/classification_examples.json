@@ -1,0 +1,113 @@
+{
+  "examples": {
+    "known_tools": {
+      "analyzer.py": {
+        "original": "analyzer.py",
+        "lexical_analysis": ["analyze"],
+        "classification": {
+          "what": "analyzes code structure",
+          "where": "in Python source files",
+          "when": "during code review",
+          "why": "to identify issues and patterns",
+          "which": "Python source code and AST",
+          "how": "using static analysis"
+        },
+        "confidence": 0.95
+      },
+      
+      "pathfixer.py": {
+        "original": "pathfixer.py",
+        "lexical_analysis": ["path", "fix"],
+        "classification": {
+          "what": "fixes path references",
+          "where": "in source code files",
+          "when": "after file movement",
+          "why": "to maintain correct references",
+          "which": "file path strings",
+          "how": "using regex replacement"
+        },
+        "confidence": 0.92
+      },
+      
+      "import_organizer.py": {
+        "original": "import_organizer.py",
+        "lexical_analysis": ["import", "organize"],
+        "classification": {
+          "what": "organizes import statements",
+          "where": "in Python modules",
+          "when": "pre-commit or cleanup",
+          "why": "to improve readability",
+          "which": "Python import statements",
+          "how": "by sorting and grouping"
+        },
+        "confidence": 0.90
+      }
+    },
+    
+    "gap_examples": {
+      "codemapper.py": {
+        "gap_type": "missing_context",
+        "original": "codemapper.py",
+        "lexical_analysis": ["code", "map"],
+        "context_clues": ["creates dependency graphs", "maps imports"],
+        "inferred_classification": {
+          "what": "maps code dependencies",
+          "where": "in source code projects",
+          "when": "during architecture analysis",
+          "why": "to understand code structure",
+          "which": "source files and imports",
+          "how": "by parsing and graphing"
+        },
+        "gap_bridging_method": "context_inference_from_description"
+      },
+      
+      "refactortool.py": {
+        "gap_type": "compound_word",
+        "original": "refactortool.py",
+        "decomposition": ["refactor", "tool"],
+        "morphological_expansion": ["refactor", "tool"],
+        "classification": {
+          "what": "refactors code",
+          "where": "in source code files",
+          "when": "during code improvement",
+          "why": "to improve design",
+          "which": "Python/Java/C++ code",
+          "how": "by applying transformations"
+        },
+        "gap_bridging_method": "compound_decomposition"
+      },
+      
+      "depwalker.py": {
+        "gap_type": "neologism",
+        "original": "depwalker.py",
+        "decomposition": ["dep", "walker"],
+        "expansion": ["dependency", "walker"],
+        "inferred_meaning": "walks dependency tree",
+        "classification": {
+          "what": "walks dependency graphs",
+          "where": "in dependency trees",
+          "when": "during dependency analysis",
+          "why": "to find transitive dependencies",
+          "which": "package dependencies",
+          "how": "by recursive traversal"
+        },
+        "gap_bridging_method": "abbreviation_expansion"
+      }
+    },
+    
+    "confidence_levels": {
+      "high_confidence": {
+        "threshold": 0.85,
+        "characteristics": ["clear verb", "known pattern", "good documentation"]
+      },
+      "medium_confidence": {
+        "threshold": 0.70,
+        "characteristics": ["inferred verb", "partial patterns", "some documentation"]
+      },
+      "low_confidence": {
+        "threshold": 0.50,
+        "characteristics": ["ambiguous terms", "no patterns", "minimal documentation"]
+      }
+    }
+  }
+}

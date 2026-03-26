@@ -1,0 +1,36 @@
+{
+  "tool_6979": {
+    "tool_id": "tool_6979",
+    "tool_name": "workflow_manager.py",
+    "classification": {
+      "what": "related to workflow manag",
+      "where": "related to workflow manag",
+      "when": "related to workflow manag",
+      "why": "related to workflow manag",
+      "which": "related to workflow manag",
+      "how": "related to workflow manag",
+      "confidence": 1.0,
+      "tokens": [
+        "workflow",
+        "manag"
+      ],
+      "context_hints": {
+        "has_argparse": false,
+        "has_tkinter": false,
+        "has_os_path": false,
+        "has_datetime": false,
+        "has_json_xml": false,
+        "has_regex": false,
+        "imports": [],
+        "description": ""
+      }
+    },
+    "relevance_weight": 0.65,
+    "usage_count": 1,
+    "last_used": "2026-01-26T13:08:20.673857",
+    "confirmed_at": "2026-01-26T13:08:20.670594",
+    "journal_marks": [
+      "#[MARK:{WORKFLOW_EXEC_605}]"
+    ]
+  }
+}

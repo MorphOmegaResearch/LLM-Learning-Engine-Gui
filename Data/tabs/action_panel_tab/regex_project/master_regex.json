@@ -1,0 +1,121 @@
+{
+  "level_1_graphology": {
+    "punctuation": "[.!?]",
+    "delimiters": "[,;:]",
+    "capitalization_start": "^[A-Z]",
+    "shouting": "[A-Z]{2,}",
+    "proper_noun_pattern": "\\b[A-Z][a-z]*\\b",
+    "digital_markers": "https?://\\S+|[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}|#\\w+|@\\w+",
+    "brackets_grouping": "\\(.*?\\)|\\[.*?\\]|\\{.*?\\}|<.*?>",
+    "math_legal_symbols": "[+\\-*/%=<>]|[\\u00A9\\u00AE\\u2122]|[\\u00A7\\u00B6]"
+  },
+  "level_2_morphology": {
+    "present_participle": "\\w+ing\\b",
+    "past_tense": "\\w+ed\\b",
+    "plural_or_3ps": "\\w+s\\b",
+    "adverbial_suffix": "\\w+ly\\b",
+    "possessive": "\\w+'s\\b",
+    "extended_prefixes": "\\b(dis|mis|re|inter)\\w+",
+    "extended_suffixes": "\\w+(able|ible|ful|less|ize|ise|tion|sion|ity)\\b",
+    "compound_words": "\\b\\w+-\\w+\\b|\\b\\w+(?:room|land|time|way|day|side|house)\\b"
+  },
+  "level_3_lexical": {
+    "pronouns": "\\b(I|me|my|mine|you|your|yours|he|him|his|she|her|hers|it|its|we|us|our|ours|they|them|their|theirs)\\b",
+    "articles": "\\b(a|an|the)\\b",
+    "prepositions": "\\b(in|on|at|by|with|from|to|for|of|about)\\b",
+    "modals": "\\b(can|could|will|would|shall|should|may|might|must)\\b",
+    "quantifiers": "\\b(all|every|each|any|some|many|few|several|most|none|nothing|nobody)\\b",
+    "interjections": "\\b(oh|ah|wow|whoa|yikes|ouch|oops|yay|shh|hmm)\\b"
+  },
+  "level_4_syntax": {
+    "noun_phrase": "\\b(the|a|an)\\s+(\\w+\\s+){0,2}\\w+\\b",
+    "verb_phrase": "\\b(am|is|are|was|were|have|has|had|do|does|did|can|will|should)\\s+\\w+ing\\b",
+    "subject_verb_object": "\\b(I|you|he|she|it|we|they)\\s+\\w+s?\\s+[\\w\\s]+\\b",
+    "subordinate_clause": "\\b(if|because|although|when|while)\\s+[\\w\\s,]+\\b",
+    "interrogative_syntax": "\\b(Do|Does|Did|Can|Could|Will|Would|Are|Is|Was|Were|What|Who|Where|When|Why|How)\\s+[\\w\\s]+\\?",
+    "imperative_syntax": "^\\w+\\s+[\\w\\s]+!|\\b(Don't|Please|Kindly|Let's)\\s+\\w+\\b"
+  },
+  "level_5_semantics": {
+    "state_proposition": "\\b(I|you|he|she|it|we|they)\\s+(feel|feels|am|is|are)\\s+(happy|sad|angry|tired|okay)\\b",
+    "causal_proposition": "\\b\\w+\\s+(caused|makes|leads to)\\s+\\w+\\b",
+    "locative_proposition": "\\b\\w+\\s+(is|are)\\s+(inside|on|at|under|near)\\s+\\w+\\b",
+    "volitional_proposition": "\\b(I|we)\\s+(want|need|desire)\\s+[\\w\\s]+\\b"
+  },
+  "level_6_pragmatics": {
+    "greetings": "\\b(hello|hi|hey|good morning|morning|good afternoon|afternoon|good evening|evening|howdy|yo|sup|what's up|what is up|how's it going|how is it going|how are you|how're you|nice to see you|good to see you|long time no see|what's good|how have you been|what's crackin'|good to see you again|how are things|nice to meet you|pleased to meet you|g'day|top of the morning to you|what's happening)\\b",
+    "farewells": "\\b(bye|goodbye|see you later|see you soon|take care|have a good one|have a nice day|catch you later|talk to you later|I'm off|I am off|so long|cheers|farewell|until next time|I've got to go|I have got to go|I must be going|see you around|keep in touch|all the best|peace out|I'm out of here|smell you later|adios)\\b",
+    "questions": "\\b(what|who|where|when|why|how|can|could|is|are|do|does|did|will|would)\\s+[\\w\\s]+\\?",
+    "affirmations": "\\b(yes|yeah|yep|of course|sure|sure thing|absolutely|definitely|I agree|that's right|that is right|sounds good|for sure|no problem|you bet|I couldn't agree more|that's for sure|exactly|without a doubt|I suppose so|that's a good point|I think so too|you got it|right on)\\b",
+    "negations": "\\b(no|nope|nah|not really|I disagree|I don't think so|I do not think so|absolutely not|of course not|no way|not at all|I'm not sure|I am not sure|I can't|I cannot|I'd rather not|I'm not convinced|that's not it|wrong|I doubt it|not likely|over my dead body|you must be joking|not in a million years|I don't agree)\\b",
+    "social_acts": "\\b(sorry|thank you|thanks|apologize|congratulations|congrats|good luck|excuse me|pardon me|appreciate|grateful)\\b",
+    "feedback_loops": "\\b(do you understand|does that make sense|are you with me|got it\\?|clear\\?)\\b",
+    "logic_critique": "\\b(not make sense|doesn't make sense|confusing|contradictory|wrong logic|incorrect inference|wait what)\\b",
+    "phrasing_critique": "the way you said (.*?),?\\s+didn't make sense",
+    "phrasing_suggestion": "(?:you )?should have said (?:it )?(?:like )?(.*)",
+    "confirmations": "\\b(confirmed|acknowledged|roger that|copy that|will do|i'm on it)\\b",
+    "sentiment_affect": "\\b(happy|glad|excited|thrilled|joy|delighted|great|excellent|sad|depressed|unhappy|miserable|angry|furious|annoyed|irate|mad|scared|terrified|worried|anxious|nervous|bored|tired|exhausted|frustrated|confused)\\b"
+  },
+  "level_7_discourse": {
+    "sequential": "\\b(first|second|third|finally)\\b",
+    "transitions": "\\b(to begin with|first of all|in conclusion|to sum up|overall)\\b",
+    "topic_shift": "\\b(by the way|speaking of|incidentally)\\b",
+    "contrastive": "\\b(however|on the other hand|nevertheless)\\b",
+    "causal": "\\b(consequently|as a result|therefore)\\b",
+    "pragmatic_markers": "\\b(I think|I believe|I guess|I suppose|just|actually|basically|essentially|sort of|kind of|rather|somewhat|honestly|frankly|clearly|obviously|certainly|definitely|perhaps|maybe|possibly|literally|absolutely|totally|potentially|kindly|if you don't mind|please|would you be so kind|I'm afraid|with all due respect)\\b"
+  },
+  "domain_academic": {
+    "lexical_scholarly": "\\b(furthermore|moreover|nevertheless|consequently|hypothesize|analyze|synthesize|evaluate)\\b",
+    "citation_markers": "\\b(et al\\.|ibid\\.|cf\\.|e\\.g\\.|i\\.e\\.)\\b|\\(\\w+,\\s+\\d{4}\\)",
+    "formal_assertions": "\\b(the data suggests|the evidence indicates|it is argued that|it is observed that)\\b",
+    "biology": "\\b(genus|species|DNA|RNA|mitochondria|photosynthesis|enzyme|ecosystem|evolution|pathogen|mammal|living|environment)\\b",
+    "chemistry": "\\b(Hydrogen|Carbon|Oxygen|molecule|atom|covalent|exothermic|acid|base|oxidation|redox)\\b",
+    "statistics_methodology": "\\b(p-value|significance|mean|median|correlation|hypothesis|variable|qualitative|quantitative|ANOVA)\\b"
+  },
+  "domain_physics": {
+    "mechanics": "\\b(velocity|acceleration|force|gravity|mass|torque|inertia)\\b",
+    "thermodynamics": "\\b(entropy|enthalpy|conduction|convection|radiation)\\b",
+    "electromagnetism": "\\b(voltage|current|resistance|capacitance|inductance)\\b",
+    "quantum": "\\b(superposition|entanglement|quantum|wave-particle)\\b"
+  },
+  "domain_intents": {
+    "informative": "\\b(I am informing you|I'd like to point out|did you know|I wonder|I ask)\\b",
+    "directive": "\\b(I command|you must|I require|I suggest|I recommend|you might want to)\\b",
+    "commissive": "\\b(I promise|I will ensure|I guarantee|I commit|I refuse|I cannot|I decline)\\b",
+    "expressive": "\\b(I apologize|I'm sorry|pardon me|I agree|I concur|I object|I disagree)\\b"
+  },
+  "domain_informal": {
+    "contractions": "\\b(gonna|wanna|gotta|outta|kinda|sorta)\\b",
+    "slang": "\\b(no cap|lit|dope|fire|ghosted|flex|clout|tea|bruh|innit)\\b"
+  },
+  "domain_idiomatic": {
+    "composite": "\\b(piece of cake|break a leg|under the weather|once in a blue moon|cost an arm and a leg|hit the nail on the head|bite the bullet|beat around the bush|cut to the chase|call it a day)\\b"
+  },
+  "entities_temporal": {
+    "time": "\\b(\\d{1,2}:\\d{2}(?:\\s?[ap]m)?)\\b",
+    "date": "\\b(\\d{1,2}/\\d{1,2}/\\d{2,4})\\b",
+    "relative": "\\b(today|tomorrow|yesterday|morning|afternoon|evening|night|now|soon|later)\\b"
+  },
+  "entities_numerical": {
+    "currency": "\\b(\\$|£|€|¥)\\s?\\d+(?:\\.\\d{2})?\\b",
+    "percentage": "\\b\\d+\\s?%\\b",
+    "measurements": "\\b\\d+\\s?(kg|g|mg|lbs|oz|m|cm|mm|km|in|ft|yd|mi|l|ml|gal|qt|pt|°C|°F|K)\\b"
+  },
+  "entities_properties": {
+    "material": "\\b(?:made of|constructed from|composition is|material is|material is)\\s+([\\w\\s]+)\\b",
+    "weight": "\\b(?:weighs|weight of|mass of|weight is|weight is)\\s+([\\w\\d\\.\\s]+(?:kg|g|lbs|oz)?)\\b",
+    "cost": "\\b(?:costs|price of|valued at|cost is|cost is)\\s+([\\$£€¥]?\\s?\\d+(?:\\.\\d{2})?)\\b",
+    "origin": "\\b(?:from|originates in|source is|made in|origin is|origin is)\\s+([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)*)\\b",
+    "magnitude": "\\b(?:size|magnitude|scale|level|magnitude is)\\s+(?:is|of)\\s+([\\w\\d\\.]+)\\b",
+    "environment": "\\b(?:environment|habitat|lives in|lives on|environment is)\\s+(?:is)?\\s*([\\w\\s]+?)(?:\\.|\\s|$)"
+  },
+  "domain_technical": {
+    "hardware_software": "\\b(CPU|GPU|RAM|SSD|HDD|algorithm|array|boolean|function|variable|class|object|quantum|tunneling)\\b",
+    "web_networking": "\\b(API|JSON|XML|HTML|CSS|HTTP|HTTPS|encryption|firewall|proxy|VPN|SSL)\\b",
+    "infrastructure_dev": "\\b(cloud|SaaS|AWS|Azure|git|commit|push|pull|branch|merge|repo|database|SQL)\\b"
+  },
+  "domain_meta": {
+    "learning_process": "\\b(learn|learning|teaching|taught|understand|understanding|unresolved|knowledge gap|epistemic|gap)\\b",
+    "system_state": "\\b(internal state|weights|confidence|logic|hierarchy|resolution|cognition|tokens|meta)\\b",
+    "correction_markers": "\\b(wrong|actually|incorrect|mistake|error|no it is|not a)\\b"
+  }
+}

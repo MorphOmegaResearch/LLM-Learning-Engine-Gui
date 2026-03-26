@@ -1,0 +1,1256 @@
+#!/usr/bin/env python3
+"""
+GAP ANALYZER - Cross-domain understanding gap identification tool
+Analyzes text against linguistic hierarchy patterns to identify recognition gaps
+"""
+
+import argparse
+import json
+import re
+import sys
+import os
+from typing import Dict, List, Tuple, Set, Optional
+from dataclasses import dataclass
+from enum import Enum
+from pathlib import Path
+
+# ============================================================================
+# Data Structures
+# ============================================================================
+
+class AnalysisLevel(Enum):
+    GRAPHOLOGY = "level_1_graphology"
+    MORPHOLOGY = "level_2_morphology"
+    LEXICAL = "level_3_lexical"
+    SYNTAX = "level_4_syntax"
+    SEMANTICS = "level_5_semantics"
+    PRAGMATICS = "level_6_pragmatics"
+    DISCOURSE = "level_7_discourse"
+    DOMAIN_ACADEMIC = "domain_academic"
+    DOMAIN_TECHNICAL = "domain_technical"
+    DOMAIN_INFORMAL = "domain_informal"
+    DOMAIN_META = "domain_meta"
+    ENTITIES_TEMPORAL = "entities_temporal"
+    ENTITIES_NUMERICAL = "entities_numerical"
+    ENTITIES_PROPERTIES = "entities_properties"
+
+@dataclass
+class PatternResult:
+    pattern_name: str
+    pattern: str
+    level: AnalysisLevel
+    matched: bool
+    matched_text: List[str]
+    reason: str = ""
+
+@dataclass
+class GapAnalysis:
+    text: str
+    recognized_tokens: Set[str]
+    unrecognized_tokens: List[str]
+    pattern_results: List[PatternResult]
+    confidence_score: float
+    primary_gaps: List[Tuple[str, str]]  # (token, suggested_pattern)
+    recommendations: List[str]
+
+@dataclass
+class MetastateWeights:
+    """
+    Epistemic metastate weights for inference priority.
+    Implements 'the more you know, the more you know you don't know' principle.
+    """
+    category_weights: Dict[str, float]  # category -> priority% (0-1)
+    understanding_pct: float  # overall understanding% (0-1)
+    priority_pct: float  # overall priority% (0-1)
+    weighted_categories: Dict[str, float]  # category -> priority% × understanding%
+    gap_severity: str  # "low", "medium", "high", "critical"
+    recommended_action: str  # what to do next based on weights
+
+# ============================================================================
+# Core Analyzer
+# ============================================================================
+
+class GapAnalyzer:
+    def __init__(self, patterns_file: str = None, hierarchy_file: str = None):
+        """Initialize analyzer with pattern definitions"""
+        self.patterns = self._load_patterns(patterns_file)
+        self.hierarchy = self._load_hierarchy(hierarchy_file)
+        self.baseline_words = self._load_baseline()
+        
+    def _load_patterns(self, patterns_file: str = None) -> Dict[str, Dict[str, str]]:
+        """Load regex patterns from JSON file"""
+        if patterns_file and os.path.exists(patterns_file):
+            with open(patterns_file, 'r') as f:
+                return json.load(f)
+        
+        # Embedded default patterns (extract from master_regex.json structure)
+        return {
+            "level_1_graphology": {
+                "punctuation": "[.!?]",
+                "capitalization_start": "^[A-Z]",
+                "proper_noun": "\\b[A-Z][a-z]*\\b"
+            },
+            "level_2_morphology": {
+                "present_participle": "\\w+ing\\b",
+                "past_tense": "\\w+ed\\b",
+                "plural": "\\w+s\\b",
+                "adverbial": "\\w+ly\\b"
+            },
+            "level_3_lexical": {
+                "pronouns": "\\b(I|me|my|mine|you|your|yours|he|him|his|she|her|hers|it|its|we|us|our|ours|they|them|their|theirs)\\b",
+                "articles": "\\b(a|an|the)\\b",
+                "prepositions": "\\b(in|on|at|by|with|from|to|for|of|about)\\b",
+                "question_words": "\\b(what|which|where|who|why|when|how|whose|whom|how many|how much|how often|how long)\\b",
+                "modals": "\\b(can|could|will|would|shall|should|may|might|must)\\b"
+            },
+            "level_4_syntax": {
+                "noun_phrase": "\\b(the|a|an)\\s+(\\w+\\s+){0,2}\\w+\\b",
+                "verb_phrase": "\\b(am|is|are|was|were|have|has|had|do|does|did|can|will|should)\\s+\\w+ing\\b",
+                "interrogative": "\\b(Do|Does|Did|Can|Could|Will|Would|Are|Is|Was|Were|What|Who|Where|When|Why|How)\\s+[\\w\\s]+\\?",
+                "imperative": "^\\w+\\s+[\\w\\s]+!|\\b(Don't|Please|Kindly|Let's)\\s+\\w+\\b"
+            },
+            "level_5_semantics": {
+                "causal": "\\b\\w+\\s+(caused|makes|leads to|because|since|as|due to|owing to)\\s+\\w+\\b",
+                "volitional": "\\b(I|we)\\s+(want|need|desire|wish|hope|would like|prefer)\\s+[\\w\\s]+\\b"
+            },
+            "level_6_pragmatics": {
+                "greetings": "\\b(hello|hi|hey|good morning|morning|good afternoon|afternoon|good evening|evening)\\b",
+                "questions": "\\b(what|who|where|when|why|how|can|could|is|are|do|does|did|will|would)\\s+[\\w\\s]+\\?",
+                "affirmations": "\\b(yes|yeah|yep|of course|sure|absolutely|definitely|I agree)\\b"
+            },
+            "domain_academic": {
+                "scholarly": "\\b(furthermore|moreover|nevertheless|consequently|hypothesize|analyze|synthesize|evaluate)\\b",
+                "citation": "\\b(et al\\.|ibid\\.|cf\\.|e\\.g\\.|i\\.e\\.)\\b"
+            },
+            "domain_technical": {
+                "hardware": "\\b(CPU|GPU|RAM|SSD|HDD|algorithm|array|boolean|function|variable|class|object)\\b",
+                "web": "\\b(API|JSON|XML|HTML|CSS|HTTP|HTTPS|encryption|firewall)\\b"
+            },
+            "domain_meta": {
+                "learning": "\\b(learn|learning|teaching|taught|understand|understanding|unresolved|knowledge gap|epistemic|gap)\\b",
+                "correction": "\\b(wrong|actually|incorrect|mistake|error|no it is|not a)\\b"
+            }
+        }
+    
+    def _load_hierarchy(self, hierarchy_file: str = None) -> Dict:
+        """Load linguistic hierarchy definition"""
+        if hierarchy_file and os.path.exists(hierarchy_file):
+            with open(hierarchy_file, 'r') as f:
+                return json.load(f)
+        
+        return {
+            "language": "English",
+            "hierarchy_levels": [
+                {"level": 1, "name": "Graphology", "unit": "Characters"},
+                {"level": 2, "name": "Morphology", "unit": "Morphemes"},
+                {"level": 3, "name": "Lexical", "unit": "Words"},
+                {"level": 4, "name": "Syntax", "unit": "Phrases"},
+                {"level": 5, "name": "Semantics", "unit": "Propositions"},
+                {"level": 6, "name": "Pragmatics", "unit": "Context"},
+                {"level": 7, "name": "Discourse", "unit": "Conversation"}
+            ]
+        }
+    
+    def _load_baseline(self) -> Set[str]:
+        """Load baseline words that should not be considered gaps"""
+        return {
+            "is", "are", "was", "were", "the", "and", "but", "with", "from", "for",
+            "that", "this", "it", "because", "what", "how", "why", "where", "when",
+            "who", "which", "can", "could", "will", "would", "shall", "should",
+            "may", "might", "must", "have", "has", "had", "do", "does", "did",
+            "not", "no", "yes", "ok", "okay", "please", "thank", "thanks", "sorry"
+        }
+    
+    def analyze_text(self, text: str, workflows: List[str] = None) -> GapAnalysis:
+        """
+        Analyze text for understanding gaps across linguistic domains
+        
+        Args:
+            text: Input text to analyze
+            workflows: Specific analysis workflows to run
+            
+        Returns:
+            GapAnalysis object with results
+        """
+        if not text or not text.strip():
+            return GapAnalysis(
+                text=text,
+                recognized_tokens=set(),
+                unrecognized_tokens=[],
+                pattern_results=[],
+                confidence_score=0.0,
+                primary_gaps=[],
+                recommendations=["Empty input"]
+            )
+        
+        # Tokenize text
+        words = self._tokenize(text)
+        
+        # Run analysis workflows
+        pattern_results = []
+        recognized = set()
+        
+        if workflows is None:
+            workflows = ["lexical", "morphology", "syntax", "domain"]
+        
+        for workflow in workflows:
+            results = self._run_workflow(workflow, text, words)
+            pattern_results.extend(results)
+            
+            # Update recognized tokens
+            for result in results:
+                if result.matched:
+                    recognized.update(result.matched_text)
+        
+        # Identify unrecognized tokens
+        unrecognized = []
+        for word in words:
+            clean_word = word.lower().strip(".,!?;:'\"()[]{}")
+            if (clean_word and len(clean_word) > 2 and 
+                clean_word not in self.baseline_words and
+                clean_word not in recognized):
+                unrecognized.append(clean_word)
+        
+        # Calculate confidence score
+        confidence = self._calculate_confidence(words, recognized)
+        
+        # Identify primary gaps and suggest patterns
+        primary_gaps = self._identify_primary_gaps(unrecognized, pattern_results)
+        
+        # Generate recommendations
+        recommendations = self._generate_recommendations(
+            unrecognized, primary_gaps, pattern_results, confidence
+        )
+        
+        return GapAnalysis(
+            text=text,
+            recognized_tokens=recognized,
+            unrecognized_tokens=unrecognized,
+            pattern_results=pattern_results,
+            confidence_score=confidence,
+            primary_gaps=primary_gaps,
+            recommendations=recommendations
+        )
+
+    def calculate_metastate_weights(self, analysis: GapAnalysis) -> MetastateWeights:
+        """
+        Calculate epistemic metastate weights for inference priority.
+
+        Implements: "The more you know, the more you know you don't know"
+        - Low coverage in a category → HIGH priority% (need to learn this)
+        - High coverage → LOWER priority% (already understand this)
+        - Overall understanding% = confidence_score
+        - Weighted inference = priority% × understanding%
+
+        Returns:
+            MetastateWeights with category-level priority and understanding metrics
+        """
+        # Calculate coverage per category from pattern_results
+        category_coverage = {}
+        category_total = {}
+
+        for result in analysis.pattern_results:
+            category = result.level.value
+            if category not in category_coverage:
+                category_coverage[category] = 0
+                category_total[category] = 0
+
+            category_total[category] += 1
+            if result.matched:
+                category_coverage[category] += 1
+
+        # Calculate priority% for each category
+        # INVERTED: Low coverage → High priority
+        category_weights = {}
+        for category, total in category_total.items():
+            coverage_pct = category_coverage[category] / total if total > 0 else 0
+            # Priority is INVERSE of coverage: what we don't know gets high priority
+            priority = 1.0 - coverage_pct
+            category_weights[category] = priority
+
+        # Overall understanding% = confidence_score
+        understanding_pct = analysis.confidence_score
+
+        # Overall priority% = average of category priorities
+        priority_pct = sum(category_weights.values()) / len(category_weights) if category_weights else 0
+
+        # Weighted categories = priority% × understanding%
+        # This gives: categories we need to learn × how confident we are overall
+        weighted_categories = {
+            cat: weight * understanding_pct
+            for cat, weight in category_weights.items()
+        }
+
+        # Determine gap severity
+        if priority_pct > 0.75:
+            gap_severity = "critical"
+            recommended_action = "TRIGGER_AUDIT_DIFF"
+        elif priority_pct > 0.50:
+            gap_severity = "high"
+            recommended_action = "PROACTIVE_INQUIRY"
+        elif priority_pct > 0.25:
+            gap_severity = "medium"
+            recommended_action = "CLARIFYING_QUESTION"
+        else:
+            gap_severity = "low"
+            recommended_action = "STANDARD_RESPONSE"
+
+        return MetastateWeights(
+            category_weights=category_weights,
+            understanding_pct=understanding_pct,
+            priority_pct=priority_pct,
+            weighted_categories=weighted_categories,
+            gap_severity=gap_severity,
+            recommended_action=recommended_action
+        )
+
+    def _tokenize(self, text: str) -> List[str]:
+        """Tokenize text into words"""
+        # Remove punctuation and split
+        clean_text = re.sub(r'[^\w\s]', ' ', text)
+        words = clean_text.lower().split()
+        return words
+    
+    def _run_workflow(self, workflow: str, text: str, words: List[str]) -> List[PatternResult]:
+        """Run specific analysis workflow"""
+        results = []
+        
+        if workflow == "lexical":
+            results.extend(self._check_lexical(text, words))
+        elif workflow == "morphology":
+            results.extend(self._check_morphology(text, words))
+        elif workflow == "syntax":
+            results.extend(self._check_syntax(text))
+        elif workflow == "semantics":
+            results.extend(self._check_semantics(text))
+        elif workflow == "pragmatics":
+            results.extend(self._check_pragmatics(text))
+        elif workflow == "domain":
+            results.extend(self._check_domains(text))
+        elif workflow == "all":
+            results.extend(self._check_lexical(text, words))
+            results.extend(self._check_morphology(text, words))
+            results.extend(self._check_syntax(text))
+            results.extend(self._check_semantics(text))
+            results.extend(self._check_pragmatics(text))
+            results.extend(self._check_domains(text))
+        
+        return results
+    
+    def _check_lexical(self, text: str, words: List[str]) -> List[PatternResult]:
+        """Check lexical patterns"""
+        results = []
+        level = AnalysisLevel.LEXICAL.value
+        
+        if level in self.patterns:
+            for pattern_name, pattern in self.patterns[level].items():
+                matched = False
+                matched_text = []
+                
+                # Check each word
+                for word in words:
+                    clean_word = word.strip(".,!?;:'\"()[]{}")
+                    if re.search(pattern, clean_word, re.IGNORECASE):
+                        matched = True
+                        matched_text.append(clean_word)
+                
+                results.append(PatternResult(
+                    pattern_name=pattern_name,
+                    pattern=pattern,
+                    level=AnalysisLevel.LEXICAL,
+                    matched=matched,
+                    matched_text=matched_text
+                ))
+        
+        return results
+    
+    def _check_morphology(self, text: str, words: List[str]) -> List[PatternResult]:
+        """Check morphological patterns"""
+        results = []
+        level = AnalysisLevel.MORPHOLOGY.value
+        
+        if level in self.patterns:
+            for pattern_name, pattern in self.patterns[level].items():
+                matched = False
+                matched_text = []
+                
+                for word in words:
+                    clean_word = word.strip(".,!?;:'\"()[]{}")
+                    if re.search(pattern, clean_word, re.IGNORECASE):
+                        matched = True
+                        matched_text.append(clean_word)
+                
+                results.append(PatternResult(
+                    pattern_name=pattern_name,
+                    pattern=pattern,
+                    level=AnalysisLevel.MORPHOLOGY,
+                    matched=matched,
+                    matched_text=matched_text,
+                    reason=f"Testing morphology: python3 -c \"import re; print(bool(re.search(r'{pattern}', '{clean_word}')))"
+                ))
+        
+        return results
+    
+    def _check_syntax(self, text: str) -> List[PatternResult]:
+        """Check syntax patterns"""
+        results = []
+        level = AnalysisLevel.SYNTAX.value
+        
+        if level in self.patterns:
+            for pattern_name, pattern in self.patterns[level].items():
+                match = re.search(pattern, text, re.IGNORECASE)
+                matched_text = [match.group(0)] if match else []
+                
+                results.append(PatternResult(
+                    pattern_name=pattern_name,
+                    pattern=pattern,
+                    level=AnalysisLevel.SYNTAX,
+                    matched=bool(match),
+                    matched_text=matched_text
+                ))
+        
+        return results
+    
+    def _check_semantics(self, text: str) -> List[PatternResult]:
+        """Check semantic patterns"""
+        results = []
+        level = AnalysisLevel.SEMANTICS.value
+        
+        if level in self.patterns:
+            for pattern_name, pattern in self.patterns[level].items():
+                match = re.search(pattern, text, re.IGNORECASE)
+                matched_text = [match.group(0)] if match else []
+                
+                results.append(PatternResult(
+                    pattern_name=pattern_name,
+                    pattern=pattern,
+                    level=AnalysisLevel.SEMANTICS,
+                    matched=bool(match),
+                    matched_text=matched_text
+                ))
+        
+        return results
+    
+    def _check_pragmatics(self, text: str) -> List[PatternResult]:
+        """Check pragmatic patterns"""
+        results = []
+        level = AnalysisLevel.PRAGMATICS.value
+        
+        if level in self.patterns:
+            for pattern_name, pattern in self.patterns[level].items():
+                match = re.search(pattern, text, re.IGNORECASE)
+                matched_text = [match.group(0)] if match else []
+                
+                results.append(PatternResult(
+                    pattern_name=pattern_name,
+                    pattern=pattern,
+                    level=AnalysisLevel.PRAGMATICS,
+                    matched=bool(match),
+                    matched_text=matched_text
+                ))
+        
+        return results
+    
+    def _check_domains(self, text: str) -> List[PatternResult]:
+        """Check domain-specific patterns"""
+        results = []
+        domain_levels = [
+            AnalysisLevel.DOMAIN_ACADEMIC,
+            AnalysisLevel.DOMAIN_TECHNICAL,
+            AnalysisLevel.DOMAIN_INFORMAL,
+            AnalysisLevel.DOMAIN_META
+        ]
+        
+        for domain in domain_levels:
+            level = domain.value
+            if level in self.patterns:
+                for pattern_name, pattern in self.patterns[level].items():
+                    match = re.search(pattern, text, re.IGNORECASE)
+                    matched_text = [match.group(0)] if match else []
+                    
+                    results.append(PatternResult(
+                        pattern_name=pattern_name,
+                        pattern=pattern,
+                        level=domain,
+                        matched=bool(match),
+                        matched_text=matched_text
+                    ))
+        
+        return results
+    
+    def _calculate_confidence(self, words: List[str], recognized: Set[str]) -> float:
+        """Calculate confidence score based on recognition rate"""
+        if not words:
+            return 0.0
+        
+        # Count recognized content words (non-baseline)
+        content_words = [w for w in words 
+                        if w.lower() not in self.baseline_words and len(w) > 2]
+        
+        if not content_words:
+            return 1.0  # Only baseline words, high confidence
+        
+        recognized_content = sum(1 for w in content_words 
+                                if w.lower() in recognized)
+        
+        return recognized_content / len(content_words)
+    
+    def _identify_primary_gaps(self, 
+                              unrecognized: List[str], 
+                              pattern_results: List[PatternResult]) -> List[Tuple[str, str]]:
+        """Identify primary gaps and suggest patterns"""
+        gaps = []
+        
+        for word in set(unrecognized):  # Deduplicate
+            # Try to suggest pattern based on word characteristics
+            suggested_pattern = self._suggest_pattern_for_word(word)
+            
+            if suggested_pattern:
+                gaps.append((word, suggested_pattern))
+            else:
+                gaps.append((word, "unknown"))
+        
+        return gaps
+    
+    def _suggest_pattern_for_word(self, word: str) -> str:
+        """Suggest regex pattern for an unrecognized word"""
+        word_lower = word.lower()
+        
+        # Check for morphological patterns
+        if word_lower.endswith('ing'):
+            return r'\w+ing\b'  # Present participle
+        elif word_lower.endswith('ed'):
+            return r'\w+ed\b'   # Past tense
+        elif word_lower.endswith('ly'):
+            return r'\w+ly\b'   # Adverb
+        elif word_lower.endswith('s') and not word_lower.endswith('ss'):
+            return r'\w+s\b'    # Plural or 3rd person singular
+        elif re.search(r'[A-Z][a-z]+', word):
+            return r'\b[A-Z][a-z]+\b'  # Proper noun
+        elif re.search(r'\d', word):
+            if re.search(r'\$|£|€|¥', word):
+                return r'[\$£€¥]\s?\d+(?:\.\d{2})?'  # Currency
+            elif '%' in word:
+                return r'\d+\s?%'  # Percentage
+            else:
+                return r'\b\d+\b'  # Number
+        
+        return ""
+    
+    def _generate_recommendations(self,
+                                 unrecognized: List[str],
+                                 primary_gaps: List[Tuple[str, str]],
+                                 pattern_results: List[PatternResult],
+                                 confidence: float) -> List[str]:
+        """Generate actionable recommendations"""
+        recommendations = []
+        
+        if not unrecognized:
+            recommendations.append("All tokens recognized. Confidence is high.")
+            return recommendations
+        
+        # Count gaps by level
+        level_gaps = {}
+        for gap, pattern in primary_gaps:
+            if pattern:
+                if pattern == r'\w+ing\b':
+                    level_gaps['morphology'] = level_gaps.get('morphology', 0) + 1
+                elif pattern == r'\w+ed\b':
+                    level_gaps['morphology'] = level_gaps.get('morphology', 0) + 1
+                elif pattern.startswith(r'\b[A-Z]'):
+                    level_gaps['graphology'] = level_gaps.get('graphology', 0) + 1
+                elif pattern.startswith(r'\$') or pattern.startswith(r'\d'):
+                    level_gaps['entities'] = level_gaps.get('entities', 0) + 1
+        
+        # Generate level-specific recommendations
+        for level, count in level_gaps.items():
+            recommendations.append(
+                f"Found {count} {level}-level gaps. Consider adding patterns for {level}."
+            )
+        
+        # General recommendations
+        if confidence < 0.5:
+            recommendations.append(
+                f"Low confidence ({confidence:.2f}). Focus on lexical and morphology patterns."
+            )
+        
+        if len(unrecognized) > 5:
+            recommendations.append(
+                f"Multiple gaps ({len(unrecognized)}). Consider batch learning or domain-specific patterns."
+            )
+        
+        # Check if missing key patterns
+        has_question_words = any(
+            r.matched and r.pattern_name == "question_words" 
+            for r in pattern_results if r.level == AnalysisLevel.LEXICAL
+        )
+        
+        if not has_question_words and any(w in ['what', 'why', 'how'] for w in unrecognized):
+            recommendations.append(
+                "Missing question word recognition. Add to lexical patterns."
+            )
+        
+        return recommendations
+
+# ============================================================================
+# Workflow Definitions
+# ============================================================================
+
+WORKFLOWS = {
+    "quick": ["lexical", "morphology"],
+    "standard": ["lexical", "morphology", "syntax"],
+    "deep": ["lexical", "morphology", "syntax", "semantics", "pragmatics"],
+    "domain": ["domain"],
+    "full": ["all"],
+    "debug": ["lexical", "morphology", "syntax", "semantics", "pragmatics", "domain"]
+}
+
+# ============================================================================
+# Output Formatters
+# ============================================================================
+
+class OutputFormatter:
+    @staticmethod
+    def format_thought_process(analysis: GapAnalysis) -> str:
+        """Format output in thought process style"""
+        lines = []
+        lines.append("=" * 20 + " THOUGHT PROCESS " + "=" * 20)
+        
+        # Run through pattern checks
+        for result in analysis.pattern_results:
+            if result.reason:
+                lines.append(f"  * {result.reason}")
+            elif not result.matched and "lexical" in result.level.value:
+                lines.append(f"  * Testing lexical: python3 -c \"import re;")
+                lines.append(f"    print(bool(re.search(r'{result.pattern}', '{result.pattern_name}')))")
+                lines.append(f"    Result: FAIL. Token queued for external learning solicitation.")
+        
+        # Show gaps
+        if analysis.unrecognized_tokens:
+            lines.append(f"  * Epistemic gaps detected: {analysis.unrecognized_tokens}")
+            for gap, pattern in analysis.primary_gaps:
+                lines.append(f"  * Gap: '{gap}' -> Suggested pattern: {pattern}")
+        
+        lines.append("=" * 57)
+        return "\n".join(lines)
+    
+    @staticmethod
+    def format_diagnostic(analysis: GapAnalysis) -> str:
+        """Format diagnostic output"""
+        lines = []
+        lines.append("\n[DIAGNOSTIC: GAP ANALYSIS]")
+        lines.append(f"Input: {analysis.text}")
+        lines.append(f"Confidence Score: {analysis.confidence_score:.2f}")
+        lines.append(f"Recognized Tokens: {len(analysis.recognized_tokens)}")
+        lines.append(f"Unrecognized Tokens: {len(analysis.unrecognized_tokens)}")
+        
+        if analysis.unrecognized_tokens:
+            lines.append("\nGap Breakdown:")
+            for gap, pattern in analysis.primary_gaps:
+                lines.append(f"  - '{gap}': {pattern}")
+        
+        # Pattern summary
+        lines.append("\nPattern Recognition:")
+        by_level = {}
+        for result in analysis.pattern_results:
+            level = result.level.value.replace("level_", "").replace("domain_", "")
+            if level not in by_level:
+                by_level[level] = {"total": 0, "matched": 0}
+            by_level[level]["total"] += 1
+            if result.matched:
+                by_level[level]["matched"] += 1
+        
+        for level, stats in by_level.items():
+            pct = (stats["matched"] / stats["total"] * 100) if stats["total"] > 0 else 0
+            lines.append(f"  {level}: {stats['matched']}/{stats['total']} ({pct:.1f}%)")
+        
+        lines.append("-" * 30)
+        return "\n".join(lines)
+    
+    @staticmethod
+    def format_json(analysis: GapAnalysis) -> str:
+        """Format as JSON"""
+        import json as json_module
+        data = {
+            "text": analysis.text,
+            "confidence": analysis.confidence_score,
+            "recognized_tokens": list(analysis.recognized_tokens),
+            "unrecognized_tokens": analysis.unrecognized_tokens,
+            "primary_gaps": [{"token": g[0], "suggested_pattern": g[1]} 
+                           for g in analysis.primary_gaps],
+            "recommendations": analysis.recommendations,
+            "pattern_summary": {
+                result.pattern_name: {
+                    "level": result.level.value,
+                    "matched": result.matched,
+                    "matches": result.matched_text
+                }
+                for result in analysis.pattern_results
+            }
+        }
+        return json_module.dumps(data, indent=2)
+    
+    @staticmethod
+    def format_commands(analysis: GapAnalysis) -> str:
+        """Format as executable commands for testing"""
+        lines = []
+        lines.append("\n[COMMANDS FOR MANUAL TESTING]")
+        
+        for gap, pattern in analysis.primary_gaps:
+            if pattern and pattern != "unknown":
+                cmd = f"python3 -c \"import re; print(bool(re.search(r'{pattern}', '{gap}')))"
+                lines.append(f"# Test '{gap}' against pattern '{pattern}':")
+                lines.append(cmd + '"')
+                lines.append("")
+        
+        # Generate pattern addition commands
+        if analysis.unrecognized_tokens:
+            lines.append("\n[SUGGESTED PATTERN ADDITIONS]")
+            lines.append("# Add to master_regex.json under appropriate level:")
+            for gap, pattern in analysis.primary_gaps:
+                if pattern and pattern != "unknown":
+                    lines.append(f"# '{gap}': \"{pattern}\",")
+        
+        return "\n".join(lines)
+
+# ============================================================================
+# Main CLI Interface
+# ============================================================================
+
+# Workflow descriptions for help output
+WORKFLOW_DESCRIPTIONS = {
+    "quick": "Fast surface-level analysis (lexical + morphology only)",
+    "standard": "Balanced analysis (lexical + morphology + syntax)",
+    "deep": "Full linguistic stack (adds semantics + pragmatics)",
+    "domain": "Domain-specific pattern matching only",
+    "full": "Complete analysis across all layers",
+    "debug": "Developer mode with full diagnostic output"
+}
+
+def get_state_info():
+    """Get current system state for state-aware help."""
+    state_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "session_state.json")
+    state_info = {
+        "confidence": "N/A",
+        "turn_count": 0,
+        "active_domain": "general",
+        "boredom_score": "0%%",  # Double %% to escape for argparse formatting
+        "conversation_state": "idle",
+        "entity_stack_depth": 0
+    }
+    try:
+        if os.path.exists(state_path):
+            with open(state_path, 'r') as f:
+                state = json.load(f)
+                state_info["confidence"] = f"{state.get('confidence_score', 1.0):.2f}"
+                state_info["turn_count"] = state.get("turn_count", 0)
+                state_info["active_domain"] = state.get("active_domain", "general")
+                # Double %% to escape for argparse formatting
+                state_info["boredom_score"] = f"{state.get('boredom_score', 0) * 100:.0f}%%"
+                state_info["entity_stack_depth"] = len(state.get("entity_stack", []))
+                flow = state.get("conversation_flow", {})
+                state_info["conversation_state"] = flow.get("state", "idle")
+    except Exception:
+        pass
+    return state_info
+
+def build_epilog():
+    """Build state-aware epilog with current system information."""
+    state = get_state_info()
+
+    workflow_help = "\n".join([f"    {k:12} {v}" for k, v in WORKFLOW_DESCRIPTIONS.items()])
+
+    return f"""
+WORKFLOWS:
+{workflow_help}
+
+CURRENT SYSTEM STATE:
+    Confidence:       {state['confidence']}
+    Turn Count:       {state['turn_count']}
+    Active Domain:    {state['active_domain']}
+    Boredom Score:    {state['boredom_score']}
+    Conv. State:      {state['conversation_state']}
+    Entity Stack:     {state['entity_stack_depth']} entities
+
+MILESTONES (from MILESTONES.md):
+    [x] Tier 1-4: Foundational -> Stateful (Complete)
+    [x] Tier 5-6: Expert -> Empathetic (Complete)
+    [x] Tier 7:   Self-Reflective (Complete)
+    [ ] Tier 8:   Autonomous / Turing Proficiency (In Progress)
+    [ ] M11.0:    Autonomous Meta-Refactor (Pending)
+
+EXAMPLES:
+    Basic gap analysis:
+      %(prog)s "because the system is slow"
+
+    Deep workflow with diagnostic output:
+      %(prog)s "why is CPU temperature high?" -w deep -fmt diagnostic
+
+    Pinpoint unmapped semantic tokens:
+      %(prog)s "quantum entanglement affects particle states" --pinpoint
+
+    Show current thoughts and gap summary:
+      %(prog)s "machine learning uses neural networks" --thoughts --gap-summary
+
+    Full analysis to JSON:
+      %(prog)s "professional development costs $500" -w full -fmt json
+
+    Interactive session:
+      %(prog)s --interactive
+
+RELATED TASKS (from TASKS.md):
+    Task 12.5: Semantic Link Profiler (--pinpoint flag)
+    Task 3.4:  Curiosity Depth (confidence-based gap urgency)
+    Task 5.1:  Multi-Layer Understanding Audit
+"""
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="GAP ANALYZER - Cross-domain understanding gap identification",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=build_epilog()
+    )
+
+    # -------------------------------------------------------------------------
+    # Input Options
+    # -------------------------------------------------------------------------
+    input_group = parser.add_argument_group(
+        'Input Options',
+        'Specify text to analyze via argument, file, or interactive mode'
+    )
+    input_group.add_argument(
+        "text", nargs="?",
+        help="Text to analyze for understanding gaps"
+    )
+    input_group.add_argument(
+        "--file", "-f",
+        metavar="PATH",
+        help="Read text from file instead of command line"
+    )
+
+    # -------------------------------------------------------------------------
+    # Workflow Options
+    # -------------------------------------------------------------------------
+    workflow_group = parser.add_argument_group(
+        'Workflow Options',
+        'Control analysis depth and focus (see WORKFLOWS section below)'
+    )
+    workflow_group.add_argument(
+        "--workflow", "-w",
+        choices=list(WORKFLOWS.keys()),
+        default="standard",
+        metavar="MODE",
+        help="Analysis workflow: quick|standard|deep|domain|full|debug (default: standard)"
+    )
+
+    # -------------------------------------------------------------------------
+    # Output Options
+    # -------------------------------------------------------------------------
+    output_group = parser.add_argument_group(
+        'Output Options',
+        'Control output format and verbosity'
+    )
+    output_group.add_argument(
+        "--format", "-fmt",
+        choices=["thought", "diagnostic", "json", "commands", "all"],
+        default="thought",
+        metavar="FMT",
+        help="Output format: thought|diagnostic|json|commands|all (default: thought)"
+    )
+    output_group.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Show all pattern match results, not just gaps"
+    )
+    output_group.add_argument(
+        "--thoughts",
+        action="store_true",
+        help="Show current thought process and internal reasoning chain"
+    )
+    output_group.add_argument(
+        "--gap-summary",
+        action="store_true",
+        dest="gap_summary",
+        help="Show concise gap summary with suggested learning priorities"
+    )
+
+    # -------------------------------------------------------------------------
+    # Diagnostic Options (Task 12.5)
+    # -------------------------------------------------------------------------
+    diag_group = parser.add_argument_group(
+        'Diagnostic Options',
+        'Developer tools for semantic profiling and debugging'
+    )
+    diag_group.add_argument(
+        "--pinpoint",
+        action="store_true",
+        help="[Task 12.5] Output unmapped semantic tokens for pattern development"
+    )
+    diag_group.add_argument(
+        "--show-state",
+        action="store_true",
+        dest="show_state",
+        help="Display current orchestrator state (confidence, boredom, domain)"
+    )
+
+    # -------------------------------------------------------------------------
+    # Configuration Options
+    # -------------------------------------------------------------------------
+    config_group = parser.add_argument_group(
+        'Configuration',
+        'Override default pattern and hierarchy files'
+    )
+    config_group.add_argument(
+        "--patterns", "-p",
+        metavar="FILE",
+        help="Custom patterns JSON file (default: master_regex.json)"
+    )
+    config_group.add_argument(
+        "--hierarchy", "-H",
+        metavar="FILE",
+        help="Custom hierarchy JSON file (default: english_hier.json)"
+    )
+
+    # -------------------------------------------------------------------------
+    # Mode Options
+    # -------------------------------------------------------------------------
+    mode_group = parser.add_argument_group(
+        'Mode Options',
+        'Special execution modes'
+    )
+    mode_group.add_argument(
+        "--test", "-t",
+        action="store_true",
+        help="Run built-in test suite across all workflow types"
+    )
+    mode_group.add_argument(
+        "--interactive", "-i",
+        action="store_true",
+        help="Enter interactive REPL mode for continuous analysis"
+    )
+    
+    args = parser.parse_args()
+    
+    # Handle test mode
+    if args.test:
+        run_tests()
+        return
+    
+    # Handle interactive mode
+    if args.interactive:
+        run_interactive(args)
+        return
+    
+    # Get input text
+    text = args.text
+    if args.file:
+        try:
+            with open(args.file, 'r') as f:
+                text = f.read().strip()
+        except FileNotFoundError:
+            print(f"Error: File not found: {args.file}")
+            return 1
+    
+    if not text and not args.interactive:
+        parser.print_help()
+        print("\nError: No text provided. Use --file or provide text as argument.")
+        return 1
+    
+    # Run analysis
+    analyzer = GapAnalyzer(args.patterns, args.hierarchy)
+    analysis = analyzer.analyze_text(text, WORKFLOWS[args.workflow])
+    
+    # Output results
+    if args.format == "thought" or args.format == "all":
+        print(OutputFormatter.format_thought_process(analysis))
+    
+    if args.format == "diagnostic" or args.format == "all":
+        print(OutputFormatter.format_diagnostic(analysis))
+    
+    if args.format == "json" or args.format == "all":
+        print(OutputFormatter.format_json(analysis))
+    
+    if args.format == "commands" or args.format == "all":
+        print(OutputFormatter.format_commands(analysis))
+    
+    # Verbose output
+    if args.verbose:
+        print("\n[VERBOSE: PATTERN RESULTS]")
+        for result in analysis.pattern_results:
+            status = "✓" if result.matched else "✗"
+            print(f"  {status} {result.level.value}.{result.pattern_name}: "
+                  f"{result.matched_text if result.matched else 'No match'}")
+
+    # Show recommendations
+    if analysis.recommendations:
+        print("\n[RECOMMENDATIONS]")
+        for rec in analysis.recommendations:
+            print(f"  • {rec}")
+
+    # --show-state: Display current orchestrator state
+    if args.show_state:
+        state = get_state_info()
+        # Replace %% back to % for display (was escaped for argparse)
+        boredom = state['boredom_score'].replace("%%", "%")
+        print("\n" + "=" * 20 + " CURRENT SYSTEM STATE " + "=" * 20)
+        print(f"  Confidence Score:    {state['confidence']}")
+        print(f"  Turn Count:          {state['turn_count']}")
+        print(f"  Active Domain:       {state['active_domain']}")
+        print(f"  Boredom Score:       {boredom}")
+        print(f"  Conversation State:  {state['conversation_state']}")
+        print(f"  Entity Stack Depth:  {state['entity_stack_depth']} entities")
+        print("=" * 62)
+
+    # --pinpoint: Semantic Link Profiler (Task 12.5)
+    if args.pinpoint:
+        print("\n" + "=" * 20 + " SEMANTIC LINK PROFILER " + "=" * 18)
+        print(f"  Input: {text}")
+        print(f"  Workflow: {args.workflow}")
+        print()
+
+        # Categorize tokens
+        all_tokens = set(text.lower().split())
+        recognized = set(t.lower() for t in analysis.recognized_tokens)
+        unrecognized = set(t.lower() for t in analysis.unrecognized_tokens)
+
+        # Filter noise words
+        noise_words = {"the", "a", "an", "is", "are", "was", "were", "be", "been",
+                       "being", "have", "has", "had", "do", "does", "did", "will",
+                       "would", "could", "should", "may", "might", "must", "shall",
+                       "can", "to", "of", "in", "for", "on", "with", "at", "by",
+                       "from", "as", "into", "through", "during", "before", "after",
+                       "above", "below", "between", "under", "again", "further",
+                       "then", "once", "here", "there", "when", "where", "why",
+                       "how", "all", "each", "few", "more", "most", "other", "some",
+                       "such", "no", "nor", "not", "only", "own", "same", "so",
+                       "than", "too", "very", "just", "and", "but", "if", "or",
+                       "because", "until", "while", "although", "i", "you", "he",
+                       "she", "it", "we", "they", "what", "which", "who", "this",
+                       "that", "these", "those", "am", "its", "your", "my", "his",
+                       "her", "our", "their"}
+
+        semantic_gaps = [t for t in unrecognized if t not in noise_words and len(t) > 2]
+
+        print(f"  UNMAPPED SEMANTIC TOKENS ({len(semantic_gaps)}):")
+        if semantic_gaps:
+            for token in semantic_gaps:
+                # Suggest pattern category
+                if token.endswith("ing"):
+                    suggestion = "morphology:verb_progressive"
+                elif token.endswith("ly"):
+                    suggestion = "morphology:adverb"
+                elif token.endswith("tion") or token.endswith("sion"):
+                    suggestion = "morphology:nominalization"
+                elif token.endswith("ness") or token.endswith("ment"):
+                    suggestion = "morphology:noun_suffix"
+                elif token[0].isupper():
+                    suggestion = "lexical:proper_noun / domain:entity"
+                else:
+                    suggestion = "lexical:content_word / domain:technical"
+                print(f"    • '{token}' -> suggested: {suggestion}")
+        else:
+            print("    (none - all tokens mapped)")
+
+        print()
+        print(f"  COVERAGE SUMMARY:")
+        total = len(all_tokens - noise_words)
+        covered = len(recognized - noise_words)
+        coverage_pct = (covered / total * 100) if total > 0 else 0
+        print(f"    Semantic tokens: {total}")
+        print(f"    Covered:         {covered} ({coverage_pct:.1f}%)")
+        print(f"    Gaps:            {len(semantic_gaps)}")
+        print("=" * 62)
+
+    # --thoughts: Show current thought process
+    if args.thoughts:
+        print("\n" + "=" * 20 + " CURRENT THOUGHTS " + "=" * 22)
+        thoughts = []
+
+        # Generate thoughts based on analysis
+        if analysis.confidence_score < 0.5:
+            thoughts.append(f"LOW CONFIDENCE ({analysis.confidence_score:.2f}): Significant epistemic gaps detected")
+        elif analysis.confidence_score < 0.8:
+            thoughts.append(f"MODERATE CONFIDENCE ({analysis.confidence_score:.2f}): Some understanding gaps remain")
+        else:
+            thoughts.append(f"HIGH CONFIDENCE ({analysis.confidence_score:.2f}): Good pattern coverage")
+
+        # Calculate domain coverage from pattern results
+        domain_matches = {}
+        for result in analysis.pattern_results:
+            if result.matched and "domain" in result.level.value.lower():
+                domain_name = result.pattern_name.replace("_", " ").title()
+                domain_matches[domain_name] = domain_matches.get(domain_name, 0) + 1
+
+        if domain_matches:
+            for domain, count in sorted(domain_matches.items(), key=lambda x: x[1], reverse=True)[:3]:
+                thoughts.append(f"DOMAIN ACTIVATION: {domain} ({count} pattern{'s' if count > 1 else ''} matched)")
+
+        # Gap thoughts
+        if analysis.unrecognized_tokens:
+            gap_count = len(analysis.unrecognized_tokens)
+            thoughts.append(f"EPISTEMIC GAPS: {gap_count} unrecognized tokens queued for learning")
+            if gap_count > 3:
+                thoughts.append("CURIOSITY TRIGGER: Multiple gaps suggest new domain or concept cluster")
+
+        # Pattern thoughts
+        matched_levels = set()
+        for result in analysis.pattern_results:
+            if result.matched:
+                level_name = result.level.value.split('.')[0] if '.' in result.level.value else result.level.value
+                matched_levels.add(level_name)
+
+        if len(matched_levels) >= 4:
+            thoughts.append(f"MULTI-LAYER RECOGNITION: Input spans {len(matched_levels)} linguistic levels")
+        elif len(matched_levels) <= 1:
+            thoughts.append("SHALLOW RECOGNITION: Only surface-level patterns matched")
+        else:
+            thoughts.append(f"PARTIAL RECOGNITION: {len(matched_levels)} levels matched ({', '.join(sorted(matched_levels))})")
+
+        # Learning recommendation thought
+        gap_ratio = len(analysis.unrecognized_tokens) / max(len(text.split()), 1)
+        if gap_ratio > 0.3:
+            thoughts.append(f"LEARNING PRIORITY: High gap density ({gap_ratio:.0%}) - recommend /teach or /read")
+
+        for i, thought in enumerate(thoughts, 1):
+            print(f"  [{i}] {thought}")
+        print("=" * 60)
+
+    # --gap-summary: Concise gap summary with learning priorities
+    if args.gap_summary:
+        print("\n" + "=" * 20 + " GAP SUMMARY " + "=" * 27)
+        print(f"  Input: \"{text[:50]}{'...' if len(text) > 50 else ''}\"")
+        print(f"  Confidence: {analysis.confidence_score:.2f}")
+        print()
+
+        # Priority levels based on gap type
+        high_priority = []
+        medium_priority = []
+        low_priority = []
+
+        for gap, suggestion in analysis.primary_gaps:
+            if "domain" in suggestion.lower():
+                high_priority.append((gap, suggestion, "Domain vocabulary critical for understanding"))
+            elif "lexical" in suggestion.lower():
+                medium_priority.append((gap, suggestion, "Content word adds semantic depth"))
+            else:
+                low_priority.append((gap, suggestion, "Structural pattern enhancement"))
+
+        if high_priority:
+            print("  HIGH PRIORITY (Domain Gaps):")
+            for gap, sugg, reason in high_priority[:3]:
+                print(f"    ! '{gap}' -> {sugg}")
+                print(f"      Reason: {reason}")
+
+        if medium_priority:
+            print("  MEDIUM PRIORITY (Lexical Gaps):")
+            for gap, sugg, reason in medium_priority[:3]:
+                print(f"    ~ '{gap}' -> {sugg}")
+
+        if low_priority:
+            print("  LOW PRIORITY (Structural):")
+            for gap, sugg, reason in low_priority[:2]:
+                print(f"    . '{gap}' -> {sugg}")
+
+        if not (high_priority or medium_priority or low_priority):
+            print("  No significant gaps detected.")
+
+        # Learning velocity recommendation
+        gap_density = len(analysis.unrecognized_tokens) / max(len(text.split()), 1)
+        if gap_density > 0.4:
+            print(f"\n  LEARNING RECOMMENDATION: High gap density ({gap_density:.0%})")
+            print("    -> Suggest: /teach session or /read for domain ingestion")
+        elif gap_density > 0.2:
+            print(f"\n  LEARNING RECOMMENDATION: Moderate gap density ({gap_density:.0%})")
+            print("    -> Suggest: Targeted vocabulary expansion")
+
+        print("=" * 60)
+
+def run_interactive(args):
+    """Run in interactive mode"""
+    print("GAP ANALYZER - Interactive Mode")
+    print("Type 'quit' or 'exit' to end\n")
+    
+    analyzer = GapAnalyzer(args.patterns, args.hierarchy)
+    
+    while True:
+        try:
+            text = input("Enter text to analyze: ").strip()
+            if text.lower() in ['quit', 'exit', 'q']:
+                break
+            
+            if not text:
+                continue
+            
+            analysis = analyzer.analyze_text(text, WORKFLOWS[args.workflow])
+            print(OutputFormatter.format_thought_process(analysis))
+            print(OutputFormatter.format_diagnostic(analysis))
+            
+            if analysis.recommendations:
+                print("\n[RECOMMENDATIONS]")
+                for rec in analysis.recommendations:
+                    print(f"  • {rec}")
+            
+            print("\n" + "="*60 + "\n")
+            
+        except KeyboardInterrupt:
+            print("\nExiting...")
+            break
+        except Exception as e:
+            print(f"Error: {e}")
+
+def run_tests():
+    """Run test suite"""
+    test_cases = [
+        "because the system is slow",
+        "why is CPU temperature high?",
+        "what is quantum tunneling?",
+        "professional development costs $500",
+        "I want to learn machine learning algorithms",
+        "The database connection timeout after 30 seconds"
+    ]
+    
+    analyzer = GapAnalyzer()
+    
+    print("RUNNING TEST SUITE...\n")
+    for test in test_cases:
+        print(f"Testing: {test}")
+        analysis = analyzer.analyze_text(test, WORKFLOWS["debug"])
+        print(f"  Confidence: {analysis.confidence_score:.2f}")
+        print(f"  Gaps: {len(analysis.unrecognized_tokens)}")
+        if analysis.unrecognized_tokens:
+            print(f"  Unrecognized: {analysis.unrecognized_tokens}")
+        print()
+
+# ============================================================================
+# Direct Python Execution Helper
+# ============================================================================
+
+def quick_analyze(text: str) -> str:
+    """Quick analysis function for inline use"""
+    analyzer = GapAnalyzer()
+    analysis = analyzer.analyze_text(text, ["lexical", "morphology"])
+    
+    output = []
+    output.append(f"Text: {text}")
+    output.append(f"Confidence: {analysis.confidence_score:.2f}")
+    
+    if analysis.unrecognized_tokens:
+        output.append(f"Gaps: {analysis.unrecognized_tokens}")
+        for gap, pattern in analysis.primary_gaps:
+            if pattern:
+                output.append(f"  '{gap}' -> try pattern: {pattern}")
+    
+    return "\n".join(output)
+
+# ============================================================================
+# Entry Point
+# ============================================================================
+
+if __name__ == "__main__":
+    # Example direct usage:
+    # python3 -c "from gap_analyzer import quick_analyze; print(quick_analyze('because it is professional'))"
+    
+    # Or as script:
+    # python gap_analyzer.py "because it is professional" --workflow deep --format all
+    
+    main()

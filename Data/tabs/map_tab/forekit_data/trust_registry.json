@@ -1,0 +1,31 @@
+{
+  "version": "1.0",
+  "created_at": "2026-02-16T21:35:24.403552",
+  "last_updated": "2026-02-16T21:35:24.403586",
+  "baseline_snapshot": {
+    "os_components": {},
+    "external_agents": {
+      "claude-code": {
+        "first_seen": null,
+        "verified_ips": [],
+        "pid_history": [],
+        "last_verified": null,
+        "trust_level": "untrusted",
+        "requires_network": false,
+        "notes": "Local CLI tool. Trusted when invoked by user."
+      },
+      "gemini-agent": {
+        "first_seen": null,
+        "verified_ips": [],
+        "trust_level": "untrusted",
+        "requires_network": true,
+        "notes": "Only trusted when user explicitly invokes."
+      }
+    }
+  },
+  "network_trust": {
+    "known_ips": {},
+    "verification_log": []
+  },
+  "telemetry_log": []
+}

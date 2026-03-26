@@ -1,0 +1,63 @@
+{
+  "description": "Tool schema for Audio Processor skilled",
+  "type": "audio_processor",
+  "class": "skilled",
+  "enabled_tools": {
+    "audio_read": true,
+    "file_read": true,
+    "file_write": true
+  },
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "file_read",
+        "description": "Read the contents of a file. Returns the file content as text.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "file_path": {
+              "type": "string",
+              "description": "Path to the file to read (relative to working directory)"
+            },
+            "start_line": {
+              "type": "integer",
+              "description": "Starting line number (optional, 1-indexed)"
+            },
+            "end_line": {
+              "type": "integer",
+              "description": "Ending line number (optional, inclusive)"
+            }
+          },
+          "required": [
+            "file_path"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "file_write",
+        "description": "Write content to a file. Creates new file or overwrites existing file.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "file_path": {
+              "type": "string",
+              "description": "Path to the file to write"
+            },
+            "content": {
+              "type": "string",
+              "description": "Content to write to the file"
+            }
+          },
+          "required": [
+            "file_path",
+            "content"
+          ]
+        }
+      }
+    }
+  ]
+}

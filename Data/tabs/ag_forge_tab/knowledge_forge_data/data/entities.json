@@ -1,0 +1,32 @@
+{
+  "animal_0001": {
+    "id": "animal_0001",
+    "name": "Unknown",
+    "type": "Animal",
+    "category": "Animal_Husbandry",
+    "birth_date": null,
+    "acquisition_date": "",
+    "location": "",
+    "description": "Taxonomic data for Unknown (COL source).",
+    "photo_path": null,
+    "documents": [],
+    "health_status": "Good",
+    "health_records": [],
+    "species": "Unknown",
+    "breed": "",
+    "parent_id": null,
+    "offspring_ids": [],
+    "disease_associations": [],
+    "parasite_associations": [],
+    "nutrient_associations": [],
+    "location_associations": [],
+    "tags": [
+      "Aves",
+      "owl",
+      "Cattle",
+      "Unknown"
+    ],
+    "confidence_score": 0.0,
+    "last_updated": "2026-02-22T06:06:29.470207"
+  }
+}

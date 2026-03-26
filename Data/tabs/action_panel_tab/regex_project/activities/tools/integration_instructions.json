@@ -1,0 +1,113 @@
+{
+  "integration_with_onboarder": {
+    "phase_1_discovery": {
+      "tasks": [
+        "Load baseline classification schema",
+        "Initialize regex pattern library",
+        "Set up morphological gap handlers"
+      ],
+      "code_modification": {
+        "file": "onboarder.py",
+        "location": "ToolDiscoverer._parse_tool method",
+        "add": "classification = FiveWOneHClaffifier.classify(tool_name, content)"
+      }
+    },
+    
+    "phase_2_parsing": {
+      "tasks": [
+        "Apply lexical analysis to tool names",
+        "Use context inference from file content",
+        "Apply pattern matching for each dimension"
+      ],
+      "code_modification": {
+        "file": "onboarder.py",
+        "location": "ToolMetadata dataclass",
+        "add": "classification: Dict[str, str] = field(default_factory=dict)"
+      }
+    },
+    
+    "phase_3_classification": {
+      "tasks": [
+        "Assign 5W1H dimensions",
+        "Calculate confidence scores",
+        "Handle gaps with fallback strategies"
+      ],
+      "new_class": {
+        "name": "FiveWOneHClaffifier",
+        "methods": [
+          "classify(tool_name, content)",
+          "lexical_analysis(text)",
+          "context_inference(content)",
+          "pattern_match(dimension, text)",
+          "gap_bridge(gap_type, context)",
+          "confidence_score(classification)"
+        ]
+      }
+    },
+    
+    "sample_implementation": {
+      "class_skeleton": """
+class FiveWOneHClaffifier:
+    def __init__(self):
+        self.baseline = self._load_json('baseline_5w1h_classification.json')
+        self.patterns = self._load_json('regex_pattern_library.json')
+        self.instructions = self._load_json('morphological_gap_instructions.json')
+    
+    def classify(self, tool_name: str, content: str = "") -> Dict[str, Any]:
+        # Step 1: Lexical analysis
+        tokens = self._tokenize(tool_name)
+        
+        # Step 2: Context inference
+        context = self._infer_context(content)
+        
+        # Step 3: Pattern matching for each dimension
+        classification = {}
+        for dimension in ['what', 'where', 'when', 'why', 'which', 'how']:
+            classification[dimension] = self._classify_dimension(
+                dimension, tokens, context
+            )
+        
+        # Step 4: Gap handling
+        classification = self._handle_gaps(classification, tokens, context)
+        
+        # Step 5: Confidence scoring
+        classification['confidence'] = self._calculate_confidence(classification)
+        
+        return classification
+    
+    def _classify_dimension(self, dimension: str, tokens: List[str], context: Dict) -> str:
+        patterns = self.baseline['dimensions'][dimension]['regex_patterns']
+        for pattern in patterns:
+            for token in tokens:
+                if re.search(pattern, token, re.IGNORECASE):
+                    return self._get_description_from_pattern(pattern, dimension)
+        
+        # Fallback to context inference
+        return self._infer_from_context(dimension, context)
+      """
+    },
+    
+    "integration_points": [
+      {
+        "point": "Tool discovery output",
+        "action": "Add classification to ToolMetadata",
+        "benefit": "Enriched tool understanding"
+      },
+      {
+        "point": "Tool consolidation",
+        "action": "Group tools by classification similarity",
+        "benefit": "More logical menu organization"
+      },
+      {
+        "point": "GUI display",
+        "action": "Show 5W1H classification in tool details",
+        "benefit": "Better user understanding"
+      },
+      {
+        "point": "Search functionality",
+        "action": "Enable search by classification dimensions",
+        "benefit": "Improved tool discovery"
+      }
+    ]
+  }
+}

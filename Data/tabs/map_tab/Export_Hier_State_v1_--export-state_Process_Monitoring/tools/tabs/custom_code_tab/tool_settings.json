@@ -1,0 +1,20 @@
+{
+  "enabled_tools": {
+    "file_read": true,
+    "file_write": true,
+    "file_edit": true,
+    "file_copy": true,
+    "file_move": true,
+    "file_delete": true,
+    "file_create": true,
+    "file_fill": true,
+    "grep_search": true,
+    "file_search": true,
+    "directory_list": true,
+    "bash_execute": true,
+    "git_operations": true,
+    "system_info": true,
+    "change_directory": true,
+    "resource_request": true
+  }
+}

@@ -1,0 +1,14 @@
+{
+    "base_dir": "/home/commander/Trainer/Data/tabs/ag_forge_tab/modules/quick_clip",
+    "snapshot_dir": "/home/commander/Trainer/Data/tabs/ag_forge_tab/modules/quick_clip/snapshots",
+    "inventory_dir": "/home/commander/Trainer/Data/tabs/ag_forge_tab/modules/quick_clip/inventory",
+    "known_inventories": [
+        {
+            "name": "omega_export_omega_v51_base",
+            "path": "/tmp/test_export2/omega_export_omega_v51_base_20260301_165113",
+            "tags": [
+                "omega_export_omega_v51_base"
+            ]
+        }
+    ]
+}

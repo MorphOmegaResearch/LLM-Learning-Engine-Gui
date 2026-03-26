@@ -1,0 +1,157 @@
+{
+  "description": "Tool schema for Orchestrator skilled",
+  "type": "orchestrator",
+  "class": "skilled",
+  "enabled_tools": {
+    "file_read": true,
+    "file_write": true,
+    "directory_list": true,
+    "grep_search": true,
+    "agent_request": true,
+    "agents_status": true
+  },
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "file_read",
+        "description": "Read the contents of a file. Returns the file content as text.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "file_path": {
+              "type": "string",
+              "description": "Path to the file to read (relative to working directory)"
+            },
+            "start_line": {
+              "type": "integer",
+              "description": "Starting line number (optional, 1-indexed)"
+            },
+            "end_line": {
+              "type": "integer",
+              "description": "Ending line number (optional, inclusive)"
+            }
+          },
+          "required": [
+            "file_path"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "file_write",
+        "description": "Write content to a file. Creates new file or overwrites existing file.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "file_path": {
+              "type": "string",
+              "description": "Path to the file to write"
+            },
+            "content": {
+              "type": "string",
+              "description": "Content to write to the file"
+            }
+          },
+          "required": [
+            "file_path",
+            "content"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "directory_list",
+        "description": "List contents of a directory.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "dir_path": {
+              "type": "string",
+              "description": "Path to the directory to list"
+            },
+            "recursive": {
+              "type": "boolean",
+              "description": "List recursively"
+            }
+          },
+          "required": [
+            "dir_path"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "grep_search",
+        "description": "Search for text patterns in files using grep.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "type": "string",
+              "description": "Search pattern (regex supported)"
+            },
+            "path": {
+              "type": "string",
+              "description": "Path to search in (file or directory)"
+            },
+            "recursive": {
+              "type": "boolean",
+              "description": "Search recursively in subdirectories"
+            }
+          },
+          "required": [
+            "pattern",
+            "path"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "agent_request",
+        "description": "Request assistance from another agent in your expert panel. Only available to orchestrator agents with MoE enabled. Use this to delegate tasks to specialized agents.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "agent_name": {
+              "type": "string",
+              "description": "Name of the agent to consult (must be in your MoE expert panel)"
+            },
+            "task": {
+              "type": "string",
+              "description": "The specific task or question for the agent"
+            },
+            "context": {
+              "type": "string",
+              "description": "Optional additional context to help the agent understand the task"
+            }
+          },
+          "required": [
+            "agent_name",
+            "task"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "agents_status",
+        "description": "Get current status of all agents in roster, including which are mounted, their variants, and MoE panel assignments.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      }
+    }
+  ]
+}

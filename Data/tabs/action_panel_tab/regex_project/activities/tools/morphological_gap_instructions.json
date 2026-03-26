@@ -1,0 +1,136 @@
+{
+  "instructions": {
+    "overview": "Instructions for bridging morphological gaps in CLI tool classification",
+    
+    "step_1_lexical_analysis": {
+      "title": "Lexical Analysis",
+      "steps": [
+        "1.1 Tokenize tool name into words using separators: _, -, .",
+        "1.2 Remove file extensions (.py, .sh, etc.)",
+        "1.3 Convert to lowercase for normalization",
+        "1.4 Identify base forms using stemming (Porter, Snowball)",
+        "1.5 Map to known verb/noun forms from pattern library"
+      ],
+      "examples": {
+        "code_analyzer.py": {"input": ["code", "analyzer"], "output": ["code", "analyze"]},
+        "path-fixer.py": {"input": ["path", "fixer"], "output": ["path", "fix"]},
+        "import_organizer.py": {"input": ["import", "organizer"], "output": ["import", "organize"]}
+      }
+    },
+    
+    "step_2_context_inference": {
+      "title": "Context Inference",
+      "steps": [
+        "2.1 Check tool description for 5W1H indicators",
+        "2.2 Parse argparse help text for context clues",
+        "2.3 Analyze import statements for domain hints",
+        "2.4 Look for common patterns in file content",
+        "2.5 Use regex patterns from baseline to match context"
+      ],
+      "heuristics": {
+        "if_contains_argparse": "likely a CLI tool (strengthens 'what' dimension)",
+        "if_contains_tkinter": "likely has GUI component (modifies 'how' dimension)",
+        "if_imports_os_path": "likely works with filesystem (strengthens 'where' dimension)",
+        "if_imports_datetime": "likely time-aware (strengthens 'when' dimension)",
+        "if_imports_json_xml": "likely data processor (strengthens 'which' dimension)"
+      }
+    },
+    
+    "step_3_pattern_matching": {
+      "title": "Pattern Matching",
+      "steps": [
+        "3.1 Apply regex patterns from baseline to each dimension",
+        "3.2 Use Levenshtein distance for fuzzy matching",
+        "3.3 Check for compound word decomposition",
+        "3.4 Look for morphological variants",
+        "3.5 Apply synonym expansion"
+      ],
+      "algorithms": [
+        {
+          "name": "fuzzy_match",
+          "description": "Use edit distance < 2 for word matching",
+          "threshold": 0.85
+        },
+        {
+          "name": "compound_decomposition",
+          "description": "Split compound words at capital letters or underscores",
+          "example": "PathFixer -> ['Path', 'Fixer']"
+        },
+        {
+          "name": "suffix_stripping",
+          "description": "Remove common suffixes: -er, -or, -ar, -ing, -ed, -s",
+          "example": "organizer -> organize"
+        }
+      ]
+    },
+    
+    "step_4_dimension_assignment": {
+      "title": "Dimension Assignment",
+      "rules": {
+        "what_assignment": [
+          "Primary action verb goes to 'what'",
+          "If multiple verbs, choose the most specific",
+          "If no clear verb, infer from tool purpose"
+        ],
+        "where_assignment": [
+          "Direct objects often indicate 'where'",
+          "Prepositional phrases indicate context",
+          "Import statements hint at environment"
+        ],
+        "when_assignment": [
+          "Time-related words in description",
+          "Trigger conditions in documentation",
+          "Schedule hints in argument names"
+        ],
+        "why_assignment": [
+          "Purpose statements in docstring",
+          "Benefit descriptions in help text",
+          "Problem statements in comments"
+        ],
+        "which_assignment": [
+          "File extensions in examples",
+          "Data format mentions",
+          "Target type specifications"
+        ],
+        "how_assignment": [
+          "Algorithm descriptions",
+          "Method explanations",
+          "Implementation notes"
+        ]
+      }
+    },
+    
+    "step_5_gap_handling": {
+      "title": "Specific Gap Handling",
+      "gap_types": {
+        "missing_verb": {
+          "detection": "Tool name is purely noun-based",
+          "solution": "Infer verb from category or description",
+          "example": "'sorter.py' -> inferred verb 'sort'"
+        },
+        "ambiguous_context": {
+          "detection": "Multiple possible contexts",
+          "solution": "Use most common pattern or ask for clarification",
+          "example": "'processor.py' -> check imports for hints"
+        },
+        "overloaded_terms": {
+          "detection": "Word has multiple meanings",
+          "solution": "Disambiguate using surrounding words",
+          "example": "'run.py' -> check if it's a runner or executor"
+        },
+        "neologisms": {
+          "detection": "Unrecognized new words",
+          "solution": "Decompose and match parts separately",
+          "example": "'code2doc.py' -> ['code', 'to', 'document']"
+        }
+      }
+    },
+    
+    "fallback_strategies": {
+      "1": "Use tool category as primary classifier",
+      "2": "Default to 'utility' if unclear",
+      "3": "Mark as 'needs_review' for human verification",
+      "4": "Learn from similar tool classifications"
+    }
+  }
+}

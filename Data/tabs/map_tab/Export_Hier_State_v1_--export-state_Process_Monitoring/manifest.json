@@ -1,0 +1,182 @@
+{
+    "last_updated": "2026-01-26 16:35:53",
+    "project_root": "/home/commander/Custom_Applications/scripts/Process_Monitoring",
+    "scan_summary": [
+        {
+            "file": "shared_gui.py",
+            "score": 100,
+            "issues": [],
+            "network_activity": [],
+            "code_structure": {
+                "imports": [
+                    "sys",
+                    "os",
+                    "tkinter"
+                ],
+                "elements": [
+                    {
+                        "name": "SharedPopupGUI",
+                        "kind": "class"
+                    }
+                ]
+            },
+            "path": "./shared_gui.py"
+        },
+        {
+            "file": "pyview.py",
+            "score": 100,
+            "issues": [],
+            "network_activity": [],
+            "code_structure": {
+                "imports": [
+                    "typing",
+                    "ast",
+                    "sys",
+                    "pathlib",
+                    "dataclasses"
+                ],
+                "elements": [
+                    {
+                        "name": "CodeElement",
+                        "kind": "class"
+                    },
+                    {
+                        "name": "PyFile",
+                        "kind": "class"
+                    },
+                    {
+                        "name": "analyze_file",
+                        "kind": "function"
+                    },
+                    {
+                        "name": "scan_directory",
+                        "kind": "function"
+                    },
+                    {
+                        "name": "C",
+                        "kind": "class"
+                    },
+                    {
+                        "name": "print_tree",
+                        "kind": "function"
+                    },
+                    {
+                        "name": "print_contents",
+                        "kind": "function"
+                    },
+                    {
+                        "name": "print_dependencies",
+                        "kind": "function"
+                    },
+                    {
+                        "name": "export_html",
+                        "kind": "function"
+                    },
+                    {
+                        "name": "print_summary",
+                        "kind": "function"
+                    },
+                    {
+                        "name": "main",
+                        "kind": "function"
+                    }
+                ]
+            },
+            "path": "./pyview.py"
+        },
+        {
+            "file": "process_organizer.py",
+            "score": 95,
+            "issues": [
+                "Network imports found without explicit reference to Known APIs"
+            ],
+            "network_activity": [],
+            "code_structure": {
+                "imports": [
+                    "logging",
+                    "datetime",
+                    "json",
+                    "time",
+                    "psutil",
+                    "re",
+                    "hashlib",
+                    "pyview",
+                    "sys",
+                    "argparse",
+                    "pathlib",
+                    "getpass",
+                    "socket",
+                    "os"
+                ],
+                "elements": [
+                    {
+                        "name": "C",
+                        "kind": "class"
+                    },
+                    {
+                        "name": "ConfigManager",
+                        "kind": "class"
+                    },
+                    {
+                        "name": "analyze_file",
+                        "kind": "function"
+                    },
+                    {
+                        "name": "check_active_connections",
+                        "kind": "function"
+                    },
+                    {
+                        "name": "scanner_main",
+                        "kind": "function"
+                    },
+                    {
+                        "name": "get_category",
+                        "kind": "function"
+                    },
+                    {
+                        "name": "monitor_main",
+                        "kind": "function"
+                    }
+                ]
+            },
+            "path": "./process_organizer.py"
+        },
+        {
+            "file": "secure_view.py",
+            "score": 100,
+            "issues": [],
+            "network_activity": [],
+            "code_structure": {
+                "imports": [
+                    "datetime",
+                    "json",
+                    "process_organizer",
+                    "time",
+                    "subprocess",
+                    "threading",
+                    "pyview",
+                    "sys",
+                    "pathlib",
+                    "tkinter",
+                    "shared_gui",
+                    "os"
+                ],
+                "elements": [
+                    {
+                        "name": "SecureViewApp",
+                        "kind": "class"
+                    }
+                ]
+            },
+            "path": "./secure_view.py"
+        },
+        {
+            "file": "launcher.sh",
+            "score": 100,
+            "issues": [],
+            "network_activity": [],
+            "code_structure": {},
+            "path": "./launcher.sh"
+        }
+    ]
+}

@@ -1,0 +1,10 @@
+\b(have a great weekend)\b
+\b(enjoy the rest of your day)\b
+\b(until we meet again)\b
+\b(it was nice talking to you)\b
+\b(I look forward to our next meeting)\b
+\b(stay safe)\b
+\b(drive safe)\b
+\b(sleep well|sweet dreams)\b
+\b(don't be a stranger)\b
+\b(keep up the good work)\b

@@ -1,0 +1,147 @@
+{
+  "profiles": {
+    "my_tools": {
+      "workflow_actions": [
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        }
+      ],
+      "last_updated": "2026-02-09T02:11:44.279493",
+      "tool_locations": {}
+    },
+    "Custom 1": {
+      "workflow_actions": [
+        {
+          "name": "Os_Toolkit export",
+          "type": "custom",
+          "command": "python3 /home/commander/Desktop/System_Journal/System_Journal/inventory/tools/scripts/Babel_v01a/Os_Toolkit.py export",
+          "source": "python3 /home/commander/Desktop/System_Journal/System_Journal/inventory/tools/scripts/Babel_v01a/Os_Toolkit.py export",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        },
+        {
+          "name": "[Add Custom]",
+          "type": "placeholder",
+          "source": "",
+          "target_mode": "auto",
+          "output_to": "results",
+          "expectations": ""
+        }
+      ],
+      "last_updated": "2026-02-09T02:11:44.279529",
+      "tool_locations": {
+        "Os_Toolkit export": "python3 /home/commander/Desktop/System_Journal/System_Journal/inventory/tools/scripts/Babel_v01a/Os_Toolkit.py export"
+      }
+    }
+  }
+}

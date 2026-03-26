@@ -1,0 +1,10 @@
+\b(the|a|an)\s+(\w+\s+){0,2}\w+\b
+\b(am|is|are|was|were|have|has|had|do|does|did|can|will|should)\s+\w+ing\b
+\b(I|you|he|she|it|we|they)\s+\w+s?\s+[\w\s]+\b
+\b\w+ly\s+\w+ed\b
+\b(if|because|although|when|while)\s+[\w\s,]+\b
+\bto\s+\w+\b
+\b(who|which|that)\s+\w+s?\b
+\b\w+,\s+\w+,\s+(and|or)\s+\w+\b
+\bis\s+not\s+\w+ing\b
+\b\w+ed\s+by\s+\w+\b

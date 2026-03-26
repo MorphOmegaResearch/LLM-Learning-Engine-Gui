@@ -1,0 +1,92 @@
+{
+  "timestamp": "2026-01-26T01-42-19.628280",
+  "input_text": "photosynthesis converts sunlight into chemical energy",
+  "gap_analysis": {
+    "text": "photosynthesis converts sunlight into chemical energy",
+    "unrecognized_tokens": [
+      "photosynthesis",
+      "into",
+      "energy",
+      "chemical",
+      "converts",
+      "sunlight"
+    ],
+    "pattern_coverage": {
+      "level_1_graphology": 1.0,
+      "level_2_morphology": 0.3333333333333333,
+      "level_3_lexical": 0.0,
+      "level_4_syntax": 0.0,
+      "level_5_semantics": 0.0,
+      "level_6_pragmatics": 0.0,
+      "level_7_discourse": 0.0,
+      "domain_academic": 0.16666666666666666,
+      "domain_physics": 0.0,
+      "domain_intents": 0.0,
+      "domain_informal": 0.0,
+      "domain_idiomatic": 0.0,
+      "entities_temporal": 0.0,
+      "entities_numerical": 0.0,
+      "entities_properties": 0.0,
+      "domain_technical": 0.0,
+      "domain_meta": 0.0
+    },
+    "suggested_patterns": [
+      {
+        "token": "photosynthesis",
+        "pattern": "\\b\\w+s\\b",
+        "category": "level_2_morphology",
+        "confidence": 0.7
+      },
+      {
+        "token": "into",
+        "pattern": "\\binto\\b",
+        "category": "level_3_lexical",
+        "confidence": 0.5
+      },
+      {
+        "token": "energy",
+        "pattern": "\\benergy\\b",
+        "category": "level_3_lexical",
+        "confidence": 0.5
+      },
+      {
+        "token": "chemical",
+        "pattern": "\\bchemical\\b",
+        "category": "level_3_lexical",
+        "confidence": 0.5
+      },
+      {
+        "token": "converts",
+        "pattern": "\\b\\w+s\\b",
+        "category": "level_2_morphology",
+        "confidence": 0.7
+      },
+      {
+        "token": "sunlight",
+        "pattern": "\\bsunlight\\b",
+        "category": "level_3_lexical",
+        "confidence": 0.5
+      }
+    ],
+    "confidence_score": 0.08823529411764706,
+    "recommendations": [
+      "Low coverage in level_3_lexical: 0%. Consider adding more patterns.",
+      "Low coverage in level_4_syntax: 0%. Consider adding more patterns.",
+      "Low coverage in level_5_semantics: 0%. Consider adding more patterns.",
+      "Low coverage in level_6_pragmatics: 0%. Consider adding more patterns.",
+      "Low coverage in level_7_discourse: 0%. Consider adding more patterns.",
+      "Low coverage in domain_academic: 17%. Consider adding more patterns.",
+      "Low coverage in domain_physics: 0%. Consider adding more patterns.",
+      "Low coverage in domain_intents: 0%. Consider adding more patterns.",
+      "Low coverage in domain_informal: 0%. Consider adding more patterns.",
+      "Low coverage in domain_idiomatic: 0%. Consider adding more patterns.",
+      "Low coverage in entities_temporal: 0%. Consider adding more patterns.",
+      "Low coverage in entities_numerical: 0%. Consider adding more patterns.",
+      "Low coverage in entities_properties: 0%. Consider adding more patterns.",
+      "Low coverage in domain_technical: 0%. Consider adding more patterns.",
+      "Low coverage in domain_meta: 0%. Consider adding more patterns.",
+      "Found 6 unrecognized tokens. Consider adding patterns for: photosynthesis, into, energy, chemical, converts"
+    ],
+    "missing_hierarchy_levels": []
+  }
+}

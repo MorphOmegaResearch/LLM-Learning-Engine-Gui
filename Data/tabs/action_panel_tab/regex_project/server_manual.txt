@@ -1,0 +1,5 @@
+The quantum server material is reinforced carbon.
+The quantum server weight is 50kg.
+The quantum server origin is Switzerland.
+The quantum server magnitude is macro.
+The quantum server cost is 50000.

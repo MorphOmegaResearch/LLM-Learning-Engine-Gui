@@ -1,0 +1,10 @@
+\b(CPU|GPU|RAM|SSD|HDD|motherboard)\b
+\b(algorithm|array|boolean|function|variable|class|object)\b
+\b(API|JSON|XML|HTML|CSS|HTTP|HTTPS)\b
+\b(frontend|backend|fullstack|devops)\b
+\b(database|SQL|NoSQL|query|index)\b
+\b(encryption|decryption|firewall|proxy|VPN|SSL)\b
+\b(kernel|OS|Linux|Windows|macOS|Android|iOS)\b
+\b(git|commit|push|pull|branch|merge|repo)\b
+\b(cloud|SaaS|PaaS|IaaS|AWS|Azure|GCP)\b
+\b(debugging|compile|execute|runtime|exception)\b

@@ -1,0 +1,109 @@
+{
+  "task_id": "CLI_UNIFICATION_20260126",
+  "mark": "#[MARK:{CLI_UNIFICATION_20260126}]",
+  "files": [
+    {
+      "file": "orchestrator.py",
+      "backup": "orchestrator.py_backup_MARK_CLI_UNIFICATION_20260126_133648",
+      "changes": "Added --scripts argument and unified help system"
+    },
+    {
+      "file": "script_discovery_handler.py",
+      "backup": "none",
+      "changes": "Created script discovery and categorization system"
+    }
+  ],
+  "description": "Unified CLI entry point with script discovery and guidance system",
+  "status": "complete",
+  "created_at": "2026-01-26T13:36:48",
+  "features_added": [
+    "Script discovery system with categorization",
+    "5W1H classification integration for script descriptions",
+    "Unified --scripts argument in orchestrator.py",
+    "Graceful fallback when classification unavailable",
+    "Deduplication of scripts by name",
+    "Category-based organization (Core, Integration, Workflow, Analysis, Utilities)",
+    "Init vs Runtime script separation",
+    "Quick description from classification or docstring"
+  ],
+  "script_categories": {
+    "core_systems": {
+      "name": "Core Systems",
+      "scripts": ["orchestrator.py", "gap_analyzer.py", "audit.py"],
+      "description": "Primary linguistic processing and orchestration"
+    },
+    "integration": {
+      "name": "Integration & Bridge Systems",
+      "scripts": ["activity_integration_bridge.py", "onboarder.py", "adaptive_onboarder.py"],
+      "description": "Activity suggestions, capability management, tool classification"
+    },
+    "workflow": {
+      "name": "Workflow Management",
+      "scripts": ["workflow_manager.py"],
+      "description": "Workflow execution, task management, agent coordination"
+    },
+    "analysis": {
+      "name": "Analysis Tools",
+      "scripts": ["analyzer.py", "import_organizer.py", "pathfixer.py"],
+      "description": "Code analysis, import organization, path fixing"
+    },
+    "utilities": {
+      "name": "Utilities & Support",
+      "scripts": ["script_discovery_handler.py", "version_manager.py"],
+      "description": "Supporting scripts and utilities"
+    }
+  },
+  "usage_examples": [
+    {
+      "command": "python3 orchestrator.py -h",
+      "description": "Show main orchestrator help (5 key arguments)"
+    },
+    {
+      "command": "python3 orchestrator.py --scripts",
+      "description": "List all available scripts with categories and classifications"
+    },
+    {
+      "command": "python3 orchestrator.py 'quantum physics'",
+      "description": "Process text through linguistic hierarchy"
+    },
+    {
+      "command": "python3 orchestrator.py 'test input' --details",
+      "description": "Show full hierarchical breakdown of processing"
+    }
+  ],
+  "graceful_fallbacks": [
+    "Works without script_discovery_handler (shows basic list)",
+    "Works without 5W1H classifier (uses docstrings only)",
+    "Filters out backup files and duplicates",
+    "Handles missing scripts gracefully"
+  ],
+  "test_results": {
+    "orchestrator_help": "✓ Clean output with 5 arguments",
+    "scripts_listing": "✓ Shows categorized scripts with classifications",
+    "deduplication": "✓ No duplicate scripts in output",
+    "graceful_fallback": "✓ Works without optional components"
+  },
+  "journal_marks_required": [
+    "#[MARK:{CLI_UNIFICATION_20260126}] - CLI unification complete",
+    "#[MARK:{SCRIPT_DISCOVERY_INITIALIZED}] - First script discovery run",
+    "#[MARK:{UNIFIED_GUIDANCE_ACTIVE}] - Guidance system operational"
+  ],
+  "user_guidance": {
+    "primary_entry_point": "orchestrator.py - Main text processing entry point",
+    "discovery_command": "orchestrator.py --scripts - List all available tools",
+    "individual_help": "python3 <script_name>.py -h - Detailed help for any script",
+    "key_scripts": {
+      "orchestrator.py": "Process text through linguistic hierarchy",
+      "gap_analyzer.py": "Analyze understanding gaps",
+      "audit.py": "Audit regex patterns and coverage",
+      "workflow_manager.py": "Execute workflows with agents"
+    }
+  },
+  "completion_criteria": {
+    "script_discovery_working": true,
+    "orchestrator_integrated": true,
+    "categorization_working": true,
+    "graceful_fallbacks_verified": true,
+    "help_output_clean": true
+  }
+}

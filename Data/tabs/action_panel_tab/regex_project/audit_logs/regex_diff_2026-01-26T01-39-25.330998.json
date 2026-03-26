@@ -1,0 +1,77 @@
+{
+  "timestamp": "2026-01-26T01-39-25.330998",
+  "input_text": "what is quantum tunneling?",
+  "gap_analysis": {
+    "text": "what is quantum tunneling?",
+    "unrecognized_tokens": [
+      "what",
+      "tunneling",
+      "is",
+      "quantum"
+    ],
+    "pattern_coverage": {
+      "level_1_graphology": 1.0,
+      "level_2_morphology": 0.5,
+      "level_3_lexical": 0.0,
+      "level_4_syntax": 0.25,
+      "level_5_semantics": 0.0,
+      "level_6_pragmatics": 0.25,
+      "level_7_discourse": 0.0,
+      "domain_academic": 0.0,
+      "domain_physics": 0.25,
+      "domain_intents": 0.0,
+      "domain_informal": 0.0,
+      "domain_idiomatic": 0.0,
+      "entities_temporal": 0.0,
+      "entities_numerical": 0.0,
+      "entities_properties": 0.0,
+      "domain_technical": 0.5,
+      "domain_meta": 0.0
+    },
+    "suggested_patterns": [
+      {
+        "token": "what",
+        "pattern": "\\bwhat\\b",
+        "category": "level_3_lexical",
+        "confidence": 0.5
+      },
+      {
+        "token": "tunneling",
+        "pattern": "\\b\\w+ing\\b",
+        "category": "level_2_morphology",
+        "confidence": 0.9
+      },
+      {
+        "token": "is",
+        "pattern": "\\b\\w+s\\b",
+        "category": "level_2_morphology",
+        "confidence": 0.7
+      },
+      {
+        "token": "quantum",
+        "pattern": "\\bquantum\\b",
+        "category": "level_3_lexical",
+        "confidence": 0.5
+      }
+    ],
+    "confidence_score": 0.16176470588235295,
+    "recommendations": [
+      "Low coverage in level_3_lexical: 0%. Consider adding more patterns.",
+      "Low coverage in level_4_syntax: 25%. Consider adding more patterns.",
+      "Low coverage in level_5_semantics: 0%. Consider adding more patterns.",
+      "Low coverage in level_6_pragmatics: 25%. Consider adding more patterns.",
+      "Low coverage in level_7_discourse: 0%. Consider adding more patterns.",
+      "Low coverage in domain_academic: 0%. Consider adding more patterns.",
+      "Low coverage in domain_physics: 25%. Consider adding more patterns.",
+      "Low coverage in domain_intents: 0%. Consider adding more patterns.",
+      "Low coverage in domain_informal: 0%. Consider adding more patterns.",
+      "Low coverage in domain_idiomatic: 0%. Consider adding more patterns.",
+      "Low coverage in entities_temporal: 0%. Consider adding more patterns.",
+      "Low coverage in entities_numerical: 0%. Consider adding more patterns.",
+      "Low coverage in entities_properties: 0%. Consider adding more patterns.",
+      "Low coverage in domain_meta: 0%. Consider adding more patterns.",
+      "Found 4 unrecognized tokens. Consider adding patterns for: what, tunneling, is, quantum"
+    ],
+    "missing_hierarchy_levels": []
+  }
+}

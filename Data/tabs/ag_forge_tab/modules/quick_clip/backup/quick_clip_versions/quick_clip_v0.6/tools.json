@@ -1,0 +1,7 @@
+[
+    {
+        "name": "Generate Document",
+        "command": "python /home/commander/Desktop/quick_clip/invoke_doc.py",
+        "description": "Runs a CLI script to generate a document with Ollama."
+    }
+]

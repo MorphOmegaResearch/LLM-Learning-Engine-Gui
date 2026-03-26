@@ -22,7 +22,7 @@ tabs/
 │   └── utils.py             # Helper functions
 ```
 
-## Benefits
+### Benefits
 
 1. **Isolation**: If one tab crashes, others keep working
 2. **Maintainability**: Each tab's code is self-contained

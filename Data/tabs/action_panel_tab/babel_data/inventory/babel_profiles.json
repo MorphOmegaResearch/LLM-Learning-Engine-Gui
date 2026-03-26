@@ -1,0 +1,27 @@
+{
+  "profiles": {
+    "default": {
+      "name": "Babel Core",
+      "icon": "🏛️",
+      "agent_type": "engineer",
+      "tool_locations": {
+        "Status": "python3 {babel_root}/Os_Toolkit.py latest -z",
+        "Analyze": "python3 {babel_root}/Os_Toolkit.py analyze --depth 2 -z",
+        "Sync Todos": "python3 {babel_root}/Os_Toolkit.py actions --run sync_all_todos",
+        "Update Memory": "python3 {babel_root}/Os_Toolkit.py actions --run update_memory",
+        "Security": "python3 {babel_root}/Os_Toolkit.py actions --run check_security",
+        "Project Report": "python3 {babel_root}/Os_Toolkit.py plan report -z"
+      }
+    },
+    "debug": {
+      "name": "Debug Suite",
+      "icon": "🐛",
+      "agent_type": "debugger",
+      "tool_locations": {
+        "Deep Analyze": "python3 {babel_root}/Os_Toolkit.py analyze --depth 3 -z",
+        "Sync Marks": "python3 {babel_root}/Os_Toolkit.py actions --run sync_marks",
+        "Show Traceback": "python3 {babel_root}/babel_data/inventory/action_panel/grep_flight_v0_2b/grep_flight_babel.py --traceback"
+      }
+    }
+  }
+}

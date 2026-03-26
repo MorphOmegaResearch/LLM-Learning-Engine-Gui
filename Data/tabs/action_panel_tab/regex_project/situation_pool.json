@@ -1,0 +1,40 @@
+{
+  "situations": [
+    {
+      "id": "SIT_001",
+      "name": "System Critical Overheat",
+      "domain_weights": {
+        "domain_technical": 0.8,
+        "domain_academic": 0.2,
+        "domain_informal": 0.0
+      },
+      "intent_bias": "directive",
+      "entities": ["CPU", "Cooling", "Thermal Paste"],
+      "description": "The system is experiencing extreme temperatures and must prioritize technical resolution."
+    },
+    {
+      "id": "SIT_002",
+      "name": "Academic Peer Review",
+      "domain_weights": {
+        "domain_academic": 0.9,
+        "domain_technical": 0.1
+      },
+      "intent_bias": "informative",
+      "entities": ["Evidence", "Methodology", "Synthesis"],
+      "description": "A formal scholarly exchange requiring high precision and citation-aware logic."
+    },
+    {
+      "id": "SIT_003",
+      "name": "Socratic Session",
+      "domain_weights": {
+        "domain_academic": 0.7,
+        "domain_technical": 0.2,
+        "general": 0.1
+      },
+      "intent_bias": "informative",
+      "entities": ["Hypothesis", "Thesis", "Verification", "Commander"],
+      "description": "A collaborative learning state where the system and user jointly resolve epistemic gaps via shared evidence."
+    }
+  ],
+  "multi_day_events": {}
+}

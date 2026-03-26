@@ -1,0 +1,632 @@
+[
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "photosynthesis",
+    "match": "Processed: Tell me about photosynthesis...",
+    "timestamp": "2026-01-26T12:45:45.200727"
+  },
+  {
+    "input": "Why does photosynthesis happen?",
+    "weights": {
+      "total_priority": 1.0,
+      "q_count": 3,
+      "hier_depth": 0.5714285714285714,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for domain_academic context."
+    },
+    "confidence_post": 0.6389973958333335,
+    "active_domain": "domain_academic",
+    "active_persona": "Scholar",
+    "interaction_type": "LEARNING_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.0,
+    "boredom_score": 1.0,
+    "timestamp": "2026-01-26T12:45:45.304791"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "photosynthesis",
+    "match": "Processed: Tell me about photosynthesis...",
+    "timestamp": "2026-01-26T12:45:45.306884"
+  },
+  {
+    "input": "Using chlorophyll molecules",
+    "weights": {
+      "total_priority": 1.0,
+      "q_count": 3,
+      "hier_depth": 0.2857142857142857,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for general context."
+    },
+    "confidence_post": 0.70283203125,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "GENERAL_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.0,
+    "boredom_score": 1.0,
+    "timestamp": "2026-01-26T12:45:45.399930"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "photosynthesis",
+    "match": "Processed: Tell me about photosynthesis...",
+    "timestamp": "2026-01-26T12:46:04.331892"
+  },
+  {
+    "input": "quantum chromodynamics",
+    "weights": {
+      "total_priority": 0.8683714285714286,
+      "q_count": 2,
+      "hier_depth": 0.2857142857142857,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for domain_physics context."
+    },
+    "confidence_post": 0.8514160156250001,
+    "active_domain": "domain_physics",
+    "active_persona": "Assistant",
+    "interaction_type": "LEARNING_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.2,
+    "boredom_score": 1.0,
+    "timestamp": "2026-01-26T12:46:04.431171"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "quantum",
+    "match": "Processed: What is a quantum server?...",
+    "timestamp": "2026-01-26T12:46:04.434708"
+  },
+  {
+    "input": "hello there",
+    "weights": {
+      "total_priority": 0.8584714285714287,
+      "q_count": 2,
+      "hier_depth": 0.2857142857142857,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Socratic Dialogue for general context."
+    },
+    "confidence_post": 0.5,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "GENERAL_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.0,
+    "boredom_score": 1.0,
+    "timestamp": "2026-01-26T12:46:04.538307"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "quantum",
+    "match": "Processed: What is a quantum server?...",
+    "timestamp": "2026-01-26T12:46:04.546093"
+  },
+  {
+    "input": "The algorithm processes data quickly",
+    "weights": {
+      "total_priority": 1.0,
+      "q_count": 2,
+      "hier_depth": 0.5714285714285714,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for domain_technical context."
+    },
+    "confidence_post": 0.625,
+    "active_domain": "domain_technical",
+    "active_persona": "Engineer",
+    "interaction_type": "LEARNING_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.2,
+    "boredom_score": 1.0,
+    "timestamp": "2026-01-26T12:46:04.650867"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "algorithm",
+    "match": "Processed: The algorithm processes data q...",
+    "timestamp": "2026-01-26T13:08:20.561800"
+  },
+  {
+    "input": "quantum chromodynamics field theory applications",
+    "weights": {
+      "total_priority": 0.8917714285714287,
+      "q_count": 2,
+      "hier_depth": 0.2857142857142857,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for domain_physics context."
+    },
+    "confidence_post": 0.6125,
+    "active_domain": "domain_physics",
+    "active_persona": "Assistant",
+    "interaction_type": "LEARNING_EXCHANGE",
+    "journal_relevance": 0.1,
+    "dream_influence": 0.2,
+    "boredom_score": 1.0,
+    "timestamp": "2026-01-26T13:08:20.655272"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "quantum",
+    "match": "Processed: What is a quantum server?...",
+    "timestamp": "2026-01-26T13:22:52.426599"
+  },
+  {
+    "input": "test input",
+    "weights": {
+      "total_priority": 0.7932857142857144,
+      "q_count": 2,
+      "hier_depth": 0.14285714285714285,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for general context."
+    },
+    "confidence_post": 0.35625,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "GENERAL_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.0,
+    "boredom_score": 1.0,
+    "timestamp": "2026-01-26T13:22:52.527642"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "quantum",
+    "match": "Processed: What is a quantum server?...",
+    "timestamp": "2026-01-26T13:22:52.534487"
+  },
+  {
+    "input": "quantum chromodynamics strange quarks",
+    "weights": {
+      "total_priority": 0.8818714285714288,
+      "q_count": 2,
+      "hier_depth": 0.2857142857142857,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for domain_physics context."
+    },
+    "confidence_post": 0.603125,
+    "active_domain": "domain_physics",
+    "active_persona": "Assistant",
+    "interaction_type": "LEARNING_EXCHANGE",
+    "journal_relevance": 0.2,
+    "dream_influence": 0.2,
+    "boredom_score": 1.0,
+    "timestamp": "2026-01-26T13:22:52.667884"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "quantum",
+    "match": "Processed: What is a quantum server?...",
+    "timestamp": "2026-01-26T13:45:13.083230"
+  },
+  {
+    "input": "quantum chromodynamics",
+    "weights": {
+      "total_priority": 0.8683714285714286,
+      "q_count": 2,
+      "hier_depth": 0.2857142857142857,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for domain_physics context."
+    },
+    "confidence_post": 0.8515625,
+    "active_domain": "domain_physics",
+    "active_persona": "Assistant",
+    "interaction_type": "LEARNING_EXCHANGE",
+    "journal_relevance": 0.2,
+    "dream_influence": 0.2,
+    "boredom_score": 1.0,
+    "timestamp": "2026-01-26T13:45:13.174413"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "quantum",
+    "match": "Processed: What is a quantum server?...",
+    "timestamp": "2026-02-06T00:52:59.058071"
+  },
+  {
+    "input": "test input",
+    "weights": {
+      "total_priority": 0.7932857142857144,
+      "q_count": 2,
+      "hier_depth": 0.14285714285714285,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for general context."
+    },
+    "confidence_post": 0.37578124999999996,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "GENERAL_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.0,
+    "boredom_score": 1.0,
+    "timestamp": "2026-02-06T00:52:59.192210"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "quantum",
+    "match": "Processed: What is a quantum server?...",
+    "timestamp": "2026-02-06T00:52:59.204206"
+  },
+  {
+    "input": "quantum chromodynamics strange quarks",
+    "weights": {
+      "total_priority": 0.8818714285714288,
+      "q_count": 2,
+      "hier_depth": 0.2857142857142857,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for domain_physics context."
+    },
+    "confidence_post": 0.512890625,
+    "active_domain": "domain_physics",
+    "active_persona": "Assistant",
+    "interaction_type": "LEARNING_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.2,
+    "boredom_score": 1.0,
+    "timestamp": "2026-02-06T00:52:59.302680"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "quantum",
+    "match": "Processed: quantum chromodynamics strange...",
+    "timestamp": "2026-02-10T03:27:17.522782"
+  },
+  {
+    "input": "What files need consolidation?",
+    "weights": {
+      "total_priority": 1.0,
+      "q_count": 2,
+      "hier_depth": 0.5714285714285714,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Socratic Dialogue for general context."
+    },
+    "confidence_post": 0.7564453125000001,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "LEARNING_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.0,
+    "boredom_score": 1.0,
+    "timestamp": "2026-02-10T03:27:17.618079"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "files need consolidation",
+    "match": "Processed: What files need consolidation?...",
+    "timestamp": "2026-02-23T01:03:17.985118"
+  },
+  {
+    "input": "Hello there!",
+    "weights": {
+      "total_priority": 0.9236571428571428,
+      "q_count": 2,
+      "hier_depth": 0.42857142857142855,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for general context."
+    },
+    "confidence_post": 0.5,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "GENERAL_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.0,
+    "boredom_score": 1.0,
+    "timestamp": "2026-02-23T01:03:18.080577"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "files need consolidation",
+    "match": "Processed: What files need consolidation?...",
+    "timestamp": "2026-02-23T01:03:18.082911"
+  },
+  {
+    "input": "What is the CPU temperature?",
+    "weights": {
+      "total_priority": 1.0,
+      "q_count": 2,
+      "hier_depth": 0.7142857142857143,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Pokemon CLI for domain_technical context."
+    },
+    "confidence_post": 0.25,
+    "active_domain": "domain_technical",
+    "active_persona": "Engineer",
+    "interaction_type": "LEARNING_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.4,
+    "boredom_score": 1.0,
+    "timestamp": "2026-02-23T01:03:18.177852"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "cpu temperature",
+    "match": "Processed: What is the CPU temperature?...",
+    "timestamp": "2026-02-23T01:03:18.180926"
+  },
+  {
+    "input": "Why is the system efficiency dropping in the primary kernel layer?",
+    "weights": {
+      "total_priority": 1.0,
+      "q_count": 3,
+      "hier_depth": 0.7142857142857143,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for general context."
+    },
+    "confidence_post": 0.2583333333333333,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "LEARNING_EXCHANGE",
+    "journal_relevance": 0.2,
+    "dream_influence": 0.6,
+    "boredom_score": 1.0,
+    "timestamp": "2026-02-23T01:03:18.293722"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "cpu temperature",
+    "match": "Processed: What is the CPU temperature?...",
+    "timestamp": "2026-02-23T01:03:18.299708"
+  },
+  {
+    "input": "How can I help you with the project?",
+    "weights": {
+      "total_priority": 1.0,
+      "q_count": 3,
+      "hier_depth": 0.5714285714285714,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for general context."
+    },
+    "confidence_post": 0.34583333333333327,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "LEARNING_EXCHANGE",
+    "journal_relevance": 0.1,
+    "dream_influence": 0.4,
+    "boredom_score": 1.0,
+    "timestamp": "2026-02-23T01:03:18.426743"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "cpu temperature",
+    "match": "Processed: What is the CPU temperature?...",
+    "timestamp": "2026-02-23T01:03:26.908612"
+  },
+  {
+    "input": "what files have been modified recently",
+    "weights": {
+      "total_priority": 0.8827714285714287,
+      "q_count": 2,
+      "hier_depth": 0.2857142857142857,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for general context."
+    },
+    "confidence_post": 0.5479166666666666,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "LEARNING_EXCHANGE",
+    "journal_relevance": 0.1,
+    "dream_influence": 0.0,
+    "boredom_score": 1.0,
+    "timestamp": "2026-02-23T01:03:27.003164"
+  },
+  {
+    "input": "why is the import failing",
+    "weights": {
+      "total_priority": 1.0,
+      "q_count": 3,
+      "hier_depth": 0.5714285714285714,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for general context."
+    },
+    "confidence_post": 0.5739583333333333,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "GENERAL_EXCHANGE",
+    "journal_relevance": 0.3,
+    "dream_influence": 0.4,
+    "boredom_score": 1.0,
+    "timestamp": "2026-02-23T01:03:27.630447"
+  },
+  {
+    "input": "Hello!",
+    "weights": {
+      "total_priority": 0.8539714285714286,
+      "q_count": 2,
+      "hier_depth": 0.2857142857142857,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for general context."
+    },
+    "confidence_post": 0.5,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "GENERAL_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.0,
+    "boredom_score": 1.0,
+    "timestamp": "2026-02-23T01:14:26.028567"
+  },
+  {
+    "input": "Hello!",
+    "weights": {
+      "total_priority": 0.8539714285714286,
+      "q_count": 2,
+      "hier_depth": 0.2857142857142857,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Socratic Dialogue for general context."
+    },
+    "confidence_post": 0.4,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "GENERAL_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.0,
+    "boredom_score": 1.0,
+    "timestamp": "2026-02-23T02:34:17.499476"
+  },
+  {
+    "input": "Hello!",
+    "weights": {
+      "total_priority": 0.8539714285714286,
+      "q_count": 2,
+      "hier_depth": 0.2857142857142857,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Socratic Dialogue for general context."
+    },
+    "confidence_post": 0.4,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "GENERAL_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.0,
+    "boredom_score": 1.0,
+    "timestamp": "2026-02-23T15:58:53.758596"
+  },
+  {
+    "input": "Hello",
+    "weights": {
+      "total_priority": 0.8530714285714287,
+      "q_count": 2,
+      "hier_depth": 0.2857142857142857,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Socratic Dialogue for general context."
+    },
+    "confidence_post": 0.5,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "GENERAL_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.0,
+    "boredom_score": 1.0,
+    "timestamp": "2026-02-23T22:48:38.282045"
+  },
+  {
+    "input": "Active task: task_25_2 \u2014 Os_Toolkit latest \u2192 Latest Report right panel tab in planner. Working on: tabs/ag_forge_tab/modules/quick_clip/tabs/planner_tab.py. Gap severity: low. Recent: add chat_interface_tab.py, add chat_interface_tab.py, add chat_interface_tab.py",
+    "weights": {
+      "total_priority": 1.0,
+      "q_count": 2,
+      "hier_depth": 0.42857142857142855,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for domain_meta context."
+    },
+    "confidence_post": 0.325,
+    "active_domain": "domain_meta",
+    "active_persona": "Assistant",
+    "interaction_type": "LEARNING_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.0,
+    "boredom_score": 0.8999999999999999,
+    "timestamp": "2026-02-24T01:38:40.656630"
+  },
+  {
+    "input": "test cold start message",
+    "weights": {
+      "total_priority": 0.8049857142857143,
+      "q_count": 2,
+      "hier_depth": 0.14285714285714285,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Socratic Dialogue for general context."
+    },
+    "confidence_post": 0.21250000000000002,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "GENERAL_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.0,
+    "boredom_score": 1.0,
+    "timestamp": "2026-02-24T01:54:21.246719"
+  },
+  {
+    "input": "Active task: task_25_2 \u2014 Os_Toolkit latest \u2192 Latest Report right panel tab in planner. Working on: tabs/ag_forge_tab/modules/quick_clip/tabs/planner_tab.py. Gap severity: low. Recent: add chat_interface_tab.py, modify tools_tab.py, add Os_Toolkit.py",
+    "weights": {
+      "total_priority": 1.0,
+      "q_count": 2,
+      "hier_depth": 0.42857142857142855,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for domain_meta context."
+    },
+    "confidence_post": 0.23125,
+    "active_domain": "domain_meta",
+    "active_persona": "Assistant",
+    "interaction_type": "LEARNING_EXCHANGE",
+    "journal_relevance": 0.4,
+    "dream_influence": 0.0,
+    "boredom_score": 0.8999999999999999,
+    "timestamp": "2026-02-24T02:23:43.489171"
+  },
+  {
+    "input": "Hello",
+    "weights": {
+      "total_priority": 0.8530714285714287,
+      "q_count": 2,
+      "hier_depth": 0.2857142857142857,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for general context."
+    },
+    "confidence_post": 0.4,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "GENERAL_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.0,
+    "boredom_score": 1.0,
+    "timestamp": "2026-03-05T23:18:31.690550"
+  },
+  {
+    "input": "What Questions",
+    "weights": {
+      "total_priority": 0.8611714285714286,
+      "q_count": 2,
+      "hier_depth": 0.2857142857142857,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for general context."
+    },
+    "confidence_post": 0.7000000000000001,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "LEARNING_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.0,
+    "boredom_score": 1.0,
+    "timestamp": "2026-03-05T23:18:58.132196"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "questions",
+    "match": "Processed: What Questions...",
+    "timestamp": "2026-03-05T23:18:58.134250"
+  },
+  {
+    "input": "gaps are presenthi",
+    "weights": {
+      "total_priority": 0.8647714285714286,
+      "q_count": 2,
+      "hier_depth": 0.2857142857142857,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for general context."
+    },
+    "confidence_post": 0.6500000000000001,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "GENERAL_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.0,
+    "boredom_score": 1.0,
+    "timestamp": "2026-03-05T23:18:58.227591"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "questions",
+    "match": "Processed: What Questions...",
+    "timestamp": "2026-03-05T23:20:36.449442"
+  },
+  {
+    "input": "What Questions Do you have?",
+    "weights": {
+      "total_priority": 1.0,
+      "q_count": 2,
+      "hier_depth": 0.7142857142857143,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Socratic Dialogue for general context."
+    },
+    "confidence_post": 0.8250000000000002,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "GENERAL_EXCHANGE",
+    "journal_relevance": 0.1,
+    "dream_influence": 0.0,
+    "boredom_score": 1.0,
+    "timestamp": "2026-03-05T23:20:36.538148"
+  },
+  {
+    "event": "NARRATIVE_RECALL",
+    "subject": "questions do you have",
+    "match": "Processed: What Questions Do you have?...",
+    "timestamp": "2026-03-05T23:21:50.999349"
+  },
+  {
+    "input": "moe",
+    "weights": {
+      "total_priority": 0.4269857142857143,
+      "q_count": 1,
+      "hier_depth": 0.14285714285714285,
+      "thought_event": "ACTIVITY_TRIGGER: Suggesting Conceptual Deep-Dive: what for general context."
+    },
+    "confidence_post": 0.4625000000000001,
+    "active_domain": "general",
+    "active_persona": "Assistant",
+    "interaction_type": "GENERAL_EXCHANGE",
+    "journal_relevance": 0.0,
+    "dream_influence": 0.0,
+    "boredom_score": 1.0,
+    "timestamp": "2026-03-05T23:21:51.085022"
+  }
+]

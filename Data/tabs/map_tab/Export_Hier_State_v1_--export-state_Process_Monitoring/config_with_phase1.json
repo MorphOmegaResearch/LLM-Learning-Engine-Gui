@@ -1,0 +1,161 @@
+{
+    "integrity": {
+        "verified_hash": "",
+        "last_verified": "",
+        "file_hashes": {},
+        "config_baseline": {
+            "known_apis": [],
+            "allow": [],
+            "alias": [],
+            "server": []
+        }
+    },
+    "security": {
+        "known_apis": [
+            "api.openai.com",
+            "anthropic.com",
+            "googleapis.com",
+            "github.com",
+            "localhost",
+            "127.0.0.1"
+        ],
+        "suspicious_keywords": [
+            "telemetry",
+            "analytics",
+            "tracking",
+            "eval(",
+            "exec(",
+            "base64.b64decode"
+        ],
+        "allow": [],
+        "alias": [],
+        "server": []
+    },
+    "user_prefs": {
+        "theme": "dark",
+        "show_line_numbers": true,
+        "refresh_rate": 2000,
+        "window_geometry": "1280x800",
+        "ui_dim": {
+            "left_panel": 250,
+            "right_panel": 320,
+            "menu_est_width": 140,
+            "menu_est_height": 150,
+            "standard_offset": 10,
+            "sticky_gap": 5
+        },
+        "hier_colors": {
+            "Import": "#c586c0",
+            "Class": "#ffd93d",
+            "Function": "#6bcb77",
+            "Method": "#4d96ff",
+            "Variable": "#9cdcfe",
+            "String/IP": "#ce9178",
+            "File": "#ffffff"
+        },
+        "context_menu_actions": [
+            {
+                "label": "Route to Editor",
+                "action": "route_to_editor"
+            },
+            {
+                "label": "Route to Hier-View",
+                "action": "route_to_hier"
+            },
+            {
+                "label": "Deep Inspect",
+                "action": "inspect_current_file"
+            },
+            {
+                "label": "Quick Scan",
+                "action": "run_security_scan"
+            },
+            {
+                "label": "Export Context",
+                "action": "export_entity_context"
+            }
+        ],
+        "inspection_config": {
+            "auto_open": true,
+            "show_all_strings": false,
+            "highlight_risks": true,
+            "hover_delay": 500,
+            "enable_hover": true,
+            "indicator_pos": "right",
+            "sticky_bind_selection": true
+        },
+        "brain_map": {
+            "enable_debug": false,
+            "auto_rotate": false,
+            "show_edges": true,
+            "show_labels": true,
+            "update_interval_ms": 2000,
+            "show_fps_overlay": false
+        },
+        "process_monitor": {
+            "filters": {
+                "show_categories": [],
+                "hide_categories": [],
+                "hide_system_idle": true,
+                "min_cpu_threshold": 0.1,
+                "min_mem_threshold": 0.1
+            },
+            "alerts": {
+                "cpu_threshold": 80.0,
+                "mem_threshold": 85.0,
+                "enable_notifications": false,
+                "alert_sound": false
+            },
+            "grouping": {
+                "auto_group_children": true,
+                "max_group_size": 50,
+                "collapse_system_groups": true
+            },
+            "safety": {
+                "enable_auto_kill": false,
+                "kill_rules": []
+            }
+        },
+        "logging": {
+            "retention_days": 30,
+            "max_log_size_mb": 100,
+            "auto_cleanup": true,
+            "levels": {
+                "gui": "INFO",
+                "popup": "INFO",
+                "monitor": "INFO",
+                "scanner": "WARNING",
+                "brain_viz": "INFO"
+            },
+            "rotation": {
+                "enabled": true,
+                "when": "midnight",
+                "backup_count": 7
+            }
+        },
+        "editor": {
+            "font": {
+                "family": "Monospace",
+                "size": 11,
+                "weight": "normal"
+            },
+            "behavior": {
+                "tab_width": 4,
+                "use_spaces": true,
+                "auto_indent": true,
+                "line_wrap": false,
+                "auto_save": false,
+                "auto_save_interval": 30
+            },
+            "limits": {
+                "max_file_size_mb": 10,
+                "warn_large_files": true,
+                "large_file_threshold_mb": 5
+            },
+            "syntax": {
+                "theme": "vscode_dark",
+                "enable_highlighting": true
+            }
+        }
+    }
+}

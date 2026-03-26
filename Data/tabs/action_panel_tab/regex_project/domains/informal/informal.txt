@@ -1,0 +1,10 @@
+\b(gonna|wanna|gotta|outta|kinda|sorta)\b
+\b(no cap|for real|fr)\b
+\b(lit|dope|fire|sick)\b
+\b(ghosted|curve|left on read)\b
+\b(flex|clout|stan)\b
+\b(salty|sus|lowkey|highkey)\b
+\b(tea|spill the tea)\b
+\b(vibe|vibe check)\b
+\b(fam|bestie|bruh|mate|innit)\b
+\b(y'all|yous|youse)\b

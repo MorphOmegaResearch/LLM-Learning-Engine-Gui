@@ -1,0 +1,10 @@
+\bpiece of cake\b
+\bbreak a leg\b
+\bunder the weather\b
+\bonce in a blue moon\b
+\bcost an arm and a leg\b
+\bhit the nail on the head\b
+\bbite the bullet\b
+\bbeat around the bush\b
+\bcut to the chase\b
+\bcall it a day\b

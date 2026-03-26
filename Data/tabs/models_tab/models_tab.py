@@ -1,4 +1,3 @@
-# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Models Tab - Model information, notes, and statistics
 Isolated module for models-related functionality
@@ -20,6 +19,10 @@ import threading
 import json
 
 from tabs.base_tab import BaseTab
+try:
+    from tabs.models_tab.morph_lineage import MorphLineagePanel, load_brain_maps
+except Exception:
+    MorphLineagePanel = None
 from evaluation_engine import EvaluationEngine
 from config import (
     get_ollama_models,
@@ -47,7 +50,6 @@ from config import (
     load_baseline_report,
     MODELS_DIR,
     TRAINING_DATA_DIR)
-from logger_util import log_message
 
 
 class ModelsTab(BaseTab):
@@ -64,8 +66,6 @@ class ModelsTab(BaseTab):
         self.current_model_for_stats = None
         self.current_model_info = None  # Store full model info dict
         self.tab_instances = getattr(self, 'tab_instances', None)
-        self.trainee_name_var = tk.StringVar()
-        self.base_model_var = tk.StringVar()
         # Adapters selection state
         self.adapters_select_mode = tk.BooleanVar(value=False)
         self.adapters_selection = {}  # path(str) -> BooleanVar
@@ -75,11 +75,26 @@ class ModelsTab(BaseTab):
         # Levels expand/collapse state in model list
         self.levels_expanded = {}
         self.levels_ui = {}
+        # Morph expand/collapse state
+        self.morph_expanded = {}
+        self.morph_ui = {}
+        # Unified list pane section collapse state
+        self.list_sections = {'base': True, 'ollama': True, 'morph': True, 'providers': True}
+        self.list_section_ui = {}  # key -> {'arrow': btn, 'content': frame, 'badge': label}
+
     def create_ui(self):
         """Create the models tab UI"""
+        # ═══════════════════════════════════════════════════════════════════
+        # LAYOUT ORIENTATION
+        #   LEFT  (col 0, weight=1) = model_info_frame → sub-tab detail panels
+        #                             (Overview, Adapters, History, Notes, Stats, etc.)
+        #   RIGHT (col 1, weight=0) = model_list_frame → scrollable selection list
+        #                             (Base PyTorch, Morph Architects, Ollama/GGUF)
+        # Clicking anything in RIGHT panel populates LEFT sub-tabs.
+        # ═══════════════════════════════════════════════════════════════════
         parent = self.parent
-        parent.columnconfigure(0, weight=1) # Model Info column
-        parent.columnconfigure(1, weight=0) # Model List column
+        parent.columnconfigure(0, weight=1) # Model Info column (LEFT)
+        parent.columnconfigure(1, weight=0) # Model List column (RIGHT)
         parent.rowconfigure(0, weight=1)
 
         # Left side: Model Information Display
@@ -100,60 +115,12 @@ class ModelsTab(BaseTab):
         
         self.model_info_notebook = ttk.Notebook(model_info_frame)
         self.model_info_notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.bind_sub_notebook(self.model_info_notebook, label='Model Info')
 
         # Overview Tab
         self.overview_tab_frame = ttk.Frame(self.model_info_notebook)
         self.model_info_notebook.add(self.overview_tab_frame, text="Overview")
-        # WO-6z: Active Variant indicator (top of Overview)
-        try:
-            self.active_variant_var = tk.StringVar(value="")
-            banner = ttk.Label(self.overview_tab_frame, textvariable=self.active_variant_var, style='Config.TLabel', foreground='#ffd43b')
-            banner.grid(row=0, column=0, sticky=tk.W, padx=6, pady=4)
-        except Exception:
-            pass
         # Labels for parsed info will be created dynamically in display_model_info
-
-        # --- Types Tab (must be visible next to Overview) ---
-        try:
-            from tabs.models_tab.types_panel import TypesPanel
-            self.types_tab_frame = ttk.Frame(self.model_info_notebook)
-            self.model_info_notebook.add(self.types_tab_frame, text="Types")
-
-            # Shared state already created earlier:
-            #   self.trainee_name_var, self.base_model_var
-            self.panel_types = TypesPanel(
-                self.types_tab_frame,
-                trainee_name_var=self.trainee_name_var,
-                base_model_var=self.base_model_var,
-            )
-            print("[DEBUG] ModelsTab: TypesPanel instantiated")
-            self.panel_types.set_context_getters(
-                get_trainee=lambda: getattr(self, "current_model_for_stats", None),
-                get_base_model=lambda: getattr(self, "current_model_info", {}).get("name")
-            )
-            print("[DEBUG] ModelsTab: set_context_getters called")
-            # If TypesPanel packs itself, do nothing; otherwise:
-            try:
-                if hasattr(self.panel_types, "pack"):
-                    print("[DEBUG] ModelsTab: Packing TypesPanel")
-                    self.panel_types.pack(fill=tk.BOTH, expand=True, padx=10, pady=10) # Changed tk.X to tk.BOTH and added expand=True
-            except Exception as e:
-                print(f"[DEBUG] ModelsTab: Error packing TypesPanel: {e}")
-
-            # Bind the event bridge (safe even if Training tab misses apply_plan)
-            try:
-                self.panel_types.bind("<<TypePlanApplied>>", self._on_type_plan_applied)
-            except Exception:
-                pass
-            # WO-6p/6x: Listen for global profile/variant events
-            try:
-                self.bind("<<VariantApplied>>", self._on_variant_applied)
-                self.bind("<<ProfilesChanged>>", lambda _e: self.refresh_collections_panel())
-            except Exception:
-                pass
-        except Exception as _e:
-            # Keep UI resilient if TypesPanel import fails
-            print("[ModelsTab] TypesPanel unavailable:", _e)
 
         # Adapters Tab (New)
         self.adapters_tab_frame = ttk.Frame(self.model_info_notebook)
@@ -165,6 +132,7 @@ class ModelsTab(BaseTab):
         # Sub-tabs inside History: Runs and Levels
         self.history_notebook = ttk.Notebook(self.history_tab_frame)
         self.history_notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.bind_sub_notebook(self.history_notebook, label='History')
         self.history_runs_frame = ttk.Frame(self.history_notebook)
         self.history_levels_frame = ttk.Frame(self.history_notebook)
         self.history_notebook.add(self.history_runs_frame, text="Runs")
@@ -217,106 +185,99 @@ class ModelsTab(BaseTab):
         self.model_info_notebook.add(self.compare_tab_frame, text="Compare")
         self.create_compare_panel(self.compare_tab_frame)
 
-        # Right side: Unified scroll container with a draggable resizer gutter
-        # Insert a thin resizer between left (col 0) and right pane
-        self._resizer = ttk.Frame(parent, width=6, cursor='sb_h_double_arrow', style='Category.TFrame')
-        self._resizer.grid(row=0, column=1, sticky=tk.NS)
-        # Canvas and scrollbar for right pane move to columns 2 and 3
-        self.right_canvas = tk.Canvas(parent, bg="#2b2b2b", highlightthickness=0)
-        self.right_scrollbar = ttk.Scrollbar(parent, orient="vertical", command=self.right_canvas.yview)
-        self.right_frame = ttk.Frame(self.right_canvas, style='Category.TFrame')
-        self.right_canvas_window_id = self.right_canvas.create_window((0, 0), window=self.right_frame, anchor="nw")
-        self.right_canvas.configure(yscrollcommand=self.right_scrollbar.set)
-        self.right_pane_width = 360
-        try:
-            self.right_canvas.config(width=self.right_pane_width)
-        except Exception:
-            pass
-        self.right_canvas.grid(row=0, column=2, sticky=tk.NSEW, padx=(6,10), pady=10)
-        self.right_scrollbar.grid(row=0, column=3, sticky=tk.NS, pady=10)
-        self.right_canvas.bind("<Configure>", lambda e: self.right_canvas.itemconfig(self.right_canvas_window_id, width=e.width))
-        self.right_frame.bind("<Configure>", lambda e: self.right_canvas.configure(scrollregion=self.right_canvas.bbox("all")))
-        # Resizer drag behavior
-        self._resizer.bind("<ButtonPress-1>", self._on_resizer_press)
-        self._resizer.bind("<B1-Motion>", self._on_resizer_drag)
+        # Ω Inspector Tab (omega/alpha variant inspector — populated on selection)
+        self.omega_inspector_frame = ttk.Frame(self.model_info_notebook)
+        self.model_info_notebook.add(self.omega_inspector_frame, text="\u03a9 Inspector")
 
-        # Inside the unified right column, we keep existing sections
-        model_list_frame = ttk.Frame(self.right_frame, style='Category.TFrame')
-        model_list_frame.grid(row=0, column=0, sticky=tk.NSEW)
+        # Right side: Unified scrollable model list pane
+        model_list_frame = ttk.Frame(parent, style='Category.TFrame')
+        model_list_frame.grid(row=0, column=1, sticky=tk.NSEW, padx=10, pady=10)
         model_list_frame.columnconfigure(0, weight=1)
-        model_list_frame.rowconfigure(1, weight=1) # For Base/Levels/Trained canvas
-        model_list_frame.rowconfigure(3, weight=1) # For Ollama canvas
+        model_list_frame.rowconfigure(0, weight=1)
 
-        ttk.Label(model_list_frame, text="Available Models", font=("Arial", 12, "bold"), style='CategoryPanel.TLabel').grid(row=0, column=0, pady=5, sticky=tk.W)
+        # Single canvas + scrollbar for the whole list pane
+        right_canvas = tk.Canvas(model_list_frame, bg="#2b2b2b", highlightthickness=0)
+        right_scrollbar = ttk.Scrollbar(model_list_frame, orient="vertical", command=right_canvas.yview)
+        right_content = ttk.Frame(right_canvas)
+        right_content.bind("<Configure>", lambda e: right_canvas.configure(scrollregion=right_canvas.bbox("all")))
+        self._right_canvas_win = right_canvas.create_window((0, 0), window=right_content, anchor="nw")
+        right_canvas.configure(yscrollcommand=right_scrollbar.set)
+        right_canvas.grid(row=0, column=0, sticky=tk.NSEW)
+        right_scrollbar.grid(row=0, column=1, sticky=tk.NS)
+        right_canvas.bind("<Configure>", lambda e: right_canvas.itemconfig(self._right_canvas_win, width=e.width))
+        self.bind_mousewheel_to_canvas(right_canvas)
 
-        # Base/Levels/Trained section (no inner scrollbar; outer right pane scrolls)
-        self.base_buttons_frame = ttk.Frame(model_list_frame)
-        self.base_buttons_frame.grid(row=1, column=0, sticky=tk.NSEW)
+        # --- Section: Base Models ---
+        _sec_base_hdr = ttk.Frame(right_content)
+        _sec_base_hdr.pack(fill=tk.X, padx=4, pady=(6, 0))
+        _base_arrow = ttk.Button(_sec_base_hdr, text='▼', width=2,
+                                 command=lambda: self._toggle_list_section('base'),
+                                 style='Select.TButton')
+        _base_arrow.pack(side=tk.LEFT, padx=(0, 4))
+        ttk.Label(_sec_base_hdr, text="Available Models", font=("Arial", 11, "bold"),
+                  foreground='#61dafb', style='Config.TLabel').pack(side=tk.LEFT)
+        _base_badge = ttk.Label(_sec_base_hdr, text="", style='Config.TLabel', foreground='#858585')
+        _base_badge.pack(side=tk.RIGHT, padx=6)
+        self.base_buttons_frame = ttk.Frame(right_content)
+        self.base_buttons_frame.pack(fill=tk.X)
+        ttk.Separator(right_content, orient='horizontal').pack(fill=tk.X, padx=6, pady=4)
+        self.list_section_ui['base'] = {'arrow': _base_arrow, 'content': self.base_buttons_frame, 'badge': _base_badge}
 
-        # Ollama header
-        ttk.Label(model_list_frame, text="🟡 Ollama Models (GGUF)", font=("Arial", 12, "bold"), style='CategoryPanel.TLabel').grid(row=2, column=0, pady=(10,5), sticky=tk.W)
+        # --- Section: Ollama / GGUF ---
+        _sec_oll_hdr = ttk.Frame(right_content)
+        _sec_oll_hdr.pack(fill=tk.X, padx=4, pady=(2, 0))
+        _oll_arrow = ttk.Button(_sec_oll_hdr, text='▼', width=2,
+                                command=lambda: self._toggle_list_section('ollama'),
+                                style='Select.TButton')
+        _oll_arrow.pack(side=tk.LEFT, padx=(0, 4))
+        ttk.Label(_sec_oll_hdr, text="🟡 Ollama / GGUF", font=("Arial", 11, "bold"),
+                  foreground='#e8b04b', style='Config.TLabel').pack(side=tk.LEFT)
+        _oll_badge = ttk.Label(_sec_oll_hdr, text="", style='Config.TLabel', foreground='#858585')
+        _oll_badge.pack(side=tk.RIGHT, padx=6)
+        self.ollama_buttons_frame = ttk.Frame(right_content)
+        self.ollama_buttons_frame.pack(fill=tk.X)
+        ttk.Separator(right_content, orient='horizontal').pack(fill=tk.X, padx=6, pady=4)
+        self.list_section_ui['ollama'] = {'arrow': _oll_arrow, 'content': self.ollama_buttons_frame, 'badge': _oll_badge}
 
-        # Ollama section (no inner scrollbar; outer right pane scrolls)
-        self.ollama_buttons_frame = ttk.Frame(model_list_frame)
-        self.ollama_buttons_frame.grid(row=3, column=0, sticky=tk.NSEW)
+        # --- Section: Morph Specialists ---
+        _sec_morph_hdr = ttk.Frame(right_content)
+        _sec_morph_hdr.pack(fill=tk.X, padx=4, pady=(2, 0))
+        _morph_arrow = ttk.Button(_sec_morph_hdr, text='▼', width=2,
+                                  command=lambda: self._toggle_list_section('morph'),
+                                  style='Select.TButton')
+        _morph_arrow.pack(side=tk.LEFT, padx=(0, 4))
+        ttk.Label(_sec_morph_hdr, text="⚡ Morph Architects", font=("Arial", 11, "bold"),
+                  foreground='#a78bfa', style='Config.TLabel').pack(side=tk.LEFT)
+        _morph_badge = ttk.Label(_sec_morph_hdr, text="", style='Config.TLabel', foreground='#858585')
+        _morph_badge.pack(side=tk.RIGHT, padx=6)
+        self.morph_buttons_frame = ttk.Frame(right_content)
+        self.morph_buttons_frame.pack(fill=tk.X)
+        self.list_section_ui['morph'] = {'arrow': _morph_arrow, 'content': self.morph_buttons_frame, 'badge': _morph_badge}
 
-        # --- WO-6b: Collections panel ---------------------------------------
-        collections_section_frame = ttk.Frame(model_list_frame, style='Category.TFrame')
-        collections_section_frame.grid(row=4, column=0, sticky=tk.NSEW, pady=(10,5))
-        collections_section_frame.columnconfigure(0, weight=1)
-        # Reserve rows: 0=header, 1=toggle, 2=canvas
-        collections_section_frame.rowconfigure(2, weight=1) # For Collections canvas within this section
-
-        # Header for Collections (now within collections_section_frame)
-        ttk.Label(collections_section_frame, text="📚 Collections", font=("Arial", 12, "bold"), style='CategoryPanel.TLabel').grid(row=0, column=0, sticky=tk.W)
-
-        # Toggle button for Collections (now within collections_section_frame)
-        collections_toggle_frame = ttk.Frame(collections_section_frame)
-        collections_toggle_frame.grid(row=1, column=0, sticky=tk.EW, padx=5)
-        collections_toggle_frame.columnconfigure(0, weight=1)
-
-        self.collections_expanded = tk.BooleanVar(value=False) # Default to collapsed
-        self.collections_toggle_btn = ttk.Button(collections_toggle_frame, text="▶", width=2, style='Select.TButton', command=self._toggle_collections_group)
-        self.collections_toggle_btn.pack(side=tk.LEFT, padx=(0,5))
-        ttk.Label(collections_toggle_frame, text="Type Assigned Models", style='Config.TLabel').pack(side=tk.LEFT) # Placeholder for now
-
-        # (Filter UI removed by request)
-
-        # Collections canvas (now within collections_section_frame)
-        self.collections_canvas = tk.Canvas(collections_section_frame, bg="#2b2b2b", highlightthickness=0)
-        self.collections_scrollbar = ttk.Scrollbar(collections_section_frame, orient="vertical", command=self.collections_canvas.yview)
-        self.collections_buttons_frame = ttk.Frame(self.collections_canvas)
-        self.collections_buttons_frame.bind("<Configure>", lambda e: self.collections_canvas.configure(scrollregion=self.collections_canvas.bbox("all")))
-        self.collections_canvas_window_id = self.collections_canvas.create_window((0, 0), window=self.collections_buttons_frame, anchor="nw")
-        self.collections_canvas.configure(yscrollcommand=self.collections_scrollbar.set)
-        # Conditional initial grid for canvas (row 2)
-        if self.collections_expanded.get(): # This is False initially
-            self.collections_canvas.grid(row=2, column=0, sticky=tk.NSEW)
-            self.collections_scrollbar.grid(row=2, column=1, sticky=tk.NS)
-        self.collections_canvas.bind("<Configure>", lambda e: self.collections_canvas.itemconfig(self.collections_canvas_window_id, width=e.width))
-
-        # --------------------------------------------------------------------
-
-        # Bind mousewheel to the unified right scroll on hover only
-        try:
-            self.bind_mousewheel_to_canvas(self.right_canvas)
-        except Exception:
-            pass
+        # --- Section: Providers ---
+        _sec_prov_hdr = ttk.Frame(right_content)
+        _sec_prov_hdr.pack(fill=tk.X, padx=4, pady=(4, 0))
+        _prov_arrow = ttk.Button(_sec_prov_hdr, text='▼', width=2,
+                                 command=lambda: self._toggle_list_section('providers'),
+                                 style='Select.TButton')
+        _prov_arrow.pack(side=tk.LEFT, padx=(0, 4))
+        ttk.Label(_sec_prov_hdr, text='> Providers', font=('Arial', 11, 'bold'),
+                  foreground='#50fa7b', style='Config.TLabel').pack(side=tk.LEFT)
+        _prov_badge = ttk.Label(_sec_prov_hdr, text='', style='Config.TLabel', foreground='#858585')
+        _prov_badge.pack(side=tk.RIGHT, padx=6)
+        self.providers_frame = ttk.Frame(right_content)
+        self.providers_frame.pack(fill=tk.X)
+        self.list_section_ui['providers'] = {
+            'arrow': _prov_arrow,
+            'content': self.providers_frame,
+            'badge': _prov_badge
+        }
 
         # Expanded state for Ollama groups
         self.ollama_expanded = {}
         self.ollama_ui = {}
 
         self.populate_model_list()
-        # Ensure default collapsed layout on launch
-        if bool(self.collections_expanded.get()):
-            self._toggle_collections_group()
-        self.refresh_collections_panel() # Call after UI is built
-        # Bind auto-export event from Custom Code
-        try:
-            self.root.bind("<<RequestAutoExportReEval>>", self._on_request_auto_export_reeval)
-        except Exception:
-            pass
 
     def refresh_models_tab(self):
         """Refresh the models tab - reloads all models and updates display."""
@@ -337,49 +298,14 @@ class ModelsTab(BaseTab):
 
         print("✓ Models tab refreshed")
 
-    def _on_type_plan_applied(self, event=None):
-        import json
-        variant_id = None
-        base_model = None
-        type_id = None
-
-        # tk>=8.6 can surface event.data; else we set .details above
-        if event is not None:
-            try:
-                if hasattr(event, "data") and event.data:
-                    d = json.loads(event.data)
-                    variant_id = d.get("variant_id")
-                    base_model = d.get("base_model")
-                    type_id = d.get("type_id")
-            except Exception:
-                pass
-            if not variant_id and hasattr(event, "details"):
-                d = getattr(event, "details", {}) or {}
-                variant_id = d.get("variant_id")
-                base_model = d.get("base_model")
-                type_id = d.get("type_id")
-
-        if not variant_id:
-            print("[ModelsTab] TypePlanApplied missing variant_id; ignoring.")
-            return
-
-        # Relay to TrainingTab on the UI thread
-        try:
-            tt = self.get_training_tab()
-            if tt and hasattr(tt, "apply_plan"):
-                self.root.after(50, lambda: tt.apply_plan(variant_id=variant_id))
-                print(f"[ModelsTab] Relayed TypePlan to TrainingTab (variant={variant_id}).")
-            else:
-                print("[ModelsTab] TrainingTab.apply_plan not found.")
-        except Exception as e:
-            print("[ModelsTab] Error relaying TypePlan:", e)
-
     def populate_model_list(self):
         """Populates the scrollable frame with buttons for each model (all types)."""
         # Clear existing buttons
         for widget in self.base_buttons_frame.winfo_children():
             widget.destroy()
         for widget in self.ollama_buttons_frame.winfo_children():
+            widget.destroy()
+        for widget in self.morph_buttons_frame.winfo_children():
             widget.destroy()
 
         # Refresh model list
@@ -389,10 +315,12 @@ class ModelsTab(BaseTab):
             ttk.Label(self.base_buttons_frame, text="No models found.", style='Config.TLabel').pack(pady=10)
             return
 
-        # Group models by type
+        # Group models by type (morph and base_config are handled by populate_morph_section)
         pytorch_models = [m for m in self.all_models if m["type"] == "pytorch"]
         trained_models = [m for m in self.all_models if m["type"] == "trained"]
         ollama_models = [m for m in self.all_models if m["type"] == "ollama"]
+        gguf_models = [m for m in self.all_models if m["type"] == "gguf"]
+        base_config_models = [m for m in self.all_models if m["type"] == "base_config"]
 
         # Display PyTorch models (base models) - Trainable
         if pytorch_models:
@@ -400,117 +328,1012 @@ class ModelsTab(BaseTab):
                      font=("Arial", 10, "bold"), foreground='#61dafb').pack(anchor=tk.W, padx=5, pady=(10, 5))
 
             for model_info in pytorch_models:
-                # Row frame for arrow + base model button
-                row = ttk.Frame(self.base_buttons_frame)
-                row.pack(fill=tk.X, padx=5, pady=2)
                 base_name = model_info['name']
                 self.levels_expanded[base_name] = self.levels_expanded.get(base_name, False)
 
-                # Arrow button (integrated left of base model button)
+                # wrapper holds both header row + expandable container so children
+                # appear inline directly below their parent, not at section end
+                wrapper = ttk.Frame(self.base_buttons_frame)
+                wrapper.pack(fill=tk.X, padx=5, pady=2)
+
+                row = ttk.Frame(wrapper)
+                row.pack(fill=tk.X)
+
                 arrow_btn = ttk.Button(row, text=('▼' if self.levels_expanded[base_name] else '▶'), width=2,
                                        command=lambda b=base_name: self._toggle_levels(b), style='Select.TButton')
-                arrow_btn.pack(side=tk.LEFT, padx=(0,5))
+                arrow_btn.pack(side=tk.LEFT, padx=(0, 5))
 
-                # Base model button
-                icon = "📦"
                 size_text = f" • {model_info['size']}" if model_info.get("size") else ""
-                btn_text = f"{icon} {base_name}{size_text} • trainable"
-                ttk.Button(row, text=btn_text, command=lambda m=model_info: self.display_model_info_from_dict(m), style='Select.TButton').pack(side=tk.LEFT, fill=tk.X, expand=True)
+                ttk.Button(row, text=f"📦 {base_name}{size_text} • trainable",
+                           command=lambda m=model_info: self.display_model_info_from_dict(m),
+                           style='Select.TButton').pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-                # Levels container (created but only packed when expanded)
-                container = ttk.Frame(self.base_buttons_frame)
-                # Populate level buttons
+                # container is child of wrapper → packs inline after row
+                container = ttk.Frame(wrapper)
+                has_children = False
+
+                # LoRA level children
                 levels = []
                 try:
                     levels = self._discover_levels_for_base(base_name)
                 except Exception:
                     levels = []
-                # Clear previous UI record
-                self.levels_ui[base_name] = { 'arrow': arrow_btn, 'container': container }
                 if levels:
-                    for level in sorted(levels, key=lambda d: d.get('created',''), reverse=True):
-                        ttk.Button(container, text=f"   • {level.get('name','(unnamed)')}",
+                    has_children = True
+                    for level in sorted(levels, key=lambda d: d.get('created', ''), reverse=True):
+                        ttk.Button(container, text=f"   • {level.get('name', '(unnamed)')}",
                                    command=lambda b=base_name, lv=level: self.display_level_info(b, lv),
                                    style='Select.TButton').pack(fill=tk.X, padx=25, pady=1)
-                # Show container only if expanded
-                if self.levels_expanded[base_name] and levels:
+
+                # GGUF export children — links CLI-exported GGUFs to their parent
+                if model_info.get('path'):
+                    _gguf_dir = Path(str(model_info['path'])) / 'exports' / 'gguf'
+                    if _gguf_dir.exists():
+                        for _gf in sorted(_gguf_dir.glob('*.gguf')):
+                            has_children = True
+                            try:
+                                _sz = f"{_gf.stat().st_size // (1024 * 1024)}MB"
+                            except Exception:
+                                _sz = '?'
+                            _gm = {'name': _gf.stem, 'type': 'gguf', 'path': _gf,
+                                   'size': _sz, 'has_stats': False}
+                            ttk.Button(container,
+                                       text=f"   🟣 {_gf.stem}  •  {_sz}",
+                                       command=lambda m=_gm: self.display_model_info(m),
+                                       style='Select.TButton').pack(fill=tk.X, padx=25, pady=1)
+
+                self.levels_ui[base_name] = {'arrow': arrow_btn, 'container': container}
+
+                # Hide arrow if no children; expand inline if already open
+                if not has_children:
+                    arrow_btn.pack_forget()
+                elif self.levels_expanded[base_name]:
                     container.pack(fill=tk.X)
 
-        # Populate Ollama under Assigned and Unassigned
+        # Display Arch Specs (config.json present but no trainable weights)
+        if base_config_models:
+            ttk.Label(self.base_buttons_frame, text="🧩 Arch Specs",
+                     font=("Arial", 10, "bold"), foreground='#a8d8a8').pack(anchor=tk.W, padx=5, pady=(10, 5))
+            for model_info in base_config_models:
+                ttk.Button(self.base_buttons_frame,
+                           text=f"🗂 {model_info['name']}  •  {model_info.get('size', '?')}",
+                           command=lambda m=model_info: self.display_model_info_from_dict(m),
+                           style='Select.TButton').pack(fill=tk.X, padx=5, pady=2)
+
+        # Populate Ollama grouped by base (using level manifests if available)
         if ollama_models:
+            grouped = self._group_ollama_by_base([m['name'] for m in ollama_models])
+            for base_name, names in grouped.items():
+                self.ollama_expanded[base_name] = self.ollama_expanded.get(base_name, False)
+                # wrapper ensures expand is inline, not appended to section end
+                wrapper = ttk.Frame(self.ollama_buttons_frame)
+                wrapper.pack(fill=tk.X, padx=5, pady=2)
+                row = ttk.Frame(wrapper)
+                row.pack(fill=tk.X)
+                arrow_btn = ttk.Button(row, text=('▼' if self.ollama_expanded[base_name] else '▶'), width=2,
+                                       command=lambda b=base_name: self._toggle_ollama_group(b), style='Select.TButton')
+                arrow_btn.pack(side=tk.LEFT, padx=(0, 5))
+                ttk.Label(row, text=base_name, style='Config.TLabel', foreground='#61dafb').pack(side=tk.LEFT)
+                cont = ttk.Frame(wrapper)
+                self.ollama_ui[base_name] = {'arrow': arrow_btn, 'container': cont}
+                for n in names:
+                    ttk.Button(cont, text=f"   🔶 {n} • inference-only",
+                               command=lambda name=n: self.display_model_info({'name': name, 'type': 'ollama'}),
+                               style='Select.TButton').pack(fill=tk.X, padx=25, pady=1)
+                if self.ollama_expanded[base_name] and names:
+                    cont.pack(fill=tk.X)
+
+        # Local GGUF files — only truly standalone ones (not sub-exports of a base model)
+        _linked_gguf_paths = set()
+        try:
+            for _md in MODELS_DIR.iterdir():
+                if _md.is_dir():
+                    _gd = _md / 'exports' / 'gguf'
+                    if _gd.exists():
+                        for _gf in _gd.glob('*.gguf'):
+                            _linked_gguf_paths.add(str(_gf))
+        except Exception:
+            pass
+        standalone_gguf = [gm for gm in gguf_models
+                           if str(gm.get('path', '')) not in _linked_gguf_paths]
+
+        if standalone_gguf:
+            ttk.Label(self.ollama_buttons_frame, text="🟣 Local GGUF (standalone)",
+                     font=("Arial", 10, "bold"), foreground='#c792ea').pack(anchor=tk.W, padx=5, pady=(10, 3))
+            for gm in standalone_gguf:
+                gname = gm['name']
+                gsize = gm.get('size', '?')
+                gpath = gm.get('path')
+                row = ttk.Frame(self.ollama_buttons_frame)
+                row.pack(fill=tk.X, padx=5, pady=2)
+                ttk.Button(row, text=f"🟣 {gname} • {gsize}",
+                           command=lambda m=gm: self.display_model_info(m),
+                           style='Select.TButton').pack(side=tk.LEFT, fill=tk.X, expand=True)
+                def _load_ollama(path=gpath, name=gname):
+                    self._load_gguf_via_ollama(path, name)
+                ttk.Button(row, text="🔶 Load", width=7,
+                           command=_load_ollama, style='Select.TButton').pack(side=tk.LEFT, padx=(4, 0))
+
+        self.populate_morph_section()
+        self.populate_providers_section()
+        self._update_list_badges()
+
+    def populate_morph_section(self):
+        """Build the Morph specialist tree: variants/ sub-tree + Models/Morph* sub-tree."""
+        import json as _j
+        import re as _re
+
+        for w in self.morph_buttons_frame.winfo_children():
+            w.destroy()
+
+        try:
+            from config import DATA_DIR
+            spawn_log = DATA_DIR / "pymanifest" / "variants" / "spawn_log.jsonl"
+            variants_dir = DATA_DIR / "pymanifest" / "variants"
+        except Exception:
+            from pathlib import Path
+            variants_dir = Path(__file__).parent.parent.parent / "pymanifest" / "variants"
+            spawn_log = variants_dir / "spawn_log.jsonl"
+
+        # ── Sub-section A: pymanifest/variants/ ────────────────────────────
+        ttk.Label(self.morph_buttons_frame, text="📁 pymanifest/variants/",
+                  font=("Arial", 9), foreground='#858585',
+                  style='Config.TLabel').pack(anchor=tk.W, padx=8, pady=(6, 0))
+        ttk.Separator(self.morph_buttons_frame, orient='horizontal').pack(fill=tk.X, padx=8, pady=(2, 4))
+
+        if not spawn_log.exists():
+            ttk.Label(self.morph_buttons_frame, text="  No spawn_log.jsonl found.",
+                      style='Config.TLabel').pack(anchor=tk.W, padx=12, pady=4)
+        else:
+            entries = []
             try:
-                from config import list_assigned_ollama_tags, load_ollama_assignments
-                assigned_tags = set(list_assigned_ollama_tags() or set())
-                assignments = load_ollama_assignments() or {}
+                with open(spawn_log) as _f:
+                    for line in _f:
+                        line = line.strip()
+                        if line:
+                            try:
+                                entries.append(_j.loads(line))
+                            except Exception:
+                                pass
             except Exception:
-                assigned_tags = set(); assignments = {}
+                entries = []
 
-            all_names = [m['name'] if isinstance(m, dict) else m for m in ollama_models]
-            assigned_names = [n for n in all_names if n in assigned_tags]
-            unassigned_names = [n for n in all_names if n not in assigned_tags]
+            # Deduplicate omegas: keep latest ts per name
+            omega_by_name = {}
+            for e in entries:
+                if e.get('event') == 'omega_spawn' and e.get('outcome') == 'ok':
+                    n = e['name']
+                    if n not in omega_by_name or e['ts'] > omega_by_name[n]['ts']:
+                        omega_by_name[n] = e
 
-            # Assigned group wrapped in its own section frame to preserve order on toggle
-            key = 'Assigned'
-            # Default collapsed on launch
-            self.ollama_expanded[key] = self.ollama_expanded.get(key, False)
-            assigned_section = ttk.Frame(self.ollama_buttons_frame)
-            assigned_section.pack(fill=tk.X)
-            row = ttk.Frame(assigned_section)
-            row.pack(fill=tk.X, padx=5, pady=2)
-            arrow_btn = ttk.Button(row, text=('▼' if self.ollama_expanded[key] else '▶'), width=2,
-                                   command=lambda b=key: self._toggle_ollama_group(b), style='Select.TButton')
-            arrow_btn.pack(side=tk.LEFT, padx=(0,5))
-            ttk.Label(row, text='Assigned', style='Config.TLabel', foreground='#51cf66').pack(side=tk.LEFT)
-            cont = ttk.Frame(assigned_section)
-            self.ollama_ui[key] = { 'arrow': arrow_btn, 'container': cont, 'section': assigned_section }
-            for n in sorted(assigned_names):
-                # Row with color chip + button for easy spotting
-                rowf = ttk.Frame(cont)
-                rowf.pack(fill=tk.X, padx=10, pady=1)
-                try:
-                    color = self._get_variant_color_for_gguf(n)
-                except Exception:
-                    color = None
-                if color:
-                    chip = tk.Label(rowf, text='  ', bg=color)
-                    chip.pack(side=tk.LEFT, padx=(15,6), pady=2)
-                else:
-                    spacer = tk.Label(rowf, text='')
-                    spacer.pack(side=tk.LEFT, padx=(21,6))
-                btn_style = 'Select.TButton'
-                if color:
-                    try:
-                        from tkinter import ttk as _ttk
-                        st = _ttk.Style()
-                        style_name = f"ColorButton_{color.replace('#','')}\.TButton"
+            def _ver(e):
+                m = _re.search(r'v(\d+)', e.get('name', ''))
+                return int(m.group(1)) if m else 0
+
+            omegas = sorted(omega_by_name.values(), key=_ver, reverse=True)
+
+            # Group alphas by parent omega name
+            alphas_by_parent = {}
+            for e in entries:
+                if e.get('event') == 'alpha_spawn':
+                    p = e.get('parent', 'unknown')
+                    alphas_by_parent.setdefault(p, []).append(e)
+
+            if not omegas:
+                ttk.Label(self.morph_buttons_frame, text="  No Morph omegas found.",
+                          style='Config.TLabel').pack(anchor=tk.W, padx=12, pady=4)
+            else:
+                for omega in omegas:
+                    name = omega['name']
+                    patterns = omega.get('pattern_count', 0)
+                    children = alphas_by_parent.get(name, [])
+                    self.morph_expanded[name] = self.morph_expanded.get(name, False)
+
+                    # wrapper keeps alpha children inline under their omega
+                    wrapper = ttk.Frame(self.morph_buttons_frame)
+                    wrapper.pack(fill=tk.X, padx=5, pady=2)
+
+                    row = ttk.Frame(wrapper)
+                    row.pack(fill=tk.X)
+
+                    arrow_btn = ttk.Button(row, text=('▼' if self.morph_expanded[name] else '▶'), width=2,
+                                           command=lambda b=name: self._toggle_morph_omega(b),
+                                           style='Select.TButton')
+                    arrow_btn.pack(side=tk.LEFT, padx=(0, 5))
+
+                    ttk.Button(row, text=f"⚡ {name}  •  {patterns:,} patterns",
+                               command=lambda e=omega, vd=variants_dir: self.display_morph_model_info(e, vd),
+                               style='Select.TButton').pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+                    # cont is child of wrapper → expands inline after row
+                    cont = ttk.Frame(wrapper)
+                    self.morph_ui[name] = {'arrow': arrow_btn, 'container': cont}
+
+                    for alpha in sorted(children, key=lambda x: x.get('ts', ''), reverse=True):
+                        domain = alpha.get('domain', '?')
+                        apatterns = alpha.get('pattern_count', 0)
+                        script = alpha.get('script', '')
+                        profile_label = ''
                         try:
-                            st.lookup(style_name, 'foreground')
+                            bj = variants_dir / f"build_{script.replace('.py', '')}.json"
+                            if bj.exists():
+                                bdata = _j.loads(bj.read_text())
+                                pname = bdata.get('spawn_profile', {}).get('profile_name', '')
+                                if pname:
+                                    profile_label = f" [{pname}]"
                         except Exception:
-                            st.configure(style_name, foreground=color)
-                        btn_style = style_name
-                    except Exception:
-                        btn_style = 'Select.TButton'
-                ttk.Button(rowf, text=f"🔶 {n} • assigned", command=lambda name=n: self.display_model_info({'name':name,'type':'ollama'}), style=btn_style).pack(side=tk.LEFT, fill=tk.X, expand=True)
-            if self.ollama_expanded[key] and assigned_names:
-                cont.pack(fill=tk.X)
+                            pass
+                        label = f"   🧬 {domain}{profile_label}  •  {apatterns:,} pts"
+                        ttk.Button(cont, text=label,
+                                   command=lambda e=alpha, vd=variants_dir: self.display_morph_model_info(e, vd),
+                                   style='Select.TButton').pack(fill=tk.X, padx=25, pady=1)
 
-            # Unassigned group wrapped in its own section frame to preserve order on toggle
-            key2 = 'Unassigned'
-            self.ollama_expanded[key2] = self.ollama_expanded.get(key2, False)
-            unassigned_section = ttk.Frame(self.ollama_buttons_frame)
-            unassigned_section.pack(fill=tk.X)
-            row2 = ttk.Frame(unassigned_section)
-            row2.pack(fill=tk.X, padx=5, pady=2)
-            arrow_btn2 = ttk.Button(row2, text=('▼' if self.ollama_expanded[key2] else '▶'), width=2,
-                                   command=lambda b=key2: self._toggle_ollama_group(b), style='Select.TButton')
-            arrow_btn2.pack(side=tk.LEFT, padx=(0,5))
-            ttk.Label(row2, text='Unassigned', style='Config.TLabel', foreground='#61dafb').pack(side=tk.LEFT)
-            cont2 = ttk.Frame(unassigned_section)
-            self.ollama_ui[key2] = { 'arrow': arrow_btn2, 'container': cont2, 'section': unassigned_section }
-            for n in sorted(unassigned_names):
-                ttk.Button(cont2, text=f"   🔶 {n} • inference-only", command=lambda name=n: self.display_model_info({'name':name,'type':'ollama'}), style='Select.TButton').pack(fill=tk.X, padx=25, pady=1)
-            if self.ollama_expanded[key2] and unassigned_names:
-                cont2.pack(fill=tk.X)
+                    if not children:
+                        arrow_btn.pack_forget()
+                    elif self.morph_expanded[name]:
+                        cont.pack(fill=tk.X)
+
+        # ── Sub-section B: Models/Morph* dirs ──────────────────────────────
+        # (Alpha Lineage moved to LEFT Overview sub-tab — shown on alpha click)
+        ttk.Separator(self.morph_buttons_frame, orient='horizontal').pack(fill=tk.X, padx=8, pady=(8, 2))
+        ttk.Label(self.morph_buttons_frame, text="📁 Models/Morph*/",
+                  font=("Arial", 9), foreground='#858585',
+                  style='Config.TLabel').pack(anchor=tk.W, padx=8, pady=(0, 4))
+
+        morph_model_dirs = []
+        try:
+            morph_model_dirs = sorted(
+                [d for d in MODELS_DIR.iterdir()
+                 if d.is_dir() and d.name.lower().startswith('morph')],
+                key=lambda d: d.name
+            )
+        except Exception:
+            pass
+
+        if not morph_model_dirs:
+            ttk.Label(self.morph_buttons_frame, text="  No Morph model dirs found.",
+                      style='Config.TLabel').pack(anchor=tk.W, padx=12, pady=4)
+        else:
+            for morph_dir in morph_model_dirs:
+                has_regex = (morph_dir / 'Morph_regex').exists()
+                # Note: GGUFs shown under parent in Available Models — only show status indicator here
+                has_gguf = (morph_dir / 'exports' / 'gguf').exists() and any(
+                    (morph_dir / 'exports' / 'gguf').glob('*.gguf'))
+                indicators = ''
+                if has_gguf:
+                    indicators += ' • gguf ✓'
+                if has_regex:
+                    indicators += ' • regex ✓'
+
+                mkey = f"_mdir_{morph_dir.name}"
+                self.morph_expanded[mkey] = self.morph_expanded.get(mkey, False)
+
+                # wrapper keeps sub-items inline
+                wrapper = ttk.Frame(self.morph_buttons_frame)
+                wrapper.pack(fill=tk.X, padx=5, pady=2)
+
+                row = ttk.Frame(wrapper)
+                row.pack(fill=tk.X)
+
+                arrow_btn = ttk.Button(row, text=('▼' if self.morph_expanded[mkey] else '▶'), width=2,
+                                       command=lambda k=mkey: self._toggle_morph_omega(k),
+                                       style='Select.TButton')
+                arrow_btn.pack(side=tk.LEFT, padx=(0, 5))
+
+                entry = {'event': 'morph_model', 'name': morph_dir.name,
+                         'path': str(morph_dir), 'has_regex': has_regex, 'has_gguf': has_gguf}
+                ttk.Button(row, text=f"🧠 {morph_dir.name}{indicators}",
+                           command=lambda e=entry: self.display_morph_model_info(e),
+                           style='Select.TButton').pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+                # Sub-items: Morph state system info only (GGUFs are under parent in Available Models)
+                cont = ttk.Frame(wrapper)
+                self.morph_ui[mkey] = {'arrow': arrow_btn, 'container': cont}
+
+                sub_items = 0
+
+                # Runtime state snapshots
+                if has_regex:
+                    var_dir = morph_dir / 'Morph_regex' / 'variants'
+                    if var_dir.exists():
+                        vcount = len(list(var_dir.glob('morph_variant_*.json')))
+                        if vcount:
+                            ttk.Label(cont,
+                                      text=f"   🧬 {vcount} runtime state snapshot{'s' if vcount != 1 else ''}",
+                                      font=("Arial", 8), foreground='#82aaff',
+                                      style='Config.TLabel').pack(anchor=tk.W, padx=28, pady=1)
+                            sub_items += 1
+
+                # Future: alpha specialist scripts spawned into this dir
+                alpha_scripts = list(morph_dir.glob('specialist_*.py'))
+                if alpha_scripts:
+                    ttk.Label(cont,
+                              text=f"   📜 {len(alpha_scripts)} alpha specialist{'s' if len(alpha_scripts) != 1 else ''}",
+                              font=("Arial", 8), foreground='#4ec9b0',
+                              style='Config.TLabel').pack(anchor=tk.W, padx=28, pady=1)
+                    sub_items += 1
+
+                if not sub_items:
+                    arrow_btn.pack_forget()
+                elif self.morph_expanded[mkey]:
+                    cont.pack(fill=tk.X)
+
+    def display_morph_model_info(self, entry, variants_dir=None):
+        """Show Morph omega/alpha/model-dir info in the right panel."""
+        import json as _j
+        from pathlib import Path
+
+        self.current_model_info = entry
+        event = entry.get('event', '')
+        is_omega = event == 'omega_spawn'
+        is_morph_model = event == 'morph_model'
+        is_morph_gguf = event == 'morph_gguf'
+
+        if variants_dir is None:
+            try:
+                from config import DATA_DIR
+                variants_dir = DATA_DIR / "pymanifest" / "variants"
+            except Exception:
+                variants_dir = Path(__file__).parent.parent.parent / "pymanifest" / "variants"
+
+        # Clear overview tab
+        for w in self.overview_tab_frame.winfo_children():
+            w.destroy()
+
+        # ── Branch: deployed Morph model directory ──────────────────────────
+        if is_morph_model:
+            model_path = Path(entry.get('path', ''))
+            ttk.Label(self.overview_tab_frame,
+                      text=f"🧠 {entry.get('name', '?')}",
+                      font=("Arial", 13, "bold"),
+                      style='CategoryPanel.TLabel').pack(anchor=tk.W, padx=10, pady=(10, 5))
+
+            info_frame = ttk.LabelFrame(self.overview_tab_frame, text="Model Directory", padding=10)
+            info_frame.pack(fill=tk.X, padx=10, pady=5)
+
+            # File inventory
+            checks = [
+                ("config.json", (model_path / 'config.json').exists()),
+                ("pytorch_model/", (model_path / 'pytorch_model').exists()),
+                ("Morph_regex/", (model_path / 'Morph_regex').exists()),
+                ("exports/gguf/", (model_path / 'exports' / 'gguf').exists()),
+            ]
+            for fname, exists in checks:
+                r = ttk.Frame(info_frame)
+                r.pack(fill=tk.X, pady=1)
+                ttk.Label(r, text="✓" if exists else "✗", width=3, style='Config.TLabel',
+                          foreground='#4ec9b0' if exists else '#858585').pack(side=tk.LEFT)
+                ttk.Label(r, text=fname, style='Config.TLabel').pack(side=tk.LEFT, padx=(2, 0))
+
+            # GGUF exports list
+            gguf_dir = model_path / 'exports' / 'gguf'
+            if gguf_dir.exists():
+                ggufs = list(gguf_dir.glob('*.gguf'))
+                if ggufs:
+                    gf = ttk.LabelFrame(self.overview_tab_frame, text=f"📦 GGUF Exports ({len(ggufs)})", padding=8)
+                    gf.pack(fill=tk.X, padx=10, pady=5)
+                    for g in sorted(ggufs):
+                        try:
+                            sz = f"{g.stat().st_size // (1024*1024)}MB"
+                        except Exception:
+                            sz = '?'
+                        gr = ttk.Frame(gf)
+                        gr.pack(fill=tk.X, pady=1)
+                        ttk.Label(gr, text=f"🟣 {g.stem}  •  {sz}", style='Config.TLabel',
+                                  foreground='#c792ea').pack(side=tk.LEFT)
+                        ttk.Button(gr, text="Load in Chat",
+                                   command=lambda p=g, n=g.stem: self._notify_chat_load_gguf(p, n),
+                                   style='Small.TButton').pack(side=tk.RIGHT, padx=4)
+
+            # Morph_regex runtime state snapshots
+            var_dir = model_path / 'Morph_regex' / 'variants'
+            if var_dir.exists():
+                vfiles = sorted(var_dir.glob('morph_variant_*.json'))
+                if vfiles:
+                    # Load variant_registry for descriptions
+                    registry = {}
+                    try:
+                        reg_file = model_path / 'Morph_regex' / 'variant_registry.json'
+                        if reg_file.exists():
+                            reg_data = _j.loads(reg_file.read_text())
+                            for v in reg_data.get('variants', []):
+                                registry[v['sha']] = v
+                    except Exception:
+                        pass
+
+                    sf = ttk.LabelFrame(self.overview_tab_frame,
+                                        text=f"🧬 Runtime State Snapshots ({len(vfiles)})", padding=8)
+                    sf.pack(fill=tk.X, padx=10, pady=5)
+                    ttk.Label(sf, text="Inference-time control packet captures — no weight changes",
+                              font=("Arial", 8), foreground='#858585',
+                              style='Config.TLabel').pack(anchor=tk.W, pady=(0, 4))
+                    for vf in vfiles[:8]:  # cap display at 8
+                        sha = vf.stem.replace('morph_variant_', '')[:16]
+                        meta = registry.get(vf.stem.replace('morph_variant_', ''), {})
+                        desc = meta.get('description', '')[:60] if meta else ''
+                        ts_str = meta.get('timestamp', '')[:10] if meta else ''
+                        lbl = f"  SHA:{sha}…  {ts_str}  {desc}"
+                        ttk.Label(sf, text=lbl, font=("Arial", 8), foreground='#82aaff',
+                                  style='Config.TLabel').pack(anchor=tk.W)
+                    if len(vfiles) > 8:
+                        ttk.Label(sf, text=f"  … and {len(vfiles)-8} more",
+                                  font=("Arial", 8), foreground='#858585',
+                                  style='Config.TLabel').pack(anchor=tk.W)
+
+            # spawn_profile from variant_registry
+            try:
+                reg_file = model_path / 'Morph_regex' / 'variant_registry.json'
+                if reg_file.exists():
+                    spawn_prof = _j.loads(reg_file.read_text()).get('spawn_profile')
+                    if spawn_prof:
+                        pf = ttk.LabelFrame(self.overview_tab_frame, text="Spawn Profile", padding=8)
+                        pf.pack(fill=tk.X, padx=10, pady=5)
+                        for k, v in spawn_prof.items():
+                            pr = ttk.Frame(pf)
+                            pr.pack(fill=tk.X, pady=1)
+                            ttk.Label(pr, text=f"{k}:", width=20, foreground='#858585',
+                                      style='Config.TLabel').pack(side=tk.LEFT)
+                            ttk.Label(pr, text=str(v), style='Config.TLabel').pack(side=tk.LEFT, padx=(4, 0))
+            except Exception:
+                pass
+
+            # Open folder button
+            btn_f = ttk.Frame(self.overview_tab_frame)
+            btn_f.pack(anchor=tk.W, padx=10, pady=6)
+            ttk.Button(btn_f, text="📂 Open Folder",
+                       command=lambda p=model_path: __import__('subprocess').Popen(['xdg-open', str(p)]),
+                       style='Select.TButton').pack(side=tk.LEFT)
+
+            raw_text = _j.dumps(entry, indent=2)
+            self.raw_model_info_text.config(state=tk.NORMAL)
+            self.raw_model_info_text.delete(1.0, tk.END)
+            self.raw_model_info_text.insert(1.0, raw_text)
+            self.raw_model_info_text.config(state=tk.DISABLED)
+            self.model_info_notebook.select(self.overview_tab_frame)
+            return
+
+        # ── Branch: Morph GGUF sub-item ────────────────────────────────────
+        if is_morph_gguf:
+            ttk.Label(self.overview_tab_frame,
+                      text=f"🟣 {entry.get('name', '?')}",
+                      font=("Arial", 13, "bold"),
+                      style='CategoryPanel.TLabel').pack(anchor=tk.W, padx=10, pady=(10, 5))
+            gf_frame = ttk.LabelFrame(self.overview_tab_frame, text="GGUF Export", padding=10)
+            gf_frame.pack(fill=tk.X, padx=10, pady=5)
+            for lbl, val in [("File", entry.get('name', '?')),
+                              ("Size", entry.get('size', '?')),
+                              ("Parent", entry.get('parent_model', '?')),
+                              ("Path", entry.get('path', '?'))]:
+                r = ttk.Frame(gf_frame)
+                r.pack(fill=tk.X, pady=2)
+                ttk.Label(r, text=f"{lbl}:", width=10, foreground='#858585',
+                          style='Config.TLabel').pack(side=tk.LEFT)
+                ttk.Label(r, text=str(val), style='Config.TLabel',
+                          wraplength=320, justify=tk.LEFT).pack(side=tk.LEFT, padx=(4, 0))
+            btn_f = ttk.Frame(self.overview_tab_frame)
+            btn_f.pack(anchor=tk.W, padx=10, pady=6)
+            gpath = Path(entry.get('path', ''))
+            gname = entry.get('name', '')
+            ttk.Button(btn_f, text="Load in Chat",
+                       command=lambda p=gpath, n=gname: self._notify_chat_load_gguf(p, n),
+                       style='Action.TButton').pack(side=tk.LEFT, padx=(0, 4))
+            ttk.Button(btn_f, text="Via Ollama",
+                       command=lambda p=gpath, n=gname: self._load_gguf_via_ollama(p, n),
+                       style='Select.TButton').pack(side=tk.LEFT)
+            self.raw_model_info_text.config(state=tk.NORMAL)
+            self.raw_model_info_text.delete(1.0, tk.END)
+            self.raw_model_info_text.insert(1.0, _j.dumps(entry, indent=2))
+            self.raw_model_info_text.config(state=tk.DISABLED)
+            self.model_info_notebook.select(self.overview_tab_frame)
+            return
+
+        # ── Branch: omega / alpha specialist (spawn_log entries) ───────────
+        script = entry.get('script', '')
+        build_profile = {}
+        if script:
+            try:
+                bj = variants_dir / f"build_{script.replace('.py', '')}.json"
+                if bj.exists():
+                    bdata = _j.loads(bj.read_text())
+                    build_profile = bdata.get('spawn_profile', {})
+            except Exception:
+                pass
+
+        if not is_omega:
+            # Alpha clicked → rich overview with brain_map data in LEFT sub-tab
+            self._populate_morph_overview(entry, variants_dir)
+        else:
+            # Omega: show spawn info + launch actions
+            ttk.Label(self.overview_tab_frame,
+                      text=f"⚡ Omega: {entry.get('name', '?')}",
+                      font=("Arial", 13, "bold"),
+                      style='CategoryPanel.TLabel').pack(anchor=tk.W, padx=10, pady=(10, 5))
+
+            info_frame = ttk.LabelFrame(self.overview_tab_frame, text="Spawn Info", padding=10)
+            info_frame.pack(fill=tk.X, padx=10, pady=5)
+
+            ts = entry.get('ts', '')[:19].replace('T', ' ')
+            fields = [("Patterns", f"{entry.get('pattern_count', 0):,}"),
+                      ("Spawned", ts),
+                      ("Script", script or '?'),
+                      ("Status", "✓ ok" if entry.get('outcome') == 'ok' else entry.get('outcome', '?'))]
+            if build_profile.get('profile_name'):
+                fields.append(("Profile", build_profile['profile_name']))
+
+            for label, value in fields:
+                r = ttk.Frame(info_frame)
+                r.pack(fill=tk.X, pady=2)
+                ttk.Label(r, text=f"{label}:", width=12, style='Config.TLabel',
+                          foreground='#858585').pack(side=tk.LEFT)
+                ttk.Label(r, text=str(value), style='Config.TLabel',
+                          wraplength=300, justify=tk.LEFT).pack(side=tk.LEFT, padx=(5, 0))
+
+            if script:
+                act_frame = ttk.LabelFrame(self.overview_tab_frame, text="Launch", padding=8)
+                act_frame.pack(fill=tk.X, padx=10, pady=5)
+                ttk.Label(act_frame, text="Run omega CLI:", style='Config.TLabel').pack(anchor=tk.W)
+                ttk.Label(act_frame, text=f"  cd variants && python3 {script}",
+                          font=("Courier", 9), foreground='#4ec9b0').pack(anchor=tk.W, pady=(2, 4))
+                ttk.Button(act_frame, text="⚡ Spawn Alpha…",
+                           command=lambda e=entry, vd=variants_dir: self._show_spawn_alpha_dialog(e, vd),
+                           style='Action.TButton').pack(anchor=tk.W)
+
+        # Raw info tab — spawn_log entry + build JSON
+        raw_parts = [_j.dumps(entry, indent=2)]
+        if script:
+            try:
+                bj = variants_dir / f"build_{script.replace('.py', '')}.json"
+                if bj.exists():
+                    bdata = _j.loads(bj.read_text())
+                    raw_parts.append(f"\n\n// build JSON:\n{_j.dumps(bdata, indent=2)}")
+            except Exception:
+                pass
+
+        self.raw_model_info_text.config(state=tk.NORMAL)
+        self.raw_model_info_text.delete(1.0, tk.END)
+        self.raw_model_info_text.insert(1.0, ''.join(raw_parts))
+        self.raw_model_info_text.config(state=tk.DISABLED)
+
+        # Populate Ω Inspector tab for omega/alpha entries
+        self._populate_omega_inspector(entry, variants_dir)
+
+        self.model_info_notebook.select(self.overview_tab_frame)
+
+    def _populate_morph_overview(self, alpha_entry, variants_dir):
+        """
+        Populate LEFT Overview sub-tab with rich alpha data from brain_map files.
+        Shows: arch summary, temporal hierarchy, domain grades, hooks, variant profile.
+        Called when an alpha button is clicked in the RIGHT Morph Architects panel.
+        """
+        import json as _j2
+        _GRADE_COLORS = {"A+": "#00ff88", "A": "#4ec9b0", "B": "#82aaff",
+                         "C": "#e8b04b", "D": "#f78c6c", "F": "#ff5370"}
+
+        frame = self.overview_tab_frame
+
+        # Title row
+        ttk.Label(frame,
+                  text=f"🧬 Alpha: {alpha_entry.get('name', '?')}  ·  {alpha_entry.get('domain', '')}",
+                  font=("Arial", 13, "bold"),
+                  style='CategoryPanel.TLabel').pack(anchor=tk.W, padx=10, pady=(10, 4))
+
+        # ── 1. Arch summary from spawn info ─────────────────────────────────
+        info_frame = ttk.LabelFrame(frame, text="Spawn Info", padding=8)
+        info_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
+        ts_str = alpha_entry.get('ts', '')[:19].replace('T', ' ')
+        for lbl, val in [("Domain",   alpha_entry.get('domain', '?')),
+                          ("Parent",   alpha_entry.get('parent', '?')),
+                          ("Patterns", f"{alpha_entry.get('pattern_count', 0):,}"),
+                          ("Spawned",  ts_str)]:
+            r = ttk.Frame(info_frame)
+            r.pack(fill=tk.X, pady=1)
+            ttk.Label(r, text=f"{lbl}:", width=12, foreground='#858585',
+                      style='Config.TLabel').pack(side=tk.LEFT)
+            ttk.Label(r, text=str(val), style='Config.TLabel').pack(side=tk.LEFT, padx=(4, 0))
+
+        # ── 2. Brain-map data ────────────────────────────────────────────────
+        if MorphLineagePanel is None:
+            ttk.Label(frame, text="(morph_lineage not available — brain_map data hidden)",
+                      foreground='#858585', style='Config.TLabel').pack(anchor=tk.W, padx=10, pady=4)
+            return
+
+        try:
+            from tabs.models_tab.morph_lineage import load_brain_maps, build_lineage_tree
+        except ImportError:
+            try:
+                from Data.tabs.models_tab.morph_lineage import load_brain_maps, build_lineage_tree
+            except ImportError:
+                ttk.Label(frame, text="(brain_map import failed)",
+                          foreground='#858585', style='Config.TLabel').pack(anchor=tk.W, padx=10, pady=4)
+                return
+
+        bmap_files = sorted(variants_dir.glob("brain_map_*.jsonl"), key=lambda p: p.stat().st_mtime)
+        if not bmap_files:
+            ttk.Label(frame, text="(no brain_map files found in variants/)",
+                      foreground='#858585', style='Config.TLabel').pack(anchor=tk.W, padx=10, pady=4)
+            return
+
+        # ── 2a. Temporal omega hierarchy (brain_map files sorted by mtime) ──
+        hier_frame = ttk.LabelFrame(frame, text="Temporal Spawn Hierarchy", padding=8)
+        hier_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
+        for i, bf in enumerate(bmap_files):
+            is_latest = (i == len(bmap_files) - 1)
+            marker = "▶" if is_latest else "·"
+            color = "#a78bfa" if is_latest else "#858585"
+            import datetime as _dt
+            try:
+                mtime = _dt.datetime.fromtimestamp(bf.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+            except Exception:
+                mtime = "?"
+            ttk.Label(hier_frame,
+                      text=f"  {marker} {bf.name}  {mtime}",
+                      foreground=color, style='Config.TLabel',
+                      font=("Courier", 8)).pack(anchor=tk.W)
+
+        # ── 2b. Domain grades from latest brain_map survivors ───────────────
+        try:
+            data = load_brain_maps(variants_dir)
+            tree = build_lineage_tree(data)
+        except Exception as _e:
+            ttk.Label(frame, text=f"(brain_map load error: {_e})",
+                      foreground='#ff5370', style='Config.TLabel').pack(anchor=tk.W, padx=10, pady=4)
+            return
+
+        alpha_events = data.get("alpha_events", [])
+        hook_events  = data.get("hook_events", [])
+
+        # Collect all survivors from the latest generation
+        all_gens = tree.get("all_gens", [])
+        if all_gens:
+            latest_gen = max(all_gens)
+            gen_data = tree.get("gens", {}).get(latest_gen, {})
+            survivors = [a for a in gen_data.get("alphas", []) if a.get("survived")]
+        else:
+            survivors = [a for a in alpha_events if a.get("survived")]
+
+        if survivors:
+            grades_frame = ttk.LabelFrame(frame, text="Domain Grades (Latest Gen Survivors)", padding=8)
+            grades_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
+
+            # Header
+            hdr = ttk.Frame(grades_frame)
+            hdr.pack(fill=tk.X)
+            for col, w in [("Domain", 18), ("Grade", 7), ("Score", 8)]:
+                ttk.Label(hdr, text=col, width=w, foreground='#858585',
+                          style='Config.TLabel', font=("Arial", 8, "bold")).pack(side=tk.LEFT)
+
+            # Aggregate: average score per domain across survivors
+            domain_agg = {}
+            for sv in survivors:
+                dom_scores = sv.get("domain_scores", {})
+                domains_detail = sv.get("domains", {})
+                for dom, score in dom_scores.items():
+                    if dom not in domain_agg:
+                        domain_agg[dom] = []
+                    domain_agg[dom].append((score, domains_detail.get(dom, {}).get("grade", "")))
+
+            _GRADE_FROM_SCORE = [(0.97, "A+"), (0.90, "A"), (0.80, "B"),
+                                  (0.68, "C"), (0.54, "D"), (0.0, "F")]
+            for dom in sorted(domain_agg.keys()):
+                scores_grades = domain_agg[dom]
+                avg_score = sum(s for s, _ in scores_grades) / len(scores_grades)
+                # Use stored grade if available, else derive
+                stored_grade = scores_grades[0][1] if scores_grades[0][1] else ""
+                if not stored_grade:
+                    stored_grade = next((g for t, g in _GRADE_FROM_SCORE if avg_score >= t), "F")
+                color = _GRADE_COLORS.get(stored_grade, "#cccccc")
+                row = ttk.Frame(grades_frame)
+                row.pack(fill=tk.X, pady=1)
+                ttk.Label(row, text=dom, width=18, style='Config.TLabel').pack(side=tk.LEFT)
+                ttk.Label(row, text=stored_grade, width=7, foreground=color,
+                          style='Config.TLabel', font=("Arial", 9, "bold")).pack(side=tk.LEFT)
+                ttk.Label(row, text=f"{avg_score:.3f}", width=8,
+                          style='Config.TLabel').pack(side=tk.LEFT)
+
+        # ── 2c. Hooks/mutations for this alpha's parent arch ─────────────────
+        if hook_events:
+            arch_name = alpha_entry.get('parent', alpha_entry.get('name', ''))
+            relevant_hooks = [h for h in hook_events
+                              if arch_name and (arch_name in str(h.get('hook', {}).get('from_arch', ''))
+                                                or arch_name in str(h.get('hook', {}).get('to_arch', '')))]
+            if not relevant_hooks:
+                relevant_hooks = hook_events[-3:]  # fallback: show last 3 hooks
+
+            if relevant_hooks:
+                hook_frame = ttk.LabelFrame(frame, text="Hook / Mutation Lessons", padding=8)
+                hook_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
+                for hk in relevant_hooks[:4]:
+                    obs_list = hk.get('hook', {}).get('observations', [])
+                    if obs_list:
+                        ttk.Label(hook_frame, text=f"  · {obs_list[0][:80]}",
+                                  foreground='#82aaff', style='Config.TLabel',
+                                  font=("Arial", 8)).pack(anchor=tk.W)
+
+        # ── 2d. Variant profile (from config.py) ─────────────────────────────
+        try:
+            import sys as _sys
+            _trainer_root = str(variants_dir.parent.parent.parent)
+            if _trainer_root not in _sys.path:
+                _sys.path.insert(0, _trainer_root)
+            from Data.config import load_variant_profile
+            profile = load_variant_profile("MorphAlpha-v3-768")
+            if profile:
+                prof_frame = ttk.LabelFrame(frame, text="Variant Profile", padding=8)
+                prof_frame.pack(fill=tk.X, padx=10, pady=(0, 5))
+                cl = profile.get("class_level", "novice")
+                ttk.Label(prof_frame, text=f"Class Level: {cl}",
+                          foreground='#a78bfa', style='Config.TLabel',
+                          font=("Arial", 9, "bold")).pack(anchor=tk.W)
+                tool_prof = profile.get("tool_proficiency", {})
+                if tool_prof:
+                    ttk.Label(prof_frame, text="Tool Proficiency:",
+                              foreground='#858585', style='Config.TLabel',
+                              font=("Arial", 8, "bold")).pack(anchor=tk.W, pady=(4, 0))
+                    for dom, gdata in sorted(tool_prof.items()):
+                        grade = gdata.get("grade", "?")
+                        score = gdata.get("score", 0.0)
+                        color = _GRADE_COLORS.get(grade, "#cccccc")
+                        pr = ttk.Frame(prof_frame)
+                        pr.pack(fill=tk.X, pady=1)
+                        ttk.Label(pr, text=dom, width=18,
+                                  style='Config.TLabel').pack(side=tk.LEFT)
+                        ttk.Label(pr, text=grade, width=5, foreground=color,
+                                  style='Config.TLabel',
+                                  font=("Arial", 9, "bold")).pack(side=tk.LEFT)
+                        ttk.Label(pr, text=f"{score:.3f}",
+                                  style='Config.TLabel').pack(side=tk.LEFT, padx=(4, 0))
+        except Exception:
+            pass
+
+    def _toggle_morph_omega(self, name):
+        """Expand/collapse an omega's alpha children in the Morph section."""
+        try:
+            ui = self.morph_ui.get(name)
+            if not ui:
+                return
+            cont = ui['container']
+            arrow = ui['arrow']
+            expanded = bool(cont.winfo_ismapped())
+            if expanded:
+                cont.pack_forget()
+                arrow.config(text='▶')
+            else:
+                cont.pack(fill=tk.X)
+                arrow.config(text='▼')
+            self.morph_expanded[name] = not expanded
+        except Exception:
+            pass
+
+    def _toggle_list_section(self, key: str):
+        """Collapse/expand one of the unified list pane sections (base/ollama/morph)."""
+        try:
+            ui = self.list_section_ui.get(key)
+            if not ui:
+                return
+            cont = ui['content']
+            arrow = ui['arrow']
+            expanded = bool(cont.winfo_ismapped())
+            if expanded:
+                cont.pack_forget()
+                arrow.config(text='▶')
+            else:
+                cont.pack(fill=tk.X)
+                arrow.config(text='▼')
+            self.list_sections[key] = not expanded
+        except Exception:
+            pass
+
+    def _update_list_badges(self):
+        """Refresh the count badges on each list section header."""
+        try:
+            for key, ui in self.list_section_ui.items():
+                frame = ui['content']
+                count = len(frame.winfo_children())
+                badge = ui['badge']
+                badge.config(text=f"({count})" if count else "")
+        except Exception:
+            pass
+
+    def populate_providers_section(self):
+        """Detect installed provider CLIs + list bundled Provisions packages."""
+        import subprocess
+        import json
+        from pathlib import Path
+        for w in self.providers_frame.winfo_children():
+            w.destroy()
+
+        # ── CLI Providers ─────────────────────────────────────────
+        ttk.Label(self.providers_frame, text='CLI Providers',
+                  font=('Arial', 9, 'bold'), foreground='#aaaaaa',
+                  style='Config.TLabel').pack(anchor=tk.W, padx=6, pady=(6, 2))
+
+        _cli_providers = [
+            ('Claude Code', 'claude',  '#50fa7b'),
+            ('Ollama',      'ollama',  '#e8b04b'),
+            ('Python3',     'python3', '#61dafb'),
+        ]
+        for name, cmd, color in _cli_providers:
+            try:
+                r = subprocess.run(['which', cmd], capture_output=True, text=True, timeout=2)
+                path = r.stdout.strip()
+            except Exception:
+                path = ''
+            row = ttk.Frame(self.providers_frame)
+            row.pack(fill=tk.X, padx=6, pady=1)
+            if path:
+                ttk.Label(row, text=f'● {name}', foreground=color,
+                          font=('Arial', 9), style='Config.TLabel').pack(side=tk.LEFT)
+                ttk.Label(row, text=path, foreground='#666666',
+                          font=('Courier', 8), style='Config.TLabel').pack(side=tk.LEFT, padx=(6, 0))
+            else:
+                ttk.Label(row, text=f'○ {name}  —  not found', foreground='#444444',
+                          font=('Arial', 9), style='Config.TLabel').pack(side=tk.LEFT)
+
+        # ── Local site-packages ───────────────────────────────────
+        _sp_dir = Path(__file__).parents[2] / 'custom_code_tab' / 'site-packages'
+        if _sp_dir.exists():
+            _sp_pkgs = [d.name for d in _sp_dir.iterdir() if d.is_dir()]
+            ttk.Label(self.providers_frame, text='Local site-packages',
+                      font=('Arial', 9, 'bold'), foreground='#aaaaaa',
+                      style='Config.TLabel').pack(anchor=tk.W, padx=6, pady=(8, 2))
+            row = ttk.Frame(self.providers_frame)
+            row.pack(fill=tk.X, padx=6, pady=1)
+            ttk.Label(row, text=f'📂 {str(_sp_dir)}', foreground='#666666',
+                      font=('Courier', 7), style='Config.TLabel').pack(side=tk.LEFT)
+            for pkg in sorted(_sp_pkgs):
+                pr = ttk.Frame(self.providers_frame)
+                pr.pack(fill=tk.X, padx=10, pady=0)
+                ttk.Label(pr, text=f'● {pkg}', foreground='#61dafb',
+                          font=('Arial', 8), style='Config.TLabel').pack(side=tk.LEFT)
+
+        # ── Provisions (bundled wheels) ───────────────────────────
+        ttk.Label(self.providers_frame, text='Provisions (bundled)',
+                  font=('Arial', 9, 'bold'), foreground='#aaaaaa',
+                  style='Config.TLabel').pack(anchor=tk.W, padx=6, pady=(8, 2))
+        _cat_path = (Path(__file__).parents[2] /
+                     'action_panel_tab' / 'babel_data' / 'inventory' / 'provisions_catalog.json')
+        try:
+            catalog = json.loads(_cat_path.read_text()) if _cat_path.exists() else {}
+            pkgs = catalog.get('packages', [])
+            for pkg in pkgs:
+                status = pkg.get('install_status', 'bundled')
+                icon = '✓' if status == 'installed' else '○'
+                clr = '#55ff55' if status == 'installed' else '#555555'
+                row = ttk.Frame(self.providers_frame)
+                row.pack(fill=tk.X, padx=10, pady=0)
+                ttk.Label(row, text=f'{icon} {pkg["name"]}  {pkg.get("version", "")}',
+                          foreground=clr, font=('Arial', 8),
+                          style='Config.TLabel').pack(side=tk.LEFT)
+        except Exception as ex:
+            ttk.Label(self.providers_frame,
+                      text=f'(catalog unavailable: {ex})',
+                      foreground='#555555', font=('Arial', 8),
+                      style='Config.TLabel').pack(anchor=tk.W, padx=10)
+
+    def _show_spawn_alpha_dialog(self, omega_entry, variants_dir=None):
+        """Open dialog to spawn an alpha specialist from the selected omega."""
+        import json as _j
+        import threading
+        import subprocess
+        import sys
+        from pathlib import Path
+        from tkinter import scrolledtext as _st
+
+        if variants_dir is None:
+            try:
+                from config import DATA_DIR
+                variants_dir = DATA_DIR / "pymanifest" / "variants"
+            except Exception:
+                variants_dir = Path(__file__).parent.parent.parent / "pymanifest" / "variants"
+
+        script_name = omega_entry.get('script', '')
+        omega_name = omega_entry.get('name', 'omega')
+        script_path = variants_dir / script_name
+
+        # Collect known domains from spawn_log
+        known_domains = ['planning', 'debug', 'analysis', 'neural_network', 'semantic_systems']
+        try:
+            spawn_log = variants_dir / "spawn_log.jsonl"
+            if spawn_log.exists():
+                with open(spawn_log) as _f:
+                    for line in _f:
+                        try:
+                            rec = _j.loads(line.strip())
+                            d = rec.get('domain')
+                            if d and d not in known_domains:
+                                known_domains.insert(0, d)
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+
+        dlg = tk.Toplevel(self.root)
+        dlg.title(f"Spawn Alpha from {omega_name}")
+        dlg.geometry("500x400")
+        dlg.resizable(False, False)
+        dlg.grab_set()
+
+        ttk.Label(dlg, text=f"⚡ Spawn Alpha from {omega_name}",
+                  font=("Arial", 12, "bold"), style='CategoryPanel.TLabel').pack(padx=12, pady=(10, 6), anchor=tk.W)
+
+        form = ttk.Frame(dlg)
+        form.pack(fill=tk.X, padx=12)
+
+        # Domain
+        ttk.Label(form, text="Domain:", style='Config.TLabel', width=10).grid(row=0, column=0, sticky=tk.W, pady=3)
+        domain_var = tk.StringVar(value=known_domains[0] if known_domains else 'planning')
+        domain_cb = ttk.Combobox(form, textvariable=domain_var, values=known_domains, width=22)
+        domain_cb.grid(row=0, column=1, sticky=tk.W, padx=4)
+
+        # Profile
+        profiles = ['hybrid', 'language', 'thinking', 'action', 'code']
+        ttk.Label(form, text="Profile:", style='Config.TLabel', width=10).grid(row=1, column=0, sticky=tk.W, pady=3)
+        profile_var = tk.StringVar(value='hybrid')
+        profile_cb = ttk.Combobox(form, textvariable=profile_var, values=profiles, width=22)
+        profile_cb.grid(row=1, column=1, sticky=tk.W, padx=4)
+
+        # Output area
+        out_frame = ttk.LabelFrame(dlg, text="Output", padding=6)
+        out_frame.pack(fill=tk.BOTH, expand=True, padx=12, pady=8)
+        out_text = _st.ScrolledText(out_frame, height=8, font=("Courier", 9),
+                                    state=tk.DISABLED, wrap=tk.WORD,
+                                    bg='#1e1e1e', fg='#c8c8c8')
+        out_text.pack(fill=tk.BOTH, expand=True)
+
+        status_var = tk.StringVar(value="")
+        ttk.Label(dlg, textvariable=status_var, style='Config.TLabel',
+                  foreground='#4ec9b0').pack(padx=12, anchor=tk.W)
+
+        # Buttons
+        btn_row = ttk.Frame(dlg)
+        btn_row.pack(fill=tk.X, padx=12, pady=(4, 10))
+        ttk.Button(btn_row, text="Cancel", command=dlg.destroy,
+                   style='Select.TButton').pack(side=tk.RIGHT, padx=(4, 0))
+        spawn_btn = ttk.Button(btn_row, text="⚡ Spawn", style='Action.TButton')
+        spawn_btn.pack(side=tk.RIGHT)
+
+        def _append(text):
+            out_text.config(state=tk.NORMAL)
+            out_text.insert(tk.END, text)
+            out_text.see(tk.END)
+            out_text.config(state=tk.DISABLED)
+
+        def _do_spawn():
+            spawn_btn.config(state=tk.DISABLED)
+            domain = domain_var.get().strip() or 'planning'
+            profile = profile_var.get().strip() or 'hybrid'
+            status_var.set("Running…")
+            _append(f"$ python3 {script_name}\n> spawn-alpha {domain} {profile}\n\n")
+            try:
+                proc = subprocess.Popen(
+                    [sys.executable, str(script_path)],
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True
+                )
+                stdout, _ = proc.communicate(
+                    input=f"spawn-alpha {domain} {profile}\nquit\n",
+                    timeout=120
+                )
+                self.root.after(0, _append, stdout)
+                if proc.returncode == 0:
+                    self.root.after(0, status_var.set, "✓ Alpha spawned successfully")
+                    self.root.after(0, self.populate_morph_section)
+                    self.root.after(0, self._update_list_badges)
+                else:
+                    self.root.after(0, status_var.set, f"✗ Exit code {proc.returncode}")
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                self.root.after(0, status_var.set, "✗ Timed out after 120s")
+                self.root.after(0, _append, "\n[TIMEOUT]\n")
+            except Exception as ex:
+                self.root.after(0, status_var.set, f"✗ Error: {ex}")
+                self.root.after(0, _append, f"\n[ERROR] {ex}\n")
+            finally:
+                self.root.after(0, spawn_btn.config, {'state': tk.NORMAL})
+
+        spawn_btn.config(command=lambda: threading.Thread(target=_do_spawn, daemon=True).start())
 
     def create_notes_panel(self, parent):
         """Create the notes panel for model-specific notes."""
@@ -584,26 +1407,6 @@ class ModelsTab(BaseTab):
         controls_frame.grid(row=0, column=0, sticky=tk.EW, padx=10, pady=10)
         controls_frame.columnconfigure(1, weight=1)
 
-        # Parent Base Display (above Selected Model)
-        self.eval_parent_label = ttk.Label(
-            controls_frame,
-            text="Base-Model: unavailable",
-            font=("Arial", 9, "bold"),
-            style='Config.TLabel',
-            foreground='#cccccc'
-        )
-        self.eval_parent_label.grid(row=0, column=0, columnspan=3, sticky=tk.W, padx=5, pady=(0,0))
-
-        # Lineage label (under parent)
-        self.eval_lineage_label = ttk.Label(
-            controls_frame,
-            text="Lineage: unavailable",
-            font=("Arial", 8),
-            style='Config.TLabel',
-            foreground='#aaaaaa'
-        )
-        self.eval_lineage_label.grid(row=1, column=0, columnspan=3, sticky=tk.W, padx=5, pady=(0,4))
-
         # Selected Model Display
         self.selected_model_label_eval = ttk.Label(
             controls_frame,
@@ -612,14 +1415,7 @@ class ModelsTab(BaseTab):
             style='Config.TLabel',
             foreground='#61dafb'
         )
-        self.selected_model_label_eval.grid(row=2, column=0, columnspan=3, sticky=tk.W, padx=5, pady=5)
-
-        # Class color chip next to Selected model
-        try:
-            self.eval_class_chip = tk.Label(controls_frame, text='  ', bg='#444444')
-            self.eval_class_chip.grid(row=2, column=3, sticky=tk.W, padx=(0,6))
-        except Exception:
-            self.eval_class_chip = None
+        self.selected_model_label_eval.grid(row=0, column=0, columnspan=3, sticky=tk.W, padx=5, pady=5)
 
         # Source display (Ollama/PyTorch)
         self.eval_source_label = ttk.Label(
@@ -629,10 +1425,10 @@ class ModelsTab(BaseTab):
             style='Config.TLabel',
             foreground='#bbbbbb'
         )
-        self.eval_source_label.grid(row=2, column=2, sticky=tk.E, padx=5, pady=5)
+        self.eval_source_label.grid(row=0, column=2, sticky=tk.E, padx=5, pady=5)
 
         # Test suite dropdown
-        ttk.Label(controls_frame, text="Test Suite:", style='Config.TLabel').grid(row=3, column=0, sticky=tk.W, padx=5, pady=5)
+        ttk.Label(controls_frame, text="Test Suite:", style='Config.TLabel').grid(row=1, column=0, sticky=tk.W, padx=5, pady=5)
         self.test_suite_var = tk.StringVar()
         
         available_suites = get_test_suites()
@@ -645,7 +1441,7 @@ class ModelsTab(BaseTab):
             state="readonly",
             width=20
         )
-        self.test_suite_combo.grid(row=3, column=1, sticky=tk.EW, padx=5, pady=5)
+        self.test_suite_combo.grid(row=1, column=1, sticky=tk.EW, padx=5, pady=5)
         self.test_suite_combo.bind('<<ComboboxSelected>>', self._on_suite_changed)
         
         if available_suites:
@@ -661,7 +1457,7 @@ class ModelsTab(BaseTab):
             variable=self.use_system_prompt_var,
             command=self._toggle_system_prompt_controls,
             style='Config.TCheckbutton'
-        ).grid(row=4, column=0, sticky=tk.W, padx=5, pady=5)
+        ).grid(row=2, column=0, sticky=tk.W, padx=5, pady=5)
 
         self.system_prompt_var = tk.StringVar()
         self.system_prompt_combo = ttk.Combobox(
@@ -671,7 +1467,7 @@ class ModelsTab(BaseTab):
             state="readonly",
             width=20
         )
-        self.system_prompt_combo.grid(row=4, column=1, sticky=tk.EW, padx=5, pady=5)
+        self.system_prompt_combo.grid(row=2, column=1, sticky=tk.EW, padx=5, pady=5)
         self.system_prompt_combo.set("None") # Default
         self.system_prompt_combo.config(state=tk.DISABLED) # Initially disabled
 
@@ -683,7 +1479,7 @@ class ModelsTab(BaseTab):
             variable=self.use_tool_schema_var,
             command=self._toggle_tool_schema_controls,
             style='Config.TCheckbutton'
-        ).grid(row=5, column=0, sticky=tk.W, padx=5, pady=5)
+        ).grid(row=3, column=0, sticky=tk.W, padx=5, pady=5)
 
         self.tool_schema_var = tk.StringVar()
         self.tool_schema_combo = ttk.Combobox(
@@ -693,7 +1489,7 @@ class ModelsTab(BaseTab):
             state="readonly",
             width=20
         )
-        self.tool_schema_combo.grid(row=5, column=1, sticky=tk.EW, padx=5, pady=5)
+        self.tool_schema_combo.grid(row=3, column=1, sticky=tk.EW, padx=5, pady=5)
         self.tool_schema_combo.set("None") # Default
         self.tool_schema_combo.config(state=tk.DISABLED) # Initially disabled
 
@@ -704,7 +1500,7 @@ class ModelsTab(BaseTab):
             text="Run as Pre-Training Baseline",
             variable=self.run_as_baseline_var,
             style='Config.TCheckbutton'
-        ).grid(row=6, column=0, sticky=tk.W, padx=5, pady=5)
+        ).grid(row=4, column=0, sticky=tk.W, padx=5, pady=5)
 
         # Regression check toggle (compare vs baseline after run)
         self.eval_regression_check_var = tk.BooleanVar(value=False)
@@ -713,7 +1509,7 @@ class ModelsTab(BaseTab):
             text="Regression Check (compare vs baseline)",
             variable=self.eval_regression_check_var,
             style='Config.TCheckbutton'
-        ).grid(row=7, column=0, sticky=tk.W, padx=5, pady=2)
+        ).grid(row=5, column=0, sticky=tk.W, padx=5, pady=2)
 
         # Quick regression toggle (sampled subset for faster checks)
         self.eval_quick_regression_var = tk.BooleanVar(value=False)
@@ -722,7 +1518,7 @@ class ModelsTab(BaseTab):
             text="Quick Regression (sample ~20%)",
             variable=self.eval_quick_regression_var,
             style='Config.TCheckbutton'
-        ).grid(row=8, column=0, sticky=tk.W, padx=5, pady=2)
+        ).grid(row=6, column=0, sticky=tk.W, padx=5, pady=2)
 
         # Run button (row 4)
         self.run_eval_button = ttk.Button(
@@ -731,7 +1527,7 @@ class ModelsTab(BaseTab):
             command=self.run_evaluation,
             style='Action.TButton'
         )
-        self.run_eval_button.grid(row=6, column=2, rowspan=3, sticky=tk.E, padx=10, pady=5)
+        self.run_eval_button.grid(row=4, column=2, rowspan=3, sticky=tk.E, padx=10, pady=5)
 
         # Quick access: open Debug tab (manual only)
         ttk.Button(
@@ -739,19 +1535,7 @@ class ModelsTab(BaseTab):
             text="🐞 Debug",
             command=self._focus_settings_debug_tab,
             style='Select.TButton'
-        ).grid(row=6, column=3, rowspan=3, sticky=tk.E, padx=(0,5), pady=5)
-
-        # Auto pipeline toggles and data generation
-        gen_frame = ttk.LabelFrame(controls_frame, text="🧪→📚 Auto Pipeline", style='TLabelframe')
-        gen_frame.grid(row=9, column=0, columnspan=4, sticky=tk.EW, padx=5, pady=6)
-        self.auto_train_after_gen_var = tk.BooleanVar(value=False)
-        self.auto_export_after_train_var = tk.BooleanVar(value=False)
-        self.auto_reeval_after_export_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(gen_frame, text="Auto‑Train after Generate", variable=self.auto_train_after_gen_var, style='Category.TCheckbutton').pack(side=tk.LEFT, padx=8, pady=4)
-        ttk.Checkbutton(gen_frame, text="Auto‑Export (GGUF)", variable=self.auto_export_after_train_var, style='Category.TCheckbutton').pack(side=tk.LEFT, padx=8, pady=4)
-        ttk.Checkbutton(gen_frame, text="Auto‑Re‑Eval", variable=self.auto_reeval_after_export_var, style='Category.TCheckbutton').pack(side=tk.LEFT, padx=8, pady=4)
-
-        ttk.Button(gen_frame, text="📚 Generate Training Set from Last Eval", command=self._generate_training_from_eval_strict, style='Action.TButton').pack(side=tk.RIGHT, padx=8)
+        ).grid(row=4, column=3, rowspan=3, sticky=tk.E, padx=(0,5), pady=5)
 
         # --- Output Frame ---
         output_frame = ttk.LabelFrame(parent, text="Live Output", style='TLabelframe')
@@ -922,31 +1706,16 @@ class ModelsTab(BaseTab):
                 "Start it with 'ollama serve' or 'sudo systemctl start ollama', then retry."
             )
             return False
-        # Ensure an inference (GGUF) model exists when evaluating non-Ollama targets
+        # If schema-aware and selected model is trainable, ensure an inference (GGUF) model exists
         try:
-            # Refresh available Ollama tags
-            try:
-                self.ollama_models = get_ollama_models()
-            except Exception:
-                pass
-
-            # Determine selected target name
-            model_name = self.current_model_for_stats or ((self.current_model_info or {}).get('name') or '')
-
-            # Build a flat set of known Ollama tags/names
-            known = set()
-            try:
-                for m in (self.ollama_models or []):
-                    if isinstance(m, dict) and m.get('name'):
-                        known.add(m.get('name'))
-                    elif isinstance(m, str):
-                        known.add(m)
-            except Exception:
-                known = set()
-
-            # If target is not an Ollama tag and no override has been chosen, prompt to select one
-            if model_name and (model_name not in known) and not getattr(self, '_eval_override_model_name', None):
-                if not self._ensure_inference_model_for_eval(model_name):
+            sel_type = (self.current_model_info or {}).get('type')
+            if tool_schema_name and sel_type in ('pytorch', 'trained'):
+                if not (self.ollama_models or []):
+                    messagebox.showinfo(
+                        "Export Required",
+                        "No inference (GGUF) models are installed.\n"
+                        "Export your base/level to GGUF first (Models → Levels: Export to GGUF), then run baseline."
+                    )
                     return False
         except Exception:
             pass
@@ -1057,142 +1826,55 @@ class ModelsTab(BaseTab):
             self._run_export_base_to_gguf(base_model_path, qvar.get())
         ttk.Button(f, text='Start Export', command=go, style='Action.TButton').grid(row=2, column=1, sticky=tk.E, pady=(8,0))
 
-    def _run_export_base_to_gguf(self, base_model_path, quant: str, *, model_tag_override: str = None):
-        # Spawn export_base_to_gguf.py in a thread and show live logs in a popup
-        self._open_export_log_window(title=f"GGUF Export ({quant})")
-        self._export_log_append(f"\n--- Exporting Base to GGUF ({quant}) ---\n")
+    def _run_export_base_to_gguf(self, base_model_path, quant: str):
+        # Spawn export_base_to_gguf.py in a thread
+        self.append_runner_output(f"\n--- Exporting Base to GGUF ({quant}) ---\n")
         def worker():
             try:
                 import subprocess, sys
                 script = Path(__file__).parent.parent.parent / 'export_base_to_gguf.py'
-                outdir = Path(__file__).parent.parent.parent / 'exports' / 'gguf'
+                # Canonical output: Models/<model_name>/exports/gguf/
+                base_name = Path(str(base_model_path)).name
+                outdir = Path(str(base_model_path)) / 'exports' / 'gguf'
+                outdir.mkdir(parents=True, exist_ok=True)
                 cmd = [sys.executable, str(script), '--base', str(base_model_path), '--output', str(outdir), '--quant', quant]
-                env = os.environ.copy()
-                env.setdefault('HF_HUB_OFFLINE', '1')
-                env.setdefault('CUDA_VISIBLE_DEVICES', '')
-                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
+                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
                 while True:
                     line = proc.stdout.readline()
                     if line == '' and proc.poll() is not None:
                         break
                     if line:
-                        self.root.after(0, self._export_log_append, line)
+                        self.root.after(0, self.append_runner_output, line)
                 rc = proc.poll()
                 if rc == 0:
                     # Attempt to create an Ollama model referencing the GGUF
                     try:
-                        base_name = Path(str(base_model_path)).name
-                        tag_name = model_tag_override or base_name
-                        # Resolve GGUF path with quant casing tolerance
-                        q_upper = (quant or '').upper()
-                        cand1 = (outdir / f"{base_name}.{quant}.gguf").resolve()
-                        cand2 = (outdir / f"{base_name}.{q_upper}.gguf").resolve()
-                        gguf_abs = cand1 if cand1.exists() else (cand2 if cand2.exists() else None)
-                        # Validate GGUF path
-                        if not gguf_abs:
-                            try:
-                                matches = sorted(outdir.glob(f"{base_name}.*.gguf"), key=lambda p: p.stat().st_mtime, reverse=True)
-                                gguf_abs = matches[0].resolve() if matches else None
-                            except Exception:
-                                gguf_abs = None
-                        if not gguf_abs or not gguf_abs.exists():
-                            self.root.after(0, self._export_log_append, f"ERROR: GGUF not found at {gguf_abs}\n")
-                            self.root.after(0, lambda: messagebox.showerror('Ollama', f'GGUF not found at {gguf_abs}'))
-                            return
-                        modelfile = outdir / f"{tag_name}.Modelfile"
-                        mf = f"FROM {gguf_abs}\nTEMPLATE \"{{{{ .Prompt }}}}\"\n"
+                        gguf_path = outdir / f"{base_name}.{quant}.gguf"
+                        modelfile = outdir / f"{base_name}.Modelfile"
+                        mf = f"FROM {gguf_path}\nTEMPLATE \"{{{{ .Prompt }}}}\"\n"
                         modelfile.write_text(mf)
-                        model_tag = f"{tag_name}:latest"
-                        # If tag already exists, treat as success and assign
-                        try:
-                            import subprocess
-                            pre = subprocess.run(['ollama','list'], capture_output=True, text=True)
-                            if pre.returncode == 0 and (model_tag.split(':')[0] in pre.stdout):
-                                def _exists_done():
-                                    try:
-                                        if model_tag_override:
-                                            from config import add_ollama_assignment
-                                            add_ollama_assignment(model_tag_override, model_tag)
-                                    except Exception:
-                                        pass
-                                    self.ollama_models = get_ollama_models(); self.populate_model_list()
-                                self.root.after(0, _exists_done)
-                                return
-                        except Exception:
-                            pass
-                        # Ensure Ollama service is running
-                        try:
-                            if not self._ensure_ollama_running():
-                                # Try to start it in the background
-                                import subprocess, time
-                                self.root.after(0, self._export_log_append, "\n--- Starting Ollama service ---\n")
-                                if 'linux' in sys.platform:
-                                    subprocess.Popen(['ollama','serve'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, preexec_fn=os.setsid)
-                                else:
-                                    subprocess.Popen(['ollama','serve'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                                # Poll up to ~15s
-                                for _ in range(30):
-                                    time.sleep(0.5)
-                                    if self._ensure_ollama_running():
-                                        break
-                        except Exception:
-                            pass
-                        # Create tag with captured output for diagnostics
+                        model_tag = f"{base_name}:latest"
                         create_cmd = ['ollama', 'create', model_tag, '-f', str(modelfile)]
-                        self.root.after(0, self._export_log_append, f"\n--- Creating Ollama model {model_tag} ---\n")
-                        cproc = subprocess.run(create_cmd, capture_output=True, text=True)
-                        # stream outputs to UI
-                        if cproc.stdout:
-                            self.root.after(0, self._export_log_append, cproc.stdout)
-                        if cproc.stderr:
-                            self.root.after(0, self._export_log_append, cproc.stderr)
-                        crc = cproc.returncode
+                        self.root.after(0, self.append_runner_output, f"\n--- Creating Ollama model {model_tag} ---\n")
+                        cproc = subprocess.Popen(create_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                        while True:
+                            l2 = cproc.stdout.readline()
+                            if l2 == '' and cproc.poll() is not None:
+                                break
+                            if l2:
+                                self.root.after(0, self.append_runner_output, l2)
+                        crc = cproc.poll()
                         if crc == 0:
                             def _done():
-                                # Silent success; no modal interrupt
-                                # Record assignment if tagged to a variant
-                                try:
-                                    if model_tag_override:
-                                        from config import add_ollama_assignment
-                                        add_ollama_assignment(model_tag_override, model_tag)
-                                except Exception:
-                                    pass
-                                # Refresh Ollama list so it appears under Assigned
+                                messagebox.showinfo('Export', f'Base GGUF export complete and Ollama model created: {model_tag}. Starting baseline evaluation...')
+                                # Refresh Ollama list so it appears
                                 self.ollama_models = get_ollama_models()
                                 self.populate_model_list()
-                                self._export_log_append(f"\n✓ Ollama model created: {model_tag}\n")
-                                # Auto re-evaluate if enabled and context exists
-                                try:
-                                    if hasattr(self, 'auto_reeval_after_export_var') and bool(self.auto_reeval_after_export_var.get()):
-                                        self._resume_eval_with_override(model_tag)
-                                except Exception:
-                                    pass
-                                self._close_export_log_window()
+                                self.append_runner_output("\n--- Export complete. Starting baseline evaluation with created model ---\n")
+                                self._resume_eval_with_override(model_tag)
                             self.root.after(0, _done)
                         else:
-                            # As a last resort, try one more time after a brief delay if service just came up
-                            def _retry_create():
-                                try:
-                                    c2 = subprocess.run(['ollama','create', model_tag, '-f', str(modelfile)], capture_output=True, text=True)
-                                    if c2.returncode == 0:
-                                        try:
-                                            if model_tag_override:
-                                                from config import add_ollama_assignment
-                                                add_ollama_assignment(model_tag_override, model_tag)
-                                        except Exception:
-                                            pass
-                                        self.ollama_models = get_ollama_models(); self.populate_model_list()
-                                    else:
-                                        # Append diagnostic output
-                                        if c2.stdout:
-                                            self._export_log_append(c2.stdout)
-                                        if c2.stderr:
-                                            self._export_log_append(c2.stderr)
-                                        messagebox.showwarning('Ollama', 'GGUF export complete, but failed to create Ollama model. You can create it manually.')
-                                        self._export_log_append("\n⚠️ Failed to create Ollama model. See above logs.\n")
-                                except Exception:
-                                    messagebox.showwarning('Ollama', 'GGUF export complete, but failed to create Ollama model. You can create it manually.')
-                            self.root.after(500, _retry_create)
+                            self.root.after(0, lambda: messagebox.showwarning('Ollama', 'GGUF export complete, but failed to create Ollama model. You can create it manually.'))
                     except Exception as e:
                         self.root.after(0, lambda: messagebox.showwarning('Ollama', f'GGUF export complete, but Ollama create failed: {e}'))
                 else:
@@ -1201,7 +1883,7 @@ class ModelsTab(BaseTab):
                         base_name = Path(str(base_model_path)).name
                         tag = self._guess_ollama_tag_from_base_name(base_name)
                         if tag and messagebox.askyesno('Export Failed', f'Base GGUF export failed (likely no GPU).\n\nPull prebuilt base from Ollama registry and use that instead?\n\nModel: {tag}'):
-                            self.root.after(0, self._export_log_append, f"\n--- Pulling Ollama model {tag} ---\n")
+                            self.root.after(0, self.append_runner_output, f"\n--- Pulling Ollama model {tag} ---\n")
                             p2 = subprocess.Popen(['ollama','pull',tag], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
                             while True:
                                 l3 = p2.stdout.readline()
@@ -1213,21 +1895,17 @@ class ModelsTab(BaseTab):
                             if prc == 0:
                                 def _done2():
                                     self.ollama_models = get_ollama_models(); self.populate_model_list()
-                                    self._export_log_append("\n--- Pull complete. Model available ---\n")
-                                    self._close_export_log_window()
+                                    self.append_runner_output("\n--- Pull complete. Starting baseline evaluation with pulled model ---\n")
                                     self._resume_eval_with_override(tag)
                                 self.root.after(0, _done2)
                             else:
                                 self.root.after(0, lambda: messagebox.showerror('Ollama', f'Pull failed with code {prc}'))
                         else:
                             self.root.after(0, lambda: messagebox.showerror('Export Failed', f'Export failed with code {rc}'))
-                            self._export_log_append(f"\n❌ Export failed with code {rc}\n")
                     except Exception:
                         self.root.after(0, lambda: messagebox.showerror('Export Failed', f'Export failed with code {rc}'))
-                        self._export_log_append(f"\n❌ Export failed with code {rc}\n")
             except Exception as e:
                 self.root.after(0, lambda: messagebox.showerror('Export Error', str(e)))
-                self.root.after(0, self._export_log_append, f"\n❌ Export Error: {e}\n")
         t = threading.Thread(target=worker); t.daemon=True; t.start()
 
     def _guess_ollama_tag_from_base_name(self, base_name: str) -> str:
@@ -1244,59 +1922,6 @@ class ModelsTab(BaseTab):
             return ''
         except Exception:
             return ''
-
-    def _ensure_ollama_running(self) -> bool:
-        """Return True if Ollama API responds; False otherwise."""
-        try:
-            import requests
-            r = requests.get("http://localhost:11434/api/tags", timeout=1.5)
-            return r.status_code == 200
-        except Exception:
-            return False
-
-    # --- Export Log Window helpers -----------------------------------------
-    def _open_export_log_window(self, title: str = "GGUF Export"):
-        try:
-            import tkinter as tk
-            from tkinter import ttk, scrolledtext
-            if getattr(self, '_export_log_win', None) and tk.Toplevel.winfo_exists(self._export_log_win):
-                self._export_log_win.lift(); return
-            win = tk.Toplevel(self.root); win.title(title)
-            frame = ttk.Frame(win); frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-            txt = scrolledtext.ScrolledText(frame, wrap=tk.WORD, font=("Courier", 9))
-            txt.pack(fill=tk.BOTH, expand=True)
-            txt.insert(tk.END, f"{title}\n")
-            txt.config(state=tk.DISABLED)
-            self._export_log_win = win
-            self._export_log_text = txt
-        except Exception:
-            self._export_log_win = None
-            self._export_log_text = None
-
-    def _export_log_append(self, text: str):
-        try:
-            if not text: return
-            if getattr(self, '_export_log_text', None):
-                self._export_log_text.config(state=tk.NORMAL)
-                self._export_log_text.insert(tk.END, text)
-                self._export_log_text.see(tk.END)
-                self._export_log_text.config(state=tk.DISABLED)
-            try:
-                self.append_runner_output(text)
-            except Exception:
-                pass
-        except Exception:
-            pass
-
-    def _close_export_log_window(self):
-        try:
-            if getattr(self, '_export_log_win', None):
-                self._export_log_win.destroy()
-        except Exception:
-            pass
-        finally:
-            self._export_log_win = None
-            self._export_log_text = None
 
     def _focus_settings_debug_tab(self):
         try:
@@ -1457,8 +2082,7 @@ class ModelsTab(BaseTab):
         try:
             ctx = getattr(self, '_last_eval_context', None)
             if not ctx:
-                # Fallback: compose context from variant/type
-                self._start_eval_with_fallback(tag)
+                messagebox.showinfo('Evaluation', f'Installed {tag}. Select it under Ollama Models to evaluate.')
                 return
             self._eval_override_model_name = tag
             self.append_runner_output("\n--- Continuing evaluation with inference model: %s ---\n" % tag)
@@ -1468,68 +2092,6 @@ class ModelsTab(BaseTab):
             t.start()
         except Exception:
             pass
-
-    def _start_eval_with_fallback(self, tag: str):
-        try:
-            import config as C
-            # Resolve variant from tag
-            vid = getattr(self, '_active_variant_id', '') or ''
-            try:
-                if not vid:
-                    lid = C.get_lineage_for_tag(tag)
-                    if lid:
-                        for rec in (C.list_model_profiles() or []):
-                            if rec.get('lineage_id') == lid:
-                                vid = rec.get('variant_id')
-                                break
-            except Exception:
-                pass
-            # Determine type and default suite/prompt/schema
-            type_id = 'tools'
-            try:
-                if vid:
-                    mp = C.load_model_profile(vid) or {}
-                    at = mp.get('assigned_type'); at = at[0] if isinstance(at, list) else at
-                    type_id = (at or 'tools').lower()
-            except Exception:
-                pass
-            mapping = {
-                'coder': ('CoderNovice', 'Tools_JSON_Calls_Conformer', 'json_calls_full'),
-                'tools': ('Tools', 'Tools_JSON_Calls_Conformer', 'json_calls_full'),
-                'researcher': ('ResearcherNovice', 'Tools_JSON_Calls_Conformer', 'json_calls_full'),
-                'workflows': ('Workflows', 'Tools_JSON_Calls_Conformer', 'json_calls_full'),
-                'orchestration': ('ThinkTime', 'Revised_tools', 'think_time'),
-                'thinktime': ('ThinkTime', 'Revised_tools', 'think_time'),
-            }
-            suite, prompt, schema = mapping.get(type_id, ('CoderNovice', 'Tools_JSON_Calls_Conformer', 'json_calls_full'))
-            # Turn on prompt/schema use for this run
-            try:
-                self.use_system_prompt_var.set(True)
-                self.system_prompt_var.set(prompt)
-            except Exception:
-                pass
-            try:
-                self.use_tool_schema_var.set(True)
-                self.tool_schema_var.set(schema)
-            except Exception:
-                pass
-            # Auto set Re‑Eval toggle for this run
-            try:
-                self.auto_reeval_after_export_var.set(True)
-            except Exception:
-                pass
-            # Kick off eval with override to tag
-            self._eval_override_model_name = tag
-            t = threading.Thread(target=self._run_evaluation_thread,
-                                 args=(tag, suite, prompt, schema, False))
-            t.daemon = True
-            t.start()
-            self.append_runner_output(f"\n--- Running fallback evaluation ({suite}) using {prompt}/{schema} with inference {tag} ---\n")
-        except Exception as e:
-            try:
-                messagebox.showinfo('Evaluation', f'Installed {tag}. Select it under Ollama Models to evaluate. ({e})')
-            except Exception:
-                pass
 
     def _update_ui_with_results(self, results):
         """
@@ -1785,21 +2347,14 @@ class ModelsTab(BaseTab):
             suite = self.test_suite_var.get()
             if not suite or suite == 'All':
                 return
-            # Auto-apply strict suite→prompt/schema mapping (no dialog)
+            if not hasattr(self, 'eval_suite_reco_suppressed'):
+                self.eval_suite_reco_suppressed = {}
+            if self.eval_suite_reco_suppressed.get(suite):
+                return
             prompt, schema_options, default_schema = self._recommend_prompt_schema_for_suite(suite)
-            if prompt:
-                self.use_system_prompt_var.set(True)
-                self.system_prompt_combo.config(state='readonly')
-                from config import list_system_prompts
-                if prompt in list_system_prompts():
-                    self.system_prompt_combo.set(prompt)
-            if schema_options:
-                pick = default_schema or schema_options[0]
-                from config import list_tool_schemas
-                if pick in list_tool_schemas():
-                    self.use_tool_schema_var.set(True)
-                    self.tool_schema_combo.config(state='readonly')
-                    self.tool_schema_combo.set(pick)
+            if not prompt and not schema_options:
+                return
+            self._show_suite_recommendation_dialog(suite, prompt, schema_options, default_schema)
         except Exception:
             pass
 
@@ -1810,19 +2365,17 @@ class ModelsTab(BaseTab):
         options = []
         default_schema = None
         # Recommend based on simple mapping
-        if 'orchestration' in suite_lower or 'thinktime' in suite_lower:
-            # ThinkTime/Orchestration suites expect the think_time tool
-            prompt = 'Revised_tools'  # strict, non-Translator prompt
+        if 'orchestration' in suite_lower:
+            prompt = 'Revised_tools'
             options = ['think_time']
             default_schema = 'think_time'
-        elif 'tools' in suite_lower or 'codernovice' in suite_lower or 'researchernovice' in suite_lower or 'workflows' in suite_lower:
-            # Strict JSON call regime using conformer
-            prompt = 'Tools_JSON_Calls_Conformer'
-            options = ['json_calls_full']
+        elif 'tools' in suite_lower:
+            prompt = 'Revised_tools'
+            options = ['json_calls_full', 'file_ops_compat', 'search_ops']
             default_schema = 'json_calls_full'
         elif 'errors' in suite_lower:
-            prompt = 'Tools_JSON_Calls_Conformer'
-            options = ['json_calls_full']
+            prompt = 'Revised_tools'
+            options = ['json_calls_full', 'file_ops_compat']
             default_schema = 'json_calls_full'
         return (prompt, options, default_schema)
 
@@ -2613,66 +3166,57 @@ class ModelsTab(BaseTab):
         if latest:
             latest_frame = ttk.LabelFrame(self.stats_content_frame, text="Latest Training Run", style='TLabelframe')
             latest_frame.pack(fill=tk.X, padx=10, pady=5)
-
             row = 0
             for key, value in latest.items():
                 if key not in ["timestamp", "eval_report_path"]:  # Exclude eval_report_path from direct display
                     ttk.Label(latest_frame, text=f"{key.replace('_', ' ').title()}:",
-                              font=("Arial", 10, "bold"), style='Config.TLabel').grid(
-                                  row=row, column=0, sticky=tk.W, padx=10, pady=2)
+                    font=("Arial", 10, "bold"), style='Config.TLabel').grid(
+                    row=row, column=0, sticky=tk.W, padx=10, pady=2)
                     ttk.Label(latest_frame, text=str(value), font=("Arial", 10),
-                              style='Config.TLabel').grid(row=row, column=1, sticky=tk.W, padx=10, pady=2)
+                    style='Config.TLabel').grid(row=row, column=1, sticky=tk.W, padx=10, pady=2)
                     row += 1
-
-            # --- Evaluation and Comparison Summary ---
+                        # --- Evaluation and Comparison Summary ---
             eval_report_path = latest.get("eval_report_path")
             if eval_report_path and Path(eval_report_path).exists():
                 try:
                     with open(eval_report_path, 'r') as f:
                         eval_report = json.load(f)
-
                     # Load active baseline for comparison
                     base_model_name = latest.get("base_model")
                     if base_model_name:
                         test_suite_dir = TRAINING_DATA_DIR / "Test"
                         eval_engine = EvaluationEngine(tests_dir=test_suite_dir)
                         baseline_report = load_baseline_report(base_model_name)
-
                         if baseline_report:
                             comparison = eval_engine.compare_models(baseline_report, eval_report)
-
                             # Display comparison summary
                             compare_frame = ttk.LabelFrame(latest_frame, text="Evaluation vs. Baseline", style='TLabelframe')
                             compare_frame.grid(row=row, column=0, columnspan=2, sticky=tk.EW, padx=5, pady=5)
                             compare_row = 0
-
                             overall_delta = comparison.get('overall', {}).get('delta', '+0.00%')
                             ttk.Label(compare_frame, text=f"Overall Pass Rate Delta: {overall_delta}",
-                                      font=("Arial", 10, "bold"), style='Config.TLabel').grid(row=compare_row, column=0, sticky=tk.W, padx=5, pady=2)
+                            font=("Arial", 10, "bold"), style='Config.TLabel').grid(row=compare_row, column=0, sticky=tk.W, padx=5, pady=2)
                             compare_row += 1
-
                             regressions = comparison.get('regressions', [])
                             if regressions:
                                 reg_text = ", ".join([r.get('skill', '') for r in regressions])
                                 ttk.Label(compare_frame, text=f"⚠️ Regressions: {reg_text}",
-                                          font=("Arial", 10, "bold"), foreground='red', style='Config.TLabel').grid(row=compare_row, column=0, sticky=tk.W, padx=5, pady=2)
+                                font=("Arial", 10, "bold"), foreground='red', style='Config.TLabel').grid(row=compare_row, column=0, sticky=tk.W, padx=5, pady=2)
                                 compare_row += 1
                                 # Add button for suggestions
                                 ttk.Button(compare_frame, text="💡 Get Suggestions", style='Action.TButton',
-                                           command=lambda br=baseline_report, nr=eval_report: self._show_suggestions_dialog(br, nr)).grid(row=compare_row, column=0, sticky=tk.W, padx=5, pady=2)
+                                command=lambda br=baseline_report, nr=eval_report: self._show_suggestions_dialog(br, nr)).grid(row=compare_row, column=0, sticky=tk.W, padx=5, pady=2)
                                 compare_row += 1
-
                             improvements = comparison.get('improvements', [])
                             if improvements:
                                 imp_text = ", ".join([i.get('skill', '') for i in improvements])
                                 ttk.Label(compare_frame, text=f"✅ Improvements: {imp_text}",
-                                          font=("Arial", 10, "bold"), foreground='green', style='Config.TLabel').grid(row=compare_row, column=0, sticky=tk.W, padx=5, pady=2)
+                                font=("Arial", 10, "bold"), foreground='green', style='Config.TLabel').grid(row=compare_row, column=0, sticky=tk.W, padx=5, pady=2)
                                 compare_row += 1
                             row += 1  # Increment main row counter for latest_frame
-
                         else:
                             ttk.Label(latest_frame, text="No active baseline found for comparison.",
-                                      font=("Arial", 9), style='Config.TLabel').grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=10, pady=2)
+                            font=("Arial", 9), style='Config.TLabel').grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=10, pady=2)
                             row += 1
                     else:
                         ttk.Label(latest_frame, text="Base model name not available for baseline lookup.",
@@ -3033,34 +3577,10 @@ class ModelsTab(BaseTab):
         model_name = model_info["name"]
         model_type = model_info["type"]
 
-        # Emit event for other panels to react to model selection
-        try:
-            import json
-            payload = json.dumps({
-                "model_name": model_name,
-                "model_type": model_type,
-                "is_ollama": False,
-            })
-            if hasattr(self, 'panel_types') and self.panel_types:
-                self.panel_types.event_generate("<<ModelSelected>>", data=payload, when="tail")
-            # Keep Collections fresh so new variants appear promptly
-            self.refresh_collections_panel()
-        except Exception:
-            pass
-
-
         # --- Populate Overview Tab ---
-        # When selecting a base model, clear any active variant context
-        try:
-            self._active_variant_id = ''
-            if hasattr(self, 'active_variant_var'):
-                self.active_variant_var.set('')
-        except Exception:
-            pass
         # Clear previous content
         for widget in self.overview_tab_frame.winfo_children():
             widget.destroy()
-        # Do NOT build variant header/actions for base models
 
         # Load config.json if available
         model_config = {}
@@ -3130,32 +3650,6 @@ class ModelsTab(BaseTab):
         except Exception:
             pass
 
-        # Promotion alert for any eligible variants under this base
-        try:
-            import config as C
-            items = C.list_model_profiles() or []
-            elig = []
-            for it in items:
-                if (it.get('base_model') or '') == model_name:
-                    vid = it.get('variant_id')
-                    ok, _tip = self._check_promotion_eligibility(vid)
-                    if ok:
-                        elig.append(vid)
-            if elig:
-                if not hasattr(self, '_promo_alerted_bases'):
-                    self._promo_alerted_bases = set()
-                if model_name not in self._promo_alerted_bases:
-                    messagebox.showinfo('Promotion Unlocked', f"The following variants have earned a promotion to <Skilled>:\n\n- " + "\n- ".join(elig) + "\n\nHybrid Available: <NO>")
-                    self._promo_alerted_bases.add(model_name)
-        except Exception:
-            pass
-
-        # Lineage: Variants and assigned GGUFs for this base
-        try:
-            self._build_lineage_variants_section(model_name, parent_frame=self.overview_tab_frame)
-        except Exception:
-            pass
-
         # --- Populate Adapters Tab ---
         self._populate_adapters_tab(model_info)
 
@@ -3188,11 +3682,6 @@ class ModelsTab(BaseTab):
         if hasattr(self, 'eval_source_label'):
             src = "Trainable (PyTorch)"
             self.eval_source_label.config(text=f"Source: {src}")
-        if hasattr(self, 'eval_parent_label'):
-            if model_type == 'pytorch':
-                self.eval_parent_label.config(text=f"Base-Model: {model_name}")
-            else:
-                self.eval_parent_label.config(text="Base-Model: unavailable")
 
     def display_level_info(self, base_model_name: str, level_data: dict):
         """Display Level overview: base info, adapters in level, eval/skill deltas, and export status."""
@@ -3319,1167 +3808,188 @@ class ModelsTab(BaseTab):
             else:
                 cont.pack(fill=tk.X); arrow.config(text='▼')
             self.ollama_expanded[base_name] = not expanded
-            # Update right pane scrollregion for smooth dynamic repositioning
-            if hasattr(self, 'right_canvas'):
-                self.right_frame.update_idletasks()
-                self.right_canvas.configure(scrollregion=self.right_canvas.bbox("all"))
         except Exception:
             pass
 
-    def _toggle_collections_group(self):
-        """Expand/collapse the Collections panel."""
+    def _display_gguf_info(self, model_info: dict):
+        """Show local GGUF file info in the overview panel."""
+        from pathlib import Path as _Path
+        model_name = model_info["name"]
+        gpath = model_info.get("path")
+        gsize = model_info.get("size", "?")
+
+        # Raw info tab
+        self.raw_model_info_text.config(state=tk.NORMAL)
+        self.raw_model_info_text.delete(1.0, tk.END)
+        info_lines = [
+            f"Name:   {model_name}",
+            f"Type:   Local GGUF (on-disk)",
+            f"Size:   {gsize}",
+            f"Path:   {gpath}",
+            "",
+            "Provider options:",
+            "  • Ollama  — click 'Load' to register, then use chat interface",
+            "  • llama_cpp_python — available if installed (used by Morph bridge)",
+        ]
+        self.raw_model_info_text.insert(1.0, "\n".join(info_lines))
+        self.raw_model_info_text.config(state=tk.DISABLED)
+
+        # Overview tab
+        for widget in self.overview_tab_frame.winfo_children():
+            widget.destroy()
+
+        info_frame = ttk.LabelFrame(self.overview_tab_frame,
+                                    text=f"🟣 Local GGUF: {model_name}", style='TLabelframe')
+        info_frame.grid(row=0, column=0, columnspan=2, sticky=tk.EW, padx=5, pady=10)
+        info_frame.columnconfigure(1, weight=1)
+
+        for i, (label, value) in enumerate([
+            ("File", str(gpath)),
+            ("Size", gsize),
+            ("Status", "On-disk (not yet in Ollama)"),
+        ]):
+            ttk.Label(info_frame, text=f"{label}:", font=("Arial", 10, "bold"),
+                     style='Config.TLabel').grid(row=i, column=0, sticky=tk.W, padx=8, pady=4)
+            ttk.Label(info_frame, text=value, style='Config.TLabel',
+                     foreground='#c792ea', wraplength=400).grid(row=i, column=1, sticky=tk.W, padx=8)
+
+        btn_frame = ttk.Frame(self.overview_tab_frame)
+        btn_frame.grid(row=1, column=0, columnspan=2, pady=8, sticky=tk.W, padx=5)
+        ttk.Button(btn_frame, text="🔶 Register with Ollama",
+                   command=lambda: self._load_gguf_via_ollama(gpath, model_name),
+                   style='Action.TButton').pack(side=tk.LEFT, padx=4)
+
+        # Sibling exports and Morph runtime states under the same base model dir
         try:
-            if self.collections_expanded.get():
-                self.collections_canvas.grid_remove()
-                self.collections_scrollbar.grid_remove()
-                self.collections_toggle_btn.config(text="▶")
-                self.collections_expanded.set(False)
-            else:
-                self.collections_canvas.grid(row=2, column=0, sticky=tk.NSEW)
-                self.collections_scrollbar.grid(row=2, column=1, sticky=tk.NS)
-                self.collections_toggle_btn.config(text="▼")
-                self.collections_expanded.set(True)
-            # Update the outer scrollregion after layout change
-            if hasattr(self, 'right_canvas'):
-                self._update_right_scrollregion()
+            # Walk up from the GGUF path to find the direct child of MODELS_DIR
+            _gpath = _Path(str(gpath)) if gpath else None
+            _base_name = None
+            if _gpath:
+                _p = _gpath
+                while _p.parent != MODELS_DIR and _p.parent != _p:
+                    _p = _p.parent
+                if _p.parent == MODELS_DIR:
+                    _base_name = _p.name
+            if _base_name:
+                _all = self._discover_gguf_exports_for_base(_base_name)
+                _ggufs = [x for x in _all if x["type"] == "gguf"]
+                _states = [x for x in _all if x["type"] == "variant_json"]
+
+                # ── GGUF Exports (actual inference binaries) ──
+                if _ggufs:
+                    exp_frame = ttk.LabelFrame(self.overview_tab_frame,
+                                               text=f"📦 Exports ({len(_ggufs)})", style='TLabelframe')
+                    exp_frame.grid(row=2, column=0, columnspan=2, sticky=tk.EW, padx=5, pady=6)
+                    exp_frame.columnconfigure(1, weight=1)
+                    for _i, _ex in enumerate(_ggufs):
+                        _sz = f"({_ex['size_mb']} MB)" if _ex["size_mb"] > 0 else ""
+                        _lbl = f"🟣 {_ex['name']} {_sz}".strip()
+                        ttk.Label(exp_frame, text=_lbl, style='Config.TLabel',
+                                  foreground='#c792ea').grid(row=_i, column=0, sticky=tk.W, padx=8, pady=2)
+                        _ebtn_frame = ttk.Frame(exp_frame)
+                        _ebtn_frame.grid(row=_i, column=1, sticky=tk.W, padx=4)
+                        _ep = _ex["path"]
+                        _en = _ex["name"]
+                        ttk.Button(_ebtn_frame, text="Load in Chat",
+                                   command=lambda p=_ep, n=_en: self._notify_chat_load_gguf(p, n),
+                                   style='Small.TButton').pack(side=tk.LEFT, padx=2)
+                        ttk.Button(_ebtn_frame, text="Via Ollama",
+                                   command=lambda p=_ep, n=_en: self._load_gguf_via_ollama(p, n),
+                                   style='Small.TButton').pack(side=tk.LEFT, padx=2)
+
+                # ── Morph Runtime States (inference-time snapshots, NOT exports) ──
+                if _states:
+                    st_frame = ttk.LabelFrame(self.overview_tab_frame,
+                                              text=f"🧬 Morph Runtime States ({len(_states)})",
+                                              style='TLabelframe')
+                    st_frame.grid(row=3, column=0, columnspan=2, sticky=tk.EW, padx=5, pady=4)
+                    ttk.Label(st_frame,
+                              text="Control packet snapshots from inference sessions — no weight changes stored",
+                              font=("Arial", 8), foreground='#858585',
+                              style='Config.TLabel').grid(row=0, column=0, columnspan=2,
+                                                          sticky=tk.W, padx=8, pady=(2, 4))
+                    for _i, _ex in enumerate(_states):
+                        sha = _ex['name'].replace('morph_variant_', '')[:16]
+                        ttk.Label(st_frame, text=f"  SHA:{sha}…", style='Config.TLabel',
+                                  foreground='#82aaff').grid(row=_i + 1, column=0,
+                                                             sticky=tk.W, padx=8, pady=1)
         except Exception:
             pass
 
-    def _update_right_scrollregion(self):
+    def _notify_chat_load_gguf(self, gguf_path, model_name: str):
+        """Broadcast GGUF selection to any listening chat interface."""
+        from tkinter import messagebox
         try:
-            self.root.after_idle(lambda: self.right_canvas.configure(scrollregion=self.right_canvas.bbox("all")))
-        except Exception:
-            pass
-
-    def _generate_training_from_eval_strict(self):
-        """Generate strict JSONL training examples from the latest eval report and link them to the variant/lineage."""
-        try:
-            import time
-            import config as C
-            # Determine variant id (prefer active variant; else resolve owner from GGUF)
-            vid = getattr(self, '_active_variant_id', '') or (self.current_model_for_stats or '')
-            if not vid:
-                messagebox.showwarning('Generate', 'No active variant. Select a variant first.')
-                return
-            # Load latest eval report for this variant
-            report = C.load_latest_evaluation_report(vid) or {}
-            if not report:
-                messagebox.showwarning('Generate', f'No evaluation report found for {vid}. Run an evaluation first.')
-                return
-            suite = report.get('metadata', {}).get('suite') or 'UnknownSuite'
-            results = report.get('results') or []
-            if not results:
-                messagebox.showwarning('Generate', 'Evaluation report contains no results.')
-                return
-            # Build JSONL examples for failed cases only
-            lines = []
-            fail_count = 0
-            for r in results:
-                if r.get('passed') is True:
-                    continue
-                tc = (r.get('test_case_obj') or {})
-                user_input = tc.get('input') or r.get('test_case') or ''
-                expected_tool = (r.get('expected') or {}).get('tool') or tc.get('expected_tool')
-                expected_args = (r.get('expected') or {}).get('args') or tc.get('expected_args') or {}
-                if not expected_tool or not isinstance(expected_args, dict):
-                    continue
-                tool_json = {"type": "tool_call", "name": expected_tool, "args": expected_args}
-                # Assemble messages in strict format (assistant content is JSON string)
-                entry = {
-                    "messages": [
-                        {"role": "user", "content": user_input},
-                        {"role": "assistant", "content": json.dumps(tool_json, ensure_ascii=False)}
-                    ],
-                    "scenario": f"auto_from_eval::{suite}::{(r.get('skill') or 'unknown')}"
-                }
-                lines.append(json.dumps(entry, ensure_ascii=False))
-                fail_count += 1
-            if not lines:
-                messagebox.showinfo('Generate', 'No failed cases to convert into training data. Great job!')
-                return
-            # Write under Tools category so Training UI picks it up
-            ts = time.strftime('%Y%m%d_%H%M%S')
-            fname = f"auto_{vid}_{suite}_{ts}.jsonl".replace(' ', '_')
-            out_path = Path('Training_Data-Sets') / 'Tools' / fname
-            out_path.write_text("\n".join(lines), encoding='utf-8')
-            # Link to Model Profile
-            try:
-                mp = C.load_model_profile(vid) or {}
-                ads = list(mp.get('auto_datasets') or [])
-                if str(out_path) not in ads:
-                    ads.append(str(out_path))
-                mp['auto_datasets'] = ads
-                C.save_model_profile(vid, mp)
-            except Exception:
-                pass
-            # Refresh Training UI so it sees the new dataset (defaults to selected)
-            try:
-                tt = self.get_training_tab()
-                if tt and hasattr(tt, 'refresh_all_panels'):
-                    tt.refresh_all_panels()
-                    # Auto-select the newly generated dataset in Training tab
-                    try:
-                        if hasattr(tt, 'select_jsonl_path'):
-                            tt.select_jsonl_path(str(out_path), selected=True)
-                    except Exception:
-                        pass
-                    # Persist selections/settings to Training Profile
-                    try:
-                        if hasattr(tt, 'save_active_training_profile'):
-                            tt.save_active_training_profile()
-                    except Exception:
-                        pass
-            except Exception:
-                pass
-            # Notify
-            messagebox.showinfo('Generate', f'Created {fail_count} training examples -> {out_path}')
-            # Auto pipeline (best-effort)
-            if bool(getattr(self, 'auto_train_after_gen_var', tk.BooleanVar(value=False)).get()):
-                try:
-                    tt = self.get_training_tab()
-                    if tt and hasattr(tt, 'runner_panel'):
-                        tt.runner_panel.start_runner_training()
-                except Exception:
-                    pass
-        except Exception as e:
-            messagebox.showerror('Generate', f'Failed to generate training set: {e}')
-
-    # --- Lineage variants summary -------------------------------------------
-    def _build_lineage_variants_section(self, base_name: str, parent_frame=None):
-        try:
-            import config as C
-            items = C.list_model_profiles() or []
-            variants = [it.get('variant_id') for it in items if (it.get('base_model') or '') == base_name]
-            if not variants:
-                return
-            frame = ttk.LabelFrame(parent_frame or self.overview_tab_frame, text="Lineage", style='TLabelframe')
-            # Use pack by default in base/trained overview; caller may grid if needed
-            try:
-                frame.pack(fill=tk.X, padx=10, pady=6)
-            except Exception:
-                frame.grid(row=0, column=0, columnspan=2, sticky=tk.EW, padx=5, pady=6)
-            row = 0
-            ttk.Label(frame, text="Variants (Collections):", style='Config.TLabel', font=("Arial", 10, "bold")).grid(row=row, column=0, sticky=tk.W, padx=8, pady=(6,2)); row+=1
-            for vid in sorted(variants):
-                # Ensure lineage id exists (legacy backfill)
-                try:
-                    C.ensure_lineage_id(vid)
-                except Exception:
-                    pass
-                # Class chip and clickable variant button
-                try:
-                    cls = C.get_variant_class(vid)
-                    vrow = ttk.Frame(frame); vrow.grid(row=row, column=0, sticky=tk.W)
-                    chip = tk.Label(vrow, text='  ', bg=self._class_to_color(cls))
-                    chip.pack(side=tk.LEFT, padx=(16,6))
-                    btn = ttk.Button(vrow, text=f"{vid}", style='Select.TButton', command=lambda v=vid: self._open_variant_from_lineage(v))
-                    btn.pack(side=tk.LEFT)
-                except Exception:
-                    ttk.Label(frame, text=f" • {vid}", style='Config.TLabel').grid(row=row, column=0, sticky=tk.W, padx=16, pady=1)
-                row += 1
-                # Assigned GGUF tags via lineage (with legacy fallback)
-                tags = []
-                try:
-                    lid = C.get_lineage_id(vid)
-                    if lid:
-                        tags = C.get_assigned_tags_by_lineage(lid) or []
-                    if not tags:
-                        # Legacy fallback: variant -> [tags]
-                        data = C.load_ollama_assignments() or {}
-                        entry = data.get(vid)
-                        if isinstance(entry, dict):
-                            tags = entry.get('tags') or []
-                        elif isinstance(entry, list):
-                            tags = entry
-                except Exception:
-                    tags = []
-                if tags:
-                    for tg in tags:
-                        trow = ttk.Frame(frame); trow.grid(row=row, column=0, sticky=tk.W)
-                        ttk.Label(trow, text=f"Assigned:", style='Config.TLabel', foreground='#bbbbbb').pack(side=tk.LEFT, padx=(22,6))
-                        ttk.Button(trow, text=tg, style='Select.TButton', command=lambda tag=tg: self.display_model_info({'name':tag,'type':'ollama'})).pack(side=tk.LEFT)
-                        row += 1
-                else:
-                    ttk.Label(frame, text=f"    Assigned: None", style='Config.TLabel', foreground='#bbbbbb').grid(row=row, column=0, sticky=tk.W, padx=22, pady=(0,4)); row+=1
-        except Exception as e:
-            try:
-                log_message(f"MODELS_TAB: Lineage variants section error: {e}")
-            except Exception:
-                pass
-
-    def _open_variant_from_lineage(self, variant_id: str):
-        try:
-            import config as C
-            mp = C.load_model_profile(variant_id) or {}
-            item = {"variant_id": variant_id, "base_model": mp.get('base_model'), "assigned_type": mp.get('assigned_type')}
-            self._on_collection_pick(item)
-        except Exception:
-            pass
-
-    # --- Overview Header & Variant Actions ----------------------------------
-    def _build_overview_header(self):
-        try:
-            # Only render header/actions if a Variant is active
-            vid = getattr(self, '_active_variant_id', '') or ''
-            if not vid:
-                return
-            header = ttk.Frame(self.overview_tab_frame)
-            header.pack(fill=tk.X, padx=10, pady=(6, 0))
-            # Active Variant banner (left) with class chip
-            if not hasattr(self, 'active_variant_var'):
-                self.active_variant_var = tk.StringVar(value="")
-            try:
-                import config as C
-                cls = C.get_variant_class(vid)
-                chip = tk.Label(header, text='  ', bg=self._class_to_color(cls))
-                chip.pack(side=tk.LEFT, padx=(0,6))
-            except Exception:
-                pass
-            ttk.Label(header, textvariable=self.active_variant_var, style='Config.TLabel', foreground='#ffd43b').pack(side=tk.LEFT)
-
-            # Parent base summary (center)
-            try:
-                from config import load_model_profile
-                mp = load_model_profile(vid) or {}
-                base = mp.get('base_model') or ''
-                if base:
-                    ttk.Label(header, text=f"  • Parent: {base}", style='Config.TLabel').pack(side=tk.LEFT, padx=(10,0))
-            except Exception:
-                pass
-
-            # Actions (right)
-            act = ttk.Frame(header)
-            act.pack(side=tk.RIGHT)
-            self.btn_create_gguf = ttk.Button(act, text="Create GGUF for Variant", style='Action.TButton', command=self._create_gguf_for_active_variant)
-            self.btn_create_gguf.pack(side=tk.LEFT, padx=(0,6))
-            self.btn_delete_variant = ttk.Button(act, text="Delete Variant", style='Select.TButton', command=self._delete_active_variant)
-            self.btn_delete_variant.pack(side=tk.LEFT)
-            # Promotion button (disabled until eligibility met)
-            self.btn_promote = ttk.Button(act, text="Promote to Skilled", style='Action.TButton', command=self._promote_variant)
-            self.btn_promote.pack(side=tk.LEFT, padx=(6,0))
-            self._refresh_overview_actions_state()
-            # Attach a simple tooltip on hover explaining why Create is disabled
-            try:
-                self._attach_simple_tooltip(self.btn_create_gguf, lambda: getattr(self, '_create_gguf_tooltip_text', '') or '')
-            except Exception:
-                pass
-            # Tooltip for promotion guidance
-            try:
-                self._attach_simple_tooltip(self.btn_promote, lambda: getattr(self, '_promote_tooltip_text', 'Gather eval/baseline; improve skills; unlock promotion'))
-            except Exception:
-                pass
-        except Exception:
-            pass
-
-    def _refresh_overview_actions_state(self):
-        try:
-            vid = getattr(self, '_active_variant_id', '') or ''
-            # default states
-            state_create = tk.DISABLED
-            state_delete = tk.DISABLED
-            state_promote = tk.DISABLED
-            if vid:
-                state_delete = tk.NORMAL
-                state_create = tk.NORMAL
-                try:
-                    from config import get_baseline_report_path
-                    p = get_baseline_report_path(vid)
-                    if p.exists():
-                        state_create = tk.DISABLED
-                except Exception:
-                    pass
-                # One‑GGUF per Variant: disable Create if an assignment exists
-                try:
-                    import config as C
-                    lid = C.get_lineage_id(vid) or C.ensure_lineage_id(vid)
-                    tags = C.get_assigned_tags_by_lineage(lid)
-                    if tags:
-                        state_create = tk.DISABLED
-                        self._create_gguf_tooltip_text = f"GGUF exists: {', '.join(tags)}. Delete it to re-export."
-                    else:
-                        self._create_gguf_tooltip_text = ''
-                except Exception:
-                    self._create_gguf_tooltip_text = ''
-                # Promotion eligibility
-                try:
-                    eligible, tip = self._check_promotion_eligibility(vid)
-                    state_promote = (tk.NORMAL if eligible else tk.DISABLED)
-                    self._promote_tooltip_text = tip or ''
-                except Exception:
-                    state_promote = tk.DISABLED
-            if hasattr(self, 'btn_create_gguf'):
-                self.btn_create_gguf.config(state=state_create)
-            if hasattr(self, 'btn_delete_variant'):
-                self.btn_delete_variant.config(state=state_delete)
-            if hasattr(self, 'btn_promote'):
-                self.btn_promote.config(state=state_promote)
-        except Exception:
-            pass
-
-    # --- Minimal tooltip helper ---------------------------------------------
-    def _attach_simple_tooltip(self, widget, text_getter):
-        tw = {'win': None}
-        def show_tooltip(event=None):
-            try:
-                txt = text_getter() if callable(text_getter) else str(text_getter)
-            except Exception:
-                txt = ''
-            # Only show when disabled and text present
-            try:
-                if str(widget['state']) != 'disabled' or not txt:
-                    return
-            except Exception:
-                if not txt:
-                    return
-            if tw['win'] is not None:
-                return
-            x = widget.winfo_rootx() + 10
-            y = widget.winfo_rooty() + widget.winfo_height() + 6
-            win = tk.Toplevel(widget)
-            win.wm_overrideredirect(True)
-            win.wm_geometry(f"+{x}+{y}")
-            lbl = tk.Label(win, text=txt, bg="#333333", fg="#ffffff", padx=6, pady=3, relief='solid', borderwidth=1, justify=tk.LEFT)
-            lbl.pack()
-            tw['win'] = win
-        def hide_tooltip(event=None):
-            if tw['win'] is not None:
-                try:
-                    tw['win'].destroy()
-                except Exception:
-                    pass
-                tw['win'] = None
-        widget.bind("<Enter>", show_tooltip)
-        widget.bind("<Leave>", hide_tooltip)
-        widget.bind("<Button-1>", hide_tooltip)
-
-    # --- Promotion eligibility and actions ----------------------------------
-    def _check_promotion_eligibility(self, variant_id: str) -> tuple[bool, str]:
-        """Return (eligible, tooltip_text) based on latest eval vs baseline and simple thresholds."""
-        try:
-            from config import load_baseline_report, load_latest_evaluation_report, get_regression_policy
-            baseline = load_baseline_report(variant_id) or {}
-            latest = load_latest_evaluation_report(variant_id) or {}
-            if not baseline or not latest:
-                return (False, "Run a baseline and an evaluation to unlock promotions.")
-            eng = EvaluationEngine(tests_dir=TRAINING_DATA_DIR / 'Test')
-            pol = get_regression_policy() or {}
-            thr = float(pol.get('alert_drop_percent', 5.0))
-            cmp = eng.compare_models(baseline, latest, regression_threshold=thr, improvement_threshold=thr)
-            overall_delta = float(cmp.get('overall', {}).get('delta', '+0.00%').replace('%',''))
-            regressions = cmp.get('regressions') or []
-            try:
-                jvr = float((latest.get('metrics', {}) or {}).get('json_valid_rate', '0%').replace('%',''))
-            except Exception:
-                jvr = 0.0
-            try:
-                svr = float((latest.get('metrics', {}) or {}).get('schema_valid_rate', '0%').replace('%',''))
-            except Exception:
-                svr = 0.0
-            eligible = (overall_delta >= 5.0 and jvr >= 95.0 and svr >= 95.0 and len(regressions) == 0)
-            tip = (
-                f"Overall Δ: {overall_delta:+.2f}% • JSON: {jvr:.1f}% • Schema: {svr:.1f}%\n"
-                + ("No regressions detected." if not regressions else f"Regressions: {len(regressions)}")
-            )
-            return (eligible, tip)
-        except Exception:
-            return (False, "Run a baseline and an evaluation to unlock promotions.")
-
-    def _promote_variant(self):
-        """Create a new Skilled variant from the active variant (novice) when eligibility is met."""
-        try:
-            vid = getattr(self, '_active_variant_id', '') or ''
-            if not vid:
-                return
-            import config as C
-            mp = C.load_model_profile(vid) or {}
-            base = mp.get('base_model') or ''
-            t_id = mp.get('assigned_type') or ''
-            if not base or not t_id:
-                messagebox.showwarning('Promotion', 'Variant profile missing base_model or assigned_type.')
-                return
-            # Derive new skilled variant id
-            base_stub = C.derive_variant_name(base, t_id)  # e.g., Qwen2.5-0.5b_coder
-            skilled_id = f"{base_stub}_skilled"
-            # Avoid collision: append numeric suffix if needed
-            existing = [it.get('variant_id') for it in (C.list_model_profiles() or [])]
-            if skilled_id in existing:
-                i = 2
-                while f"{skilled_id}{i}" in existing:
-                    i += 1
-                skilled_id = f"{skilled_id}{i}"
-            # Build model profile
-            mp_new = {
-                'trainee_name': skilled_id,
-                'base_model': base,
-                'assigned_type': t_id,
-                'class_level': 'skilled',
-                'parent_variant_id': vid,
-            }
-            C.save_model_profile(skilled_id, mp_new)
-            # Ensure lineage id (ULID)
-            C.ensure_lineage_id(skilled_id)
-            # Build training profile by copying stickies from source
-            try:
-                tp_src = C.load_training_profile(vid) or {}
-            except Exception:
-                tp_src = {}
-            tp_new = C.build_training_profile_from_type(skilled_id, base, t_id)
-            # Copy sticky fields
-            try:
-                sp = tp_src.get('selected_prompts') or []
-                ss = tp_src.get('selected_schemas') or []
-                if sp:
-                    tp_new['selected_prompts'] = sp
-                if ss:
-                    tp_new['selected_schemas'] = ss
-            except Exception:
-                pass
-            C.save_training_profile(skilled_id, tp_new)
-            # Refresh Collections and notify
-            try:
-                self.refresh_collections_panel()
-            except Exception:
-                pass
-            messagebox.showinfo('Promotion', f"Skilled variant created: {skilled_id}\n\nYou can export a Skilled GGUF via Levels or Create GGUF when ready.")
-        except Exception as e:
-            messagebox.showerror('Promotion', f"Failed to create Skilled variant: {e}")
-
-    def _create_gguf_for_active_variant(self):
-        try:
-            vid = getattr(self, '_active_variant_id', '') or ''
-            if not vid:
-                messagebox.showwarning('Create GGUF', 'Select a Variant from Collections first.')
-                return
-            from config import load_model_profile
-            mp = load_model_profile(vid) or {}
-            base_name = mp.get('base_model')
-            if not base_name:
-                messagebox.showerror('Create GGUF', 'Variant profile missing base_model.')
-                return
-            base_path = self._find_base_path(base_name)
-            if not base_path:
-                messagebox.showerror('Create GGUF', f"Base model path not found for '{base_name}'.")
-                return
-            # Ask quant and export
-            self._export_base_to_gguf_dialog_for_variant(base_name, base_path, vid)
-        except Exception as e:
-            messagebox.showerror('Create GGUF', str(e))
-
-    def _on_request_auto_export_reeval(self, event):
-        """Handle request to export GGUF for a variant and then re-evaluate automatically."""
-        try:
-            import json as _json, config as C
-            payload = _json.loads(getattr(event, 'data', '{}') or '{}')
-            vid = payload.get('variant_id') or ''
-            if not vid:
-                return
-            mp = C.load_model_profile(vid) or {}
-            base_name = mp.get('base_model')
-            if not base_name:
-                messagebox.showwarning('Auto Export', 'Variant profile missing base_model. Aborting export.')
-                return
-            base_path = self._find_base_path(base_name)
-            if not base_path:
-                messagebox.showwarning('Auto Export', f"Base path not found for '{base_name}'.")
-                return
-            # Select active variant for consistency and enable auto re-eval
-            self._active_variant_id = vid
-            try:
-                self.auto_reeval_after_export_var.set(True)
-            except Exception:
-                pass
-            # Start export with a sane default quant
-            self._run_export_base_to_gguf(base_path, 'q4_k_m', model_tag_override=vid)
-        except Exception as e:
-            print('[ModelsTab] _on_request_auto_export_reeval error:', e)
-    def _export_base_to_gguf_dialog_for_variant(self, base_model_name: str, base_model_path, variant_id: str):
-        win = tk.Toplevel(self.root); win.title('Export Base to GGUF (Variant)')
-        f = ttk.Frame(win); f.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        ttk.Label(f, text=f"Export base '{base_model_name}' to GGUF for variant '{variant_id}'", style='Config.TLabel').grid(row=0, column=0, sticky=tk.W)
-        ttk.Label(f, text="Quantization:", style='Config.TLabel').grid(row=1, column=0, sticky=tk.W, pady=(6,2))
-        qvar = tk.StringVar(value='q4_k_m')
-        combo = ttk.Combobox(f, textvariable=qvar, values=['q4_k_m','q5_k_m','q8_0'], state='readonly', width=12)
-        combo.grid(row=1, column=1, sticky=tk.W)
-        def go():
-            win.destroy()
-            self._run_export_base_to_gguf(base_model_path, qvar.get(), model_tag_override=variant_id)
-        ttk.Button(f, text='Start Export', command=go, style='Action.TButton').grid(row=2, column=1, sticky=tk.E, pady=(8,0))
-
-    def _delete_active_variant(self):
-        try:
-            vid = getattr(self, '_active_variant_id', '') or ''
-            if not vid:
-                return
-            if not messagebox.askyesno('Delete Variant', f"Delete variant '{vid}' and its training profile?"):
-                return
-            # Remove profiles and stats; keep models intact
-            from config import _mp_path as _mppath, _tp_path as _tppath
-            try:
-                p = _mppath(vid)
-                if p.exists(): p.unlink()
-            except Exception: pass
-            try:
-                p2 = _tppath(vid)
-                if p2.exists(): p2.unlink()
-            except Exception: pass
-            # Clear stats if present
-            try:
-                from config import DATA_DIR
-                sp = (DATA_DIR / 'Stats' / f'{vid}.json')
-                if sp.exists(): sp.unlink()
-            except Exception: pass
-            # Remove assignment mapping if present
-            try:
-                from config import load_ollama_assignments, save_ollama_assignments
-                d = load_ollama_assignments() or {}
-                if vid in d:
-                    d.pop(vid, None)
-                    save_ollama_assignments(d)
-            except Exception: pass
-            # Refresh UI
-            self._active_variant_id = ''
-            self.active_variant_var.set('')
-            self.refresh_collections_panel()
-            self._refresh_overview_actions_state()
-            messagebox.showinfo('Delete Variant', 'Variant deleted.')
-        except Exception as e:
-            messagebox.showerror('Delete Variant', str(e))
-
-    def _render_variant_overview(self):
-        try:
-            vid = getattr(self, '_active_variant_id', '') or ''
-            # Clear current overview and rebuild header
-            for w in self.overview_tab_frame.winfo_children():
-                w.destroy()
-            self._build_overview_header()
-
-            if not vid:
-                return
-            from config import load_model_profile
-            mp = load_model_profile(vid) or {}
-            base_name = mp.get('base_model') or ''
-            base = None
-            try:
-                for m in (self.all_models or []):
-                    if m.get('name') == base_name and m.get('type') == 'pytorch':
-                        base = m; break
-            except Exception:
-                base = None
-
-            pane = ttk.LabelFrame(self.overview_tab_frame, text="Parent Base Overview", style='TLabelframe')
-            pane.pack(fill=tk.X, padx=10, pady=10)
-            if not base:
-                ttk.Label(pane, text=f"Base model '{base_name}' not found.", style='Config.TLabel').grid(row=0, column=0, sticky=tk.W, padx=10, pady=5)
-                return
-            pane.columnconfigure(1, weight=1)
-            r = 0
-            ttk.Label(pane, text="Name:", font=("Arial", 10, "bold"), style='Config.TLabel').grid(row=r, column=0, sticky=tk.W, padx=10, pady=4)
-            ttk.Label(pane, text=base.get('name',''), style='Config.TLabel', foreground='#61dafb').grid(row=r, column=1, sticky=tk.W, padx=5, pady=4); r+=1
-            if base.get('size'):
-                ttk.Label(pane, text="Size:", font=("Arial", 10, "bold"), style='Config.TLabel').grid(row=r, column=0, sticky=tk.W, padx=10, pady=4)
-                ttk.Label(pane, text=str(base.get('size')), style='Config.TLabel').grid(row=r, column=1, sticky=tk.W, padx=5, pady=4); r+=1
-            if base.get('path'):
-                ttk.Label(pane, text="Path:", font=("Arial", 10, "bold"), style='Config.TLabel').grid(row=r, column=0, sticky=tk.W, padx=10, pady=4)
-                ttk.Label(pane, text=str(base.get('path')), style='Config.TLabel').grid(row=r, column=1, sticky=tk.W, padx=5, pady=4); r+=1
-        except Exception:
-            pass
-
-    # --- Resizer logic -------------------------------------------------------
-    def _on_resizer_press(self, event):
-        try:
-            self._resizer_drag_start_x = event.x_root
-            # Cache current width
-            self._resizer_start_width = int(self.right_canvas.winfo_width())
-        except Exception:
-            self._resizer_drag_start_x = None
-            self._resizer_start_width = None
-
-    def _on_resizer_drag(self, event):
-        try:
-            if self._resizer_drag_start_x is None or self._resizer_start_width is None:
-                return
-            dx = event.x_root - self._resizer_drag_start_x
-            # Invert direction so dragging right widens the right pane
-            new_w = max(240, min(700, self._resizer_start_width - dx))
-            self.right_pane_width = new_w
-            self.right_canvas.config(width=new_w)
-            self._update_right_scrollregion()
-        except Exception:
-            pass
-
-    def refresh_collections_panel(self):
-        """Reload list from config.list_model_profiles() and show grouped, filtered entries."""
-        try:
-            import config as C
-            items = C.list_model_profiles() or []
-            # Backfill missing lineage_id for legacy profiles
-            try:
-                for it in items:
-                    vid = it.get('variant_id')
-                    if vid:
-                        C.ensure_lineage_id(vid)
-            except Exception:
-                pass
-            # Group by type category (assigned_type), then by base
-            grouped_by_type = {}
-            for it in items:
-                t = (it.get('assigned_type') or 'uncategorized')
-                grouped_by_type.setdefault(t, []).append(it)
-            self._collections_cache = items
-
-            # Clear existing buttons
-            for widget in self.collections_buttons_frame.winfo_children():
-                widget.destroy()
-
-            if not items:
-                ttk.Label(self.collections_buttons_frame, text="No collections found.", style='Config.TLabel').pack(pady=10)
-                return
-
-            # Maintain per-type expand state and UI refs
-            if not hasattr(self, 'collections_type_expanded'):
-                self.collections_type_expanded = {}
-            self.collections_type_ui = {}
-
-            # Build grouped UI with Type headers and per-variant rows
-            for type_id in sorted(grouped_by_type.keys()):
-                # Header row with toggle
-                hdr = ttk.Frame(self.collections_buttons_frame)
-                hdr.pack(fill=tk.X, padx=5, pady=(8,2))
-                expanded = bool(self.collections_type_expanded.get(type_id, False))
-                arrow = ttk.Button(hdr, text=('▼' if expanded else '▶'), width=2,
-                                   command=lambda t=type_id: self._toggle_collection_type_group(t), style='Select.TButton')
-                arrow.pack(side=tk.LEFT, padx=(0,5))
-                ttk.Label(hdr, text=type_id.title(), style='Config.TLabel').pack(side=tk.LEFT)
-
-                cont = ttk.Frame(self.collections_buttons_frame)
-                for it in sorted(grouped_by_type[type_id], key=lambda x: (x.get('base_model',''), x.get('variant_id',''))):
-                    try:
-                        cls = C.get_variant_class(it.get('variant_id',''))
-                    except Exception:
-                        cls = "novice"
-                    base = it.get('base_model','?')
-                    # Row with color chip and label button
-                    rowv = ttk.Frame(cont)
-                    rowv.pack(fill=tk.X, padx=10, pady=1)
-                    try:
-                        color = self._class_to_color(cls)
-                        chip = tk.Label(rowv, text='  ', bg=color)
-                        chip.pack(side=tk.LEFT, padx=(6,6), pady=2)
-                    except Exception:
-                        spacer = tk.Label(rowv, text='')
-                        spacer.pack(side=tk.LEFT, padx=(6,6))
-                    label = f"{base}-{type_id.title()}<{cls.title()}>"
-                    btn = ttk.Button(rowv, text=label, style='Select.TButton', command=lambda item=it: self._on_collection_pick(item))
-                    btn.pack(side=tk.LEFT, fill=tk.X, expand=True)
-                    btn.bind("<Button-3>", lambda e, item=it: self._open_collections_menu(e, item))
-                if expanded:
-                    # Ensure the container appears immediately after its header
-                    try:
-                        cont.pack(fill=tk.X, after=hdr)
-                    except Exception:
-                        cont.pack(fill=tk.X)
-                # Keep references including the header for ordered toggling
-                self.collections_type_ui[type_id] = {'arrow': arrow, 'container': cont, 'header': hdr}
-        except Exception as e:
-            print("[ModelsTab] refresh_collections_panel error:", e)
-
-    def _open_collections_menu(self, event, item: dict):
-        try:
-            if not hasattr(self, 'collections_menu') or self.collections_menu is None:
-                self.collections_menu = tk.Menu(self.parent, tearoff=0)
-                self.collections_menu.add_command(label="Open in Training", command=lambda: self._on_collection_pick(self._collections_ctx_item))
-                self.collections_menu.add_separator()
-                self.collections_menu.add_command(label="Rename…", command=lambda: self._collections_rename(self._collections_ctx_item))
-                self.collections_menu.add_command(label="Duplicate…", command=lambda: self._collections_duplicate(self._collections_ctx_item))
-                self.collections_menu.add_command(label="Delete", command=lambda: self._collections_delete(self._collections_ctx_item))
-                # WO-6s: Badges/Color editor
-                self.collections_menu.add_separator()
-                self.collections_menu.add_command(label="Edit Badges/Color…", command=lambda: self._collections_edit_visuals(self._collections_ctx_item))
-            self._collections_ctx_item = item
-            self.collections_menu.tk_popup(event.x_root, event.y_root)
-        finally:
-            try:
-                self.collections_menu.grab_release()
-            except Exception:
-                pass
-
-    def _toggle_collection_type_group(self, type_id: str):
-        try:
-            ui = (getattr(self, 'collections_type_ui', {}) or {}).get(type_id) or {}
-            cont = ui.get('container'); arrow = ui.get('arrow'); hdr = ui.get('header')
-            if not cont or not arrow:
-                return
-            expanded = bool(self.collections_type_expanded.get(type_id, False))
-            if expanded:
-                cont.pack_forget(); arrow.config(text='▶')
-            else:
-                try:
-                    cont.pack(fill=tk.X, after=hdr)
-                except Exception:
-                    cont.pack(fill=tk.X)
-                arrow.config(text='▼')
-            self.collections_type_expanded[type_id] = not expanded
-            self._update_right_scrollregion()
-        except Exception:
-            pass
-    def _collections_rename(self, item: dict):
-        try:
-            from tkinter import simpledialog
-            old = item.get('variant_id')
-            if not old:
-                return
-            new = simpledialog.askstring("Rename Variant", f"New name for '{old}':", parent=self.root)
-            if not new:
-                return
-            import config as C
-            C.rename_variant(old, new)
-            self.refresh_collections_panel()
-        except Exception as e:
-            print("[ModelsTab] rename error:", e)
-
-    def _collections_duplicate(self, item: dict):
-        try:
-            from tkinter import simpledialog
-            src = item.get('variant_id')
-            if not src:
-                return
-            dst = simpledialog.askstring("Duplicate Variant", f"Duplicate '{src}' to:", parent=self.root)
-            if not dst:
-                return
-            import config as C
-            C.duplicate_variant(src, dst)
-            self.refresh_collections_panel()
-        except Exception as e:
-            print("[ModelsTab] duplicate error:", e)
-
-    def _collections_delete(self, item: dict):
-        try:
-            from tkinter import messagebox
-            v = item.get('variant_id')
-            if not v:
-                return
-            if not messagebox.askyesno("Delete Variant", f"Delete '{v}' (model+training profile)?"):
-                return
-            import config as C
-            C.delete_variant(v)
-            self.refresh_collections_panel()
-        except Exception as e:
-            print("[ModelsTab] delete error:", e)
-
-    def _collections_edit_visuals(self, item: dict):
-        try:
-            from tkinter import simpledialog
-            v = item.get('variant_id')
-            if not v:
-                return
-            badges_str = simpledialog.askstring("Edit Badges", "Comma-separated badges:", parent=self.root)
-            color_str = simpledialog.askstring("Edit Color", "Hex color (e.g., #ffaa00):", parent=self.root)
-            if badges_str is None and color_str is None:
-                return
-            badges = []
-            if badges_str:
-                badges = [b.strip() for b in badges_str.split(',') if b.strip()]
-            import config as C
-            C.update_variant_visuals(v, badges, color_str or "")
-            self.refresh_collections_panel()
-        except Exception as e:
-            print("[ModelsTab] edit visuals error:", e)
-
-    def refresh_variant_stats(self, variant_id: str):
-        """Best-effort: load variant sidecar stats if present and trigger any dependent refresh."""
-        try:
-            import json, os
-            p = os.path.join('Data', 'Stats', f'{variant_id}.json')
-            if os.path.exists(p):
-                with open(p, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                # Placeholder: hook into skills/stats panels if available
-                print(f"[ModelsTab] Loaded stats for {variant_id}: keys={list((data.get('summary') or {}).keys())}")
-        except Exception as e:
-            print("[ModelsTab] refresh_variant_stats error:", e)
-
-    # --- Helpers: Variant ⇄ GGUF assignment & eval defaults ------------------
-    def _find_assigned_gguf_for_variant(self, variant_id: str) -> str | None:
-        """Return the first assigned Ollama tag for a variant, if any."""
-        try:
-            from config import load_ollama_assignments
-            d = load_ollama_assignments() or {}
-            lst = d.get(variant_id) or []
-            return (lst[0] if lst else None)
-        except Exception:
-            return None
-
-    def _find_variant_for_gguf(self, tag: str) -> str | None:
-        """Reverse lookup: find a variant that owns this GGUF tag (first match)."""
-        try:
-            from config import load_ollama_assignments
-            d = load_ollama_assignments() or {}
-            for vid, entry in d.items():
-                if vid == 'tag_index':
-                    continue
-                if isinstance(entry, dict):
-                    tags = entry.get('tags') or []
-                else:
-                    tags = entry or []
-                if tag in tags:
-                    return vid
-        except Exception:
-            pass
-        return None
-
-    def _class_to_color(self, level: str) -> str:
-        """Map class level to UI color hex."""
-        lvl = (level or '').strip().lower()
-        return {
-            'novice': '#51cf66',   # green
-            'skilled': '#61dafb',  # blue
-            'expert': '#9b59b6',   # purple
-            'master': '#ffa94d',   # orange
-            'artifact': '#c92a2a', # deep red
-        }.get(lvl, '#bbbbbb')
-
-    def _get_variant_color_for_gguf(self, tag: str) -> str | None:
-        """Return the class color for the variant that owns this GGUF tag, if any."""
-        try:
-            owner = self._find_variant_for_gguf(tag)
-            if not owner:
+            # Try to find chat_interface in parent notebook tabs and call set_model
+            _root = self.frame.winfo_toplevel()
+            # Walk widget tree looking for a frame with set_model attribute
+            def _find_chat(_w):
+                for _child in _w.winfo_children():
+                    if hasattr(_child, 'set_model'):
+                        return _child
+                    _found = _find_chat(_child)
+                    if _found:
+                        return _found
                 return None
-            import config as C
-            level = C.get_variant_class(owner)
-            return self._class_to_color(level)
-        except Exception:
-            return None
+            _chat = _find_chat(_root)
+            if _chat:
+                _chat.set_model(model_name, model_info={"name": model_name, "type": "gguf", "path": gguf_path})
+                messagebox.showinfo("Model Loaded", f"GGUF model '{model_name}' sent to chat interface.")
+            else:
+                messagebox.showinfo("GGUF Path", f"Path: {gguf_path}\n\nOpen Custom Code tab → select model from list.")
+        except Exception as _e:
+            messagebox.showinfo("GGUF Path", f"Path: {gguf_path}")
 
-    def _apply_type_driven_eval_defaults(self, variant_id: str):
-        """Populate Evaluation tab controls based on variant's type and training profile."""
-        try:
-            import config as C
-            # 1) Suite selection from assigned_type
-            t_id = None
-            try:
-                mp = C.load_model_profile(variant_id) or {}
-                t_id = (mp.get('assigned_type') or '').lower()
-            except Exception:
-                t_id = None
-            mapping = {
-                'coder': 'CoderNovice',
-                'researcher': 'ResearcherNovice',
-            }
-            preferred = mapping.get(t_id, 'Tools')
-            if hasattr(self, 'test_suite_combo') and hasattr(self, 'test_suite_var'):
-                opts = list(self.test_suite_combo['values']) if isinstance(self.test_suite_combo['values'], tuple) else (self.test_suite_combo['values'] or [])
-                if preferred in opts:
-                    self.test_suite_combo.set(preferred)
-                elif opts:
-                    self.test_suite_combo.set(opts[0])
+    def _load_gguf_via_ollama(self, gguf_path, model_name: str):
+        """Register a local GGUF with Ollama, auto-generating a minimal Modelfile."""
+        import threading, subprocess, tempfile
+        from pathlib import Path as _Path
 
-            # 2) Prompt/Schema toggles and selections from Training Profile
-            try:
-                tp = C.load_training_profile(variant_id) or {}
-            except Exception:
-                tp = {}
-            try:
-                rs = (tp.get('runner_settings') or {})
-                if hasattr(self, 'use_system_prompt_var'):
-                    self.use_system_prompt_var.set(bool(rs.get('use_system_prompt', False)))
-                    self._toggle_system_prompt_controls()
-                if hasattr(self, 'use_tool_schema_var'):
-                    self.use_tool_schema_var.set(bool(rs.get('use_tool_schema', False)))
-                    self._toggle_tool_schema_controls()
-            except Exception:
-                pass
-            try:
-                sp = tp.get('selected_prompts') or []
-                if sp and hasattr(self, 'system_prompt_combo'):
-                    self.system_prompt_combo.config(state='readonly')
-                    self.system_prompt_combo.set(sp[0])
-            except Exception:
-                pass
-            try:
-                ss = tp.get('selected_schemas') or []
-                if ss and hasattr(self, 'tool_schema_combo'):
-                    self.tool_schema_combo.config(state='readonly')
-                    self.tool_schema_combo.set(ss[0])
-            except Exception:
-                pass
-        except Exception:
-            pass
+        # Check if a hand-crafted Modelfile already exists nearby
+        _mf_candidates = [
+            _Path(gguf_path).parent / "Modelfile",
+            _Path(gguf_path).parent.parent.parent / "training_data" / "Morph.modelfile",
+        ]
+        _mf_path = next((p for p in _mf_candidates if p.exists()), None)
 
-    def _on_collection_pick(self, item: dict):
-        """When a variant is picked, apply its training profile in Training tab."""
-        try:
-            variant = item.get("variant_id")
-            # Update active banner
+        def _run():
             try:
-                if hasattr(self, 'active_variant_var'):
-                    self.active_variant_var.set(f"Active Variant: {variant}")
-            except Exception:
-                pass
-            # Render variant overview (parent summary + actions)
-            try:
-                self._active_variant_id = variant
-                self._render_variant_overview()
-            except Exception:
-                pass
-            # Reflect selection in Evaluation tab context
-            try:
-                # Determine assigned GGUF and parent base
-                gguf = self._find_assigned_gguf_for_variant(variant)
-                # If multiple assigned tags exist (legacy), let user choose
-                try:
-                    import config as C
-                    lid = C.get_lineage_id(variant)
-                    tags = C.get_assigned_tags_by_lineage(lid) if lid else ([] if not gguf else [gguf])
-                    if tags and len(tags) > 1:
-                        choice = self._choose_gguf_dialog(tags, title=f"Select GGUF for {variant}")
-                        if choice:
-                            gguf = choice
-                except Exception:
-                    pass
-                base_name = None
-                try:
-                    import config as C
-                    mp = C.load_model_profile(variant) or {}
-                    base_name = mp.get('base_model') or None
-                except Exception:
-                    base_name = None
+                if _mf_path:
+                    mf = str(_mf_path)
+                else:
+                    # Write a minimal temporary Modelfile
+                    _tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.modelfile',
+                                                       delete=False, encoding='utf-8')
+                    _tmp.write(f'FROM {gguf_path}\nTEMPLATE "{{{{ .Prompt }}}}"\n')
+                    _tmp.flush(); _tmp.close()
+                    mf = _tmp.name
 
-                # Labels: parent above, then selected model shows variant → gguf
-                if hasattr(self, 'eval_parent_label'):
-                    self.eval_parent_label.config(text=f"Base-Model: {base_name}" if base_name else "Base-Model: unavailable")
-                if hasattr(self, 'selected_model_label_eval'):
-                    if gguf:
-                        self.selected_model_label_eval.config(text=f"Selected Model: {variant} → gguf:{gguf}")
-                    else:
-                        self.selected_model_label_eval.config(text=f"Selected Model: {variant}")
-                if hasattr(self, 'eval_source_label'):
-                    if gguf:
-                        self.eval_source_label.config(text=f"Source: Variant → GGUF ({gguf})")
-                        # Use the GGUF for evaluation
-                        self._eval_override_model_name = gguf
-                    else:
-                        self.eval_source_label.config(text="Source: Variant (Profile)")
-                        # Clear any previous override
-                        if hasattr(self, '_eval_override_model_name'):
-                            try:
-                                delattr(self, '_eval_override_model_name')
-                            except Exception:
-                                pass
-                # Use variant as logical selection context
-                self.current_model_for_stats = variant
-                # Update class chip based on variant class
-                try:
-                    import config as C
-                    cls = C.get_variant_class(variant)
-                    if getattr(self, 'eval_class_chip', None) is not None:
-                        self.eval_class_chip.config(bg=self._class_to_color(cls))
-                except Exception:
-                    pass
-                # Update lineage label
-                try:
-                    import config as C
-                    lid = C.get_lineage_id(variant)
-                    short = (lid[:10] + '…') if (lid and len(lid) > 10) else (lid or 'unavailable')
-                    if hasattr(self, 'eval_lineage_label'):
-                        self.eval_lineage_label.config(text=f"Lineage: {short}")
-                except Exception:
-                    pass
-                # Promotion alert if eligible
-                try:
-                    eligible, _t = self._check_promotion_eligibility(variant)
-                    if eligible:
-                        if not hasattr(self, '_promo_alerted_variants'):
-                            self._promo_alerted_variants = set()
-                        if variant not in self._promo_alerted_variants:
-                            messagebox.showinfo('Promotion Unlocked', f"{variant} has earned a promotion.\nClass Available: <Skilled>\nHybrid Available: <NO>")
-                            self._promo_alerted_variants.add(variant)
-                except Exception:
-                    pass
-                # Auto-toggle baseline for fresh variants and select type-specific suite
-                try:
-                    from config import load_latest_evaluation_report, get_baseline_report_path, load_model_profile
-                    is_fresh = True
-                    try:
-                        rep = load_latest_evaluation_report(variant) or {}
-                        if rep:
-                            is_fresh = False
-                    except Exception:
-                        is_fresh = True
-                    if is_fresh:
-                        # No eval report; also check canonical baseline path existence
-                        try:
-                            p = get_baseline_report_path(variant)
-                            if p.exists():
-                                is_fresh = False
-                        except Exception:
-                            pass
-                    if is_fresh and hasattr(self, 'run_as_baseline_var'):
-                        self.run_as_baseline_var.set(True)
-                    # Choose an evaluation suite based on type (fallback to 'Tools')
-                    t_id = None
-                    try:
-                        mp = load_model_profile(variant) or {}
-                        t_id = (mp.get('assigned_type') or '').lower()
-                    except Exception:
-                        pass
-                    mapping = {
-                        'coder': 'CoderNovice',
-                        'researcher': 'ResearcherNovice',
-                    }
-                    preferred = mapping.get(t_id, 'Tools')
-                    if hasattr(self, 'test_suite_combo') and hasattr(self, 'test_suite_var'):
-                        opts = list(self.test_suite_combo['values']) if isinstance(self.test_suite_combo['values'], tuple) else (self.test_suite_combo['values'] or [])
-                        if preferred in opts:
-                            self.test_suite_combo.set(preferred)
-                        elif opts:
-                            self.test_suite_combo.set(opts[0])
-                        # Update lineage label after suite set as well
-                        try:
-                            if hasattr(self, 'eval_lineage_label'):
-                                short = ( (lid[:10] + '…') if (lid and len(lid) > 10) else (lid or 'unavailable') )
-                                self.eval_lineage_label.config(text=f"Lineage: {short}")
-                        except Exception:
-                            pass
-                except Exception:
-                    pass
-            except Exception:
-                pass
-            # Also apply any type-driven defaults (suite, prompt/schema) from the variant
-            try:
-                self._apply_type_driven_eval_defaults(variant)
-            except Exception:
-                pass
-            # Relay to TrainingTab
-            tt = self.get_training_tab()
-            if tt and hasattr(tt, "apply_plan"):
-                self.root.after(50, lambda: tt.apply_plan(variant_id=variant))
-                print(f"[ModelsTab] Applied collection variant to Training: {variant}")
-            # Refresh variant-linked stats/skills if available
-            try:
-                self.refresh_variant_stats(variant)
-            except Exception:
-                pass
-        except Exception as e:
-            print("[ModelsTab] _on_collection_pick error:", e)
+                ollama_name = model_name.replace('.', '-').replace('_', '-').lower()
+                result = subprocess.run(
+                    ["ollama", "create", ollama_name, "-f", mf],
+                    capture_output=True, text=True, timeout=120
+                )
+                if result.returncode == 0:
+                    self.root.after(0, lambda n=ollama_name: (
+                        self.populate_model_list(),
+                        messagebox.showinfo("GGUF Loaded",
+                            f"✓ Registered '{n}' with Ollama.\nModel list refreshed.")
+                    ))
+                else:
+                    err = (result.stderr or result.stdout or "unknown error")[:300]
+                    self.root.after(0, lambda e=err: messagebox.showerror(
+                        "Load Failed", f"ollama create failed:\n{e}"))
+            except FileNotFoundError:
+                self.root.after(0, lambda: messagebox.showwarning(
+                    "Ollama Not Found",
+                    "ollama binary not found in PATH.\n"
+                    "Install ollama, or use llama_cpp_python directly via Morph bridge."))
+            except Exception as ex:
+                self.root.after(0, lambda e=str(ex): messagebox.showerror("Error", e))
 
-    def _choose_gguf_dialog(self, tags: list[str], title: str = "Select GGUF") -> str | None:
-        try:
-            win = tk.Toplevel(self.root)
-            win.title(title)
-            f = ttk.Frame(win)
-            f.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-            ttk.Label(f, text="Choose assigned GGUF:", style='Config.TLabel').grid(row=0, column=0, sticky=tk.W)
-            var = tk.StringVar(value=(tags[0] if tags else ''))
-            combo = ttk.Combobox(f, textvariable=var, values=tags, state='readonly', width=50)
-            combo.grid(row=1, column=0, sticky=tk.EW, pady=(6,0))
-            btns = ttk.Frame(f)
-            btns.grid(row=2, column=0, sticky=tk.E, pady=(10,0))
-            result = {'v': None}
-            def ok():
-                result['v'] = var.get()
-                win.destroy()
-            def cancel():
-                win.destroy()
-            ttk.Button(btns, text='Cancel', command=cancel, style='Select.TButton').pack(side=tk.RIGHT, padx=5)
-            ttk.Button(btns, text='Use', command=ok, style='Action.TButton').pack(side=tk.RIGHT)
-            win.grab_set(); win.wait_window()
-            return result['v']
-        except Exception:
-            return None
-
-    def _on_variant_applied(self, evt):
-        try:
-            import json
-            data = json.loads(getattr(evt, 'data', '{}') or '{}')
-            vid = data.get('variant_id')
-            if vid and hasattr(self, 'active_variant_var'):
-                self.active_variant_var.set(f"Active Variant: {vid}")
-                try:
-                    self.refresh_variant_stats(vid)
-                except Exception:
-                    pass
-                # Also update Evaluation tab labels
-                try:
-                    # Determine assigned GGUF and parent base
-                    gguf = self._find_assigned_gguf_for_variant(vid)
-                    base_name = None
-                    try:
-                        import config as C
-                        mp = C.load_model_profile(vid) or {}
-                        base_name = mp.get('base_model') or None
-                    except Exception:
-                        base_name = None
-                    if hasattr(self, 'eval_parent_label'):
-                        self.eval_parent_label.config(text=f"Base-Model: {base_name}" if base_name else "Base-Model: unavailable")
-                    if hasattr(self, 'selected_model_label_eval'):
-                        if gguf:
-                            self.selected_model_label_eval.config(text=f"Selected Model: {vid} → gguf:{gguf}")
-                        else:
-                            self.selected_model_label_eval.config(text=f"Selected Model: {vid}")
-                    if hasattr(self, 'eval_source_label'):
-                        if gguf:
-                            self.eval_source_label.config(text=f"Source: Variant → GGUF ({gguf})")
-                        else:
-                            self.eval_source_label.config(text="Source: Variant (Profile)")
-                    self.current_model_for_stats = vid
-                    # Update class chip based on variant class
-                    try:
-                        cls = C.get_variant_class(vid)
-                        if getattr(self, 'eval_class_chip', None) is not None:
-                            self.eval_class_chip.config(bg=self._class_to_color(cls))
-                    except Exception:
-                        pass
-                    self._active_variant_id = vid
-                    self._refresh_overview_actions_state()
-                    self._render_variant_overview()
-                    # Auto-toggle baseline and pick suite for fresh variants too
-                    try:
-                        from config import load_latest_evaluation_report, get_baseline_report_path, load_model_profile
-                        is_fresh = True
-                        try:
-                            rep = load_latest_evaluation_report(vid) or {}
-                            if rep:
-                                is_fresh = False
-                        except Exception:
-                            is_fresh = True
-                        if is_fresh:
-                            try:
-                                p = get_baseline_report_path(vid)
-                                if p.exists():
-                                    is_fresh = False
-                            except Exception:
-                                pass
-                        if is_fresh and hasattr(self, 'run_as_baseline_var'):
-                            self.run_as_baseline_var.set(True)
-                        # Pick suite
-                        t_id = None
-                        try:
-                            mp = load_model_profile(vid) or {}
-                            t_id = (mp.get('assigned_type') or '').lower()
-                        except Exception:
-                            pass
-                        mapping = {
-                            'coder': 'CoderNovice',
-                            'researcher': 'ResearcherNovice',
-                        }
-                        preferred = mapping.get(t_id, 'Tools')
-                        if hasattr(self, 'test_suite_combo') and hasattr(self, 'test_suite_var'):
-                            opts = list(self.test_suite_combo['values']) if isinstance(self.test_suite_combo['values'], tuple) else (self.test_suite_combo['values'] or [])
-                            if preferred in opts:
-                                self.test_suite_combo.set(preferred)
-                            elif opts:
-                                self.test_suite_combo.set(opts[0])
-                        # Also apply prompt/schema defaults from Training Profile
-                        try:
-                            self._apply_type_driven_eval_defaults(vid)
-                        except Exception:
-                            pass
-                    except Exception:
-                        pass
-                except Exception:
-                    pass
-        except Exception:
-            pass
+        messagebox.showinfo("Loading GGUF",
+            f"Registering {model_name} with Ollama in background…")
+        threading.Thread(target=_run, daemon=True).start()
 
     def _populate_adapters_tab(self, base_model_info):
         """Scans for and displays all adapters trained from the given base model."""
@@ -4561,36 +4071,7 @@ class ModelsTab(BaseTab):
                                 command=self._adapters_update_actions_state).grid(row=0, column=col, sticky=tk.W, padx=5)
                 col += 1
 
-            # Try to show linked variant id from sidecar
-            variant_note = ""
-            class_level = None
-            try:
-                sidecar = Path(str(adapter_path) + ".variant.json")
-                if sidecar.exists():
-                    with open(sidecar, 'r', encoding='utf-8') as f:
-                        vmeta = json.load(f)
-                    vid = vmeta.get('variant_id')
-                    if vid:
-                        variant_note = f"  [{vid}]"
-                    class_level = vmeta.get('class_level')
-                    if not class_level and vid:
-                        try:
-                            import config as C
-                            class_level = C.get_variant_class(vid)
-                        except Exception:
-                            class_level = None
-            except Exception:
-                pass
-
-            # Class chip
-            try:
-                if class_level:
-                    chip = tk.Label(adapter_frame, text='  ', bg=self._class_to_color(class_level))
-                    chip.grid(row=0, column=col, sticky=tk.W, padx=(6,2), pady=2)
-                    col += 1
-            except Exception:
-                pass
-            ttk.Label(adapter_frame, text=f"▶ {adapter_name}{variant_note}", font=("Arial", 10, "bold"), foreground="#51cf66").grid(row=0, column=col, sticky=tk.W, padx=5, pady=2)
+            ttk.Label(adapter_frame, text=f"▶ {adapter_name}", font=("Arial", 10, "bold"), foreground="#51cf66").grid(row=0, column=col, sticky=tk.W, padx=5, pady=2)
             col += 1
             # Readiness pill
             status_label = ttk.Label(adapter_frame, text="", font=("Arial", 8), style='Config.TLabel')
@@ -4876,38 +4357,7 @@ class ModelsTab(BaseTab):
                 "adapters": [{"name": p.name} for p in sels],
                 "notes": notes,
             }
-            # Enrich with lineage/variant/type/class if derivable from adapter sidecars
-            try:
-                base_dir = Path(base_model_info["path"]).parent
-                vset, lset, tset, cset = set(), set(), set(), set()
-                for p in sels:
-                    sc = Path(str(p) + ".variant.json")
-                    if (base_dir / sc.name).exists():
-                        sc_path = base_dir / sc.name
-                    else:
-                        sc_path = Path(str(base_dir / p.name) + ".variant.json")
-                    if sc_path.exists():
-                        with open(sc_path, 'r', encoding='utf-8') as sf:
-                            meta = json.load(sf)
-                        if meta.get('variant_id'):
-                            vset.add(meta.get('variant_id'))
-                        if meta.get('lineage_id'):
-                            lset.add(meta.get('lineage_id'))
-                        if meta.get('assigned_type'):
-                            tset.add(meta.get('assigned_type'))
-                        if meta.get('class_level'):
-                            cset.add(meta.get('class_level'))
-                if len(vset) == 1:
-                    manifest['variant_id'] = list(vset)[0]
-                if len(lset) == 1:
-                    manifest['lineage_id'] = list(lset)[0]
-                if len(tset) == 1:
-                    manifest['assigned_type'] = list(tset)[0]
-                if len(cset) == 1:
-                    manifest['class_level'] = list(cset)[0]
-            except Exception:
-                pass
-            with open(level_dir / 'manifest.json', 'w', encoding='utf-8') as f:
+            with open(level_dir / 'manifest.json', 'w') as f:
                 json.dump(manifest, f, indent=2)
             messagebox.showinfo("Saved", f"Level '{level_name}' saved.")
             self._populate_history_tab(base_model_info)
@@ -4927,10 +4377,8 @@ class ModelsTab(BaseTab):
                 mf = d / 'manifest.json'
                 if mf.exists():
                     try:
-                        with open(mf, 'r', encoding='utf-8') as f:
+                        with open(mf, 'r') as f:
                             data = json.load(f)
-                        # Backfill lineage/variant/type/class if missing
-                        self._backfill_level_manifest(base_model_name, d, data)
                         data['name'] = d.name
                         data['path'] = str(d)
                         levels.append(data)
@@ -4940,54 +4388,30 @@ class ModelsTab(BaseTab):
             return []
         return levels
 
-    def _backfill_level_manifest(self, base_model_name: str, level_dir: Path, data: dict):
-        """If a Level manifest lacks lineage/variant/type/class, derive from adapter sidecars and persist back."""
+    def _discover_gguf_exports_for_base(self, base_model_name: str) -> list:
+        """
+        Find all GGUF exports and Morph variant JSONs under Models/<base>/exports/gguf/
+        and Models/<base>/Morph_regex/variants/.
+        Returns list of dicts: {name, path, size_mb, type}
+        """
+        result = []
         try:
-            needs = []
-            for key in ('variant_id','lineage_id','assigned_type','class_level'):
-                if not data.get(key):
-                    needs.append(key)
-            if not needs:
-                return
-            # Locate base dir to find adapter sidecars
-            base_path = self._find_base_path(base_model_name)
-            if not base_path:
-                return
-            base_dir = Path(base_path).parent
-            sels = [a.get('name') for a in (data.get('adapters') or []) if a.get('name')]
-            if not sels:
-                return
-            vset, lset, tset, cset = set(), set(), set(), set()
-            for an in sels:
-                sc_path = Path(str(base_dir / an) + ".variant.json")
-                if sc_path.exists():
+            base_dir = MODELS_DIR / base_model_name
+            gguf_dir = base_dir / "exports" / "gguf"
+            if gguf_dir.exists():
+                for gf in sorted(gguf_dir.glob("*.gguf")):
                     try:
-                        meta = json.loads(sc_path.read_text())
-                        if meta.get('variant_id'):
-                            vset.add(meta.get('variant_id'))
-                        if meta.get('lineage_id'):
-                            lset.add(meta.get('lineage_id'))
-                        if meta.get('assigned_type'):
-                            tset.add(meta.get('assigned_type'))
-                        if meta.get('class_level'):
-                            cset.add(meta.get('class_level'))
+                        sz = gf.stat().st_size // (1024 * 1024)
                     except Exception:
-                        continue
-            changed = False
-            if 'variant_id' in needs and len(vset) == 1:
-                data['variant_id'] = list(vset)[0]; changed = True
-            if 'lineage_id' in needs and len(lset) == 1:
-                data['lineage_id'] = list(lset)[0]; changed = True
-            if 'assigned_type' in needs and len(tset) == 1:
-                data['assigned_type'] = list(tset)[0]; changed = True
-            if 'class_level' in needs and len(cset) == 1:
-                data['class_level'] = list(cset)[0]; changed = True
-            if changed:
-                mf = level_dir / 'manifest.json'
-                with open(mf, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, indent=2)
+                        sz = 0
+                    result.append({"name": gf.stem, "path": gf, "size_mb": sz, "type": "gguf"})
+            variant_dir = base_dir / "Morph_regex" / "variants"
+            if variant_dir.exists():
+                for vf in sorted(variant_dir.glob("morph_variant_*.json")):
+                    result.append({"name": vf.stem, "path": vf, "size_mb": 0, "type": "variant_json"})
         except Exception:
             pass
+        return result
 
     def _levels_open_folder(self, base_model_name: str, level_name: str):
         try:
@@ -5262,25 +4686,17 @@ class ModelsTab(BaseTab):
         except Exception as e:
             messagebox.showerror("Suggestions Error", f"Failed to generate or display suggestions: {e}")
     def display_model_info(self, model_info):
-        """Displays information for the selected Ollama model."""
+        """Displays information for the selected model (Ollama or local GGUF)."""
         self.current_model_info = model_info
         model_name = model_info["name"]
+
+        # Local GGUF — show file info without querying Ollama
+        if model_info.get("type") == "gguf":
+            self._display_gguf_info(model_info)
+            return
+
         raw_info = get_ollama_model_info(model_name)
         parsed_info = parse_ollama_model_info(raw_info)
-
-        # Emit event for other panels to react to model selection
-        try:
-            import json
-            payload = json.dumps({
-                "model_name": model_name,
-                "model_type": model_info.get("type", "ollama"),
-                "is_ollama": True,
-            })
-            if hasattr(self, 'panel_types') and self.panel_types:
-                self.panel_types.event_generate("<<ModelSelected>>", data=payload, when="tail")
-        except Exception:
-            pass
-
 
         # Update Raw Info Tab
         self.raw_model_info_text.config(state=tk.NORMAL)
@@ -5289,17 +4705,9 @@ class ModelsTab(BaseTab):
         self.raw_model_info_text.config(state=tk.DISABLED)
 
         # Update Overview Tab
-        # Selecting an Ollama model clears active variant context
-        try:
-            self._active_variant_id = ''
-            if hasattr(self, 'active_variant_var'):
-                self.active_variant_var.set('')
-        except Exception:
-            pass
         # Clear previous overview content
         for widget in self.overview_tab_frame.winfo_children():
             widget.destroy()
-        # Do NOT build variant header/actions for unassigned Ollama models
 
         # Model Rename Section at the top
         rename_frame = ttk.LabelFrame(self.overview_tab_frame, text="🏷️ Rename Model", style='TLabelframe')
@@ -5503,14 +4911,6 @@ class ModelsTab(BaseTab):
         self.current_model_for_stats = model_name
         self.populate_stats_display()  # Load stats for this model
 
-        # Lineage (Variants & Assignments) for this model's parent base (if determinable)
-        try:
-            base_for_variants = parent_base or ''
-            if base_for_variants:
-                self._build_lineage_variants_section(base_for_variants, parent_frame=self.overview_tab_frame)
-        except Exception:
-            pass
-
         # Behavior indicators for GGUF (if evaluated)
         try:
             from config import get_model_behavior_profile
@@ -5524,66 +4924,11 @@ class ModelsTab(BaseTab):
         except Exception:
             pass
 
-        # Update Selected Model + Parent Labels in Evaluation Tab
-        owner_variant = None
-        try:
-            owner_variant = self._find_variant_for_gguf(model_name)
-        except Exception:
-            owner_variant = None
-        # Parent base derivation via owner variant (if any)
-        parent_base = None
-        if owner_variant:
-            try:
-                import config as C
-                mp = C.load_model_profile(owner_variant) or {}
-                parent_base = mp.get('base_model') or None
-            except Exception:
-                parent_base = None
-        if hasattr(self, 'eval_parent_label'):
-            self.eval_parent_label.config(text=f"Base-Model: {parent_base}" if parent_base else "Base-Model: unavailable")
+        # Update Selected Model Label in Evaluation Tab
         if hasattr(self, 'selected_model_label_eval'):
-            if owner_variant:
-                self.selected_model_label_eval.config(text=f"Selected Model: {owner_variant} → gguf:{model_name}")
-            else:
-                self.selected_model_label_eval.config(text=f"Selected Model: {model_name}")
+            self.selected_model_label_eval.config(text=f"Selected Model: {model_name}")
         if hasattr(self, 'eval_source_label'):
             self.eval_source_label.config(text="Source: Ollama (GGUF)")
-
-        # Class chip: derive from owner variant if present
-        try:
-            if owner_variant and getattr(self, 'eval_class_chip', None) is not None:
-                import config as C
-                cls = C.get_variant_class(owner_variant)
-                self.eval_class_chip.config(bg=self._class_to_color(cls))
-        except Exception:
-            pass
-        # Lineage label
-        try:
-            import config as C
-            lid = None
-            if owner_variant:
-                lid = C.get_lineage_id(owner_variant)
-            if not lid:
-                lid = C.get_lineage_for_tag(model_name)
-            short = (lid[:10] + '…') if (lid and len(lid) > 10) else (lid or 'unavailable')
-            if hasattr(self, 'eval_lineage_label'):
-                self.eval_lineage_label.config(text=f"Lineage: {short}")
-        except Exception:
-            pass
-
-        # If this GGUF is assigned to a variant, use that variant to prefill per-type eval settings
-        try:
-            if owner_variant:
-                # Populate suite + prompt/schema defaults similar to selecting from Collections
-                self._apply_type_driven_eval_defaults(owner_variant)
-                # Explicit GGUF selection: ensure no stale override
-                if hasattr(self, '_eval_override_model_name'):
-                    try:
-                        delattr(self, '_eval_override_model_name')
-                    except Exception:
-                        pass
-        except Exception:
-            pass
 
     def validate_model_name(self):
         """Validate the proposed model name against HuggingFace rules."""
@@ -5851,40 +5196,8 @@ class ModelsTab(BaseTab):
                     try:
                         outdir = Path(gguf_path_emitted).parent if gguf_path_emitted else (Path(__file__).parent.parent.parent / 'exports' / 'gguf')
                         adapter_name = Path(str(adapter_path)).name
-                        # Prefer manifest lineage/variant for tag naming when level_name present
-                        variant_id_for_export = None
-                        lineage_id_for_export = None
-                        if base_model_name and level_name:
-                            try:
-                                clean_base = base_model_name.replace('/','_').replace(':','_')
-                                mfpath = MODELS_DIR / 'archive' / 'levels' / clean_base / level_name / 'manifest.json'
-                                if mfpath.exists():
-                                    mdata = json.loads(mfpath.read_text())
-                                    variant_id_for_export = mdata.get('variant_id')
-                                    lineage_id_for_export = mdata.get('lineage_id')
-                            except Exception:
-                                pass
-                        # Enforce one-GGUF per lineage: if lineage has assigned tags, ask to replace
-                        if lineage_id_for_export:
-                            try:
-                                import config as C
-                                existing_tags = C.get_assigned_tags_by_lineage(lineage_id_for_export)
-                                if existing_tags:
-                                    def _ask_replace():
-                                        return messagebox.askyesno('Assigned Exists', f"A GGUF is already assigned for this variant lineage:\n{', '.join(existing_tags)}\n\nReplace with new export?")
-                                    # Must query UI thread
-                                    ans = []
-                                    self.root.after(0, lambda: ans.append(_ask_replace()))
-                                    while not ans:
-                                        time.sleep(0.05)
-                                    if not ans[0]:
-                                        return
-                            except Exception:
-                                pass
-                        # Tag policy
+                        # Tag the Ollama model after adapter for uniqueness
                         model_tag = f"{adapter_name}:latest"
-                        if variant_id_for_export:
-                            model_tag = f"{variant_id_for_export}:{(quant or 'q4_k_m')}"
                         modelfile = outdir / f"{adapter_name}.Modelfile"
                         gguf_path = gguf_path_emitted or str(outdir / f"{Path(base_model_path).name}-merged-{adapter_name}.{quant or 'q4_k_m'}.gguf")
                         mf = f"FROM {gguf_path}\nTEMPLATE \"{{{{ .Prompt }}}}\"\n"
@@ -5919,13 +5232,6 @@ class ModelsTab(BaseTab):
                                             })
                                             with open(mfpath, 'w') as f:
                                                 _json.dump(man, f, indent=2)
-                                except Exception:
-                                    pass
-                                # Assignment update for variant lineage
-                                try:
-                                    if variant_id_for_export:
-                                        import config as C
-                                        C.add_ollama_assignment(variant_id_for_export, model_tag)
                                 except Exception:
                                     pass
                                 try:
@@ -6163,36 +5469,6 @@ class ModelsTab(BaseTab):
 
             messagebox.showinfo("Delete Successful", f"Model '{model_name}' has been deleted.")
 
-            # If this tag was assigned to a variant lineage, remove the assignment
-            try:
-                import config as C
-                lid = C.get_lineage_for_tag(model_name)
-                if lid:
-                    # Update tag_index by removing this tag
-                    data = C.load_ollama_assignments() or {}
-                    ti = data.get('tag_index') or {}
-                    if model_name in ti:
-                        ti.pop(model_name, None)
-                        data['tag_index'] = ti
-                        # Also remove from any variant entry that lists it
-                        for k, v in list(data.items()):
-                            if k == 'tag_index':
-                                continue
-                            if isinstance(v, dict):
-                                tags = set(v.get('tags') or [])
-                                if model_name in tags:
-                                    tags.discard(model_name)
-                                    v['tags'] = sorted(tags)
-                                    data[k] = v
-                            else:
-                                lst = set(v or [])
-                                if model_name in lst:
-                                    lst.discard(model_name)
-                                    data[k] = sorted(lst)
-                        C.save_ollama_assignments(data)
-            except Exception:
-                pass
-
             # Refresh model list
             self.ollama_models = get_ollama_models()
             self.populate_model_list()
@@ -6211,14 +5487,535 @@ class ModelsTab(BaseTab):
             self.note_name_var.set("")
             self.populate_notes_list()
             self.populate_stats_display()
-            # If a Variant was active, refresh its actions state (may re‑enable Create GGUF)
-            try:
-                self._refresh_overview_actions_state()
-            except Exception:
-                pass
 
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr if e.stderr else str(e)
             messagebox.showerror("Delete Failed", f"Failed to delete model:\n\n{error_msg}")
         except Exception as e:
             messagebox.showerror("Delete Failed", f"An error occurred:\n\n{str(e)}")
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # Ω Inspector — 11th sub-tab of model_info_notebook
+    # Populated when an omega or alpha entry is selected in the Morph section.
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    _OI_PYMANIFEST   = None   # resolved lazily
+    _OI_VARIANTS_DIR = None
+
+    def _oi_variants_dir(self, variants_dir=None):
+        """Return variants dir Path (cached after first call)."""
+        if variants_dir:
+            self._OI_VARIANTS_DIR = variants_dir
+        if self._OI_VARIANTS_DIR is None:
+            try:
+                from config import DATA_DIR
+                self._OI_VARIANTS_DIR = DATA_DIR / "pymanifest" / "variants"
+            except Exception:
+                from pathlib import Path
+                self._OI_VARIANTS_DIR = (
+                    Path(__file__).parent.parent.parent / "pymanifest" / "variants")
+        return self._OI_VARIANTS_DIR
+
+    def _populate_omega_inspector(self, entry: dict, variants_dir=None):
+        """Rebuild the Ω Inspector tab for the given spawn_log *entry*."""
+        import json as _ji
+        import threading as _thi
+        from pathlib import Path
+
+        vdir = self._oi_variants_dir(variants_dir)
+
+        # Clear existing content
+        for w in self.omega_inspector_frame.winfo_children():
+            w.destroy()
+
+        name    = entry.get('name', '')
+        tier    = 'omega' if entry.get('event') == 'omega_spawn' else 'alpha'
+        domain  = entry.get('domain') or 'general'
+        pc      = entry.get('pattern_count', 0)
+        script  = entry.get('script', '')
+
+        # ── Header ─────────────────────────────────────────────────────────────
+        hdr = ttk.Frame(self.omega_inspector_frame)
+        hdr.pack(fill=tk.X, padx=6, pady=(6, 2))
+
+        tier_col = {'omega': '#569cd6', 'alpha': '#4ec9b0'}.get(tier, '#cccccc')
+        ttk.Label(hdr, text=f"{name}", font=("Arial", 11, "bold")).pack(side=tk.LEFT)
+        ttk.Label(hdr, text=f"  [{tier}]", foreground=tier_col).pack(side=tk.LEFT)
+        ttk.Label(hdr, text=f"  {pc:,} patterns",
+                  foreground='#858585').pack(side=tk.LEFT, padx=8)
+
+        # Grade badge from lineage_graph if alpha
+        if tier == 'alpha':
+            try:
+                graph = _ji.loads(
+                    (vdir / 'lineage_graph.json').read_text())
+                node  = graph.get(name, {})
+                pg    = node.get('peak_grade', '?')
+                sc    = node.get('session_count', 0)
+                ttk.Label(hdr, text=f"peak_grade={pg}  sessions={sc}",
+                          foreground='#d7ba7d').pack(side=tk.LEFT, padx=4)
+            except Exception:
+                pass
+
+        # ── Inner 4-tab notebook ────────────────────────────────────────────────
+        inner = ttk.Notebook(self.omega_inspector_frame)
+        inner.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+
+        # Tab 1 — Patterns
+        f_pat = ttk.Frame(inner)
+        inner.add(f_pat, text="Patterns")
+        self._build_oi_patterns_tab(f_pat, name, tier, vdir)
+
+        # Tab 2 — Weights
+        f_wt = ttk.Frame(inner)
+        inner.add(f_wt, text="Weights")
+        self._build_oi_weights_tab(f_wt, name, domain, script, vdir)
+
+        # Tab 3 — Regex Chain
+        f_rx = ttk.Frame(inner)
+        inner.add(f_rx, text="Regex Chain")
+        self._build_oi_regex_tab(f_rx, name, script, vdir)
+
+        # Tab 4 — Lineage
+        f_lin = ttk.Frame(inner)
+        inner.add(f_lin, text="Lineage")
+        self._build_oi_lineage_tab(f_lin, name, domain, vdir)
+
+    def _build_oi_patterns_tab(self, parent, name: str, tier: str, vdir):
+        """Patterns tab — lazy-load patterns for the selected variant (EXT-2)."""
+        import threading as _thi
+        import json as _jp
+
+        parent.columnconfigure(0, weight=1)
+        parent.rowconfigure(1, weight=1)
+
+        # Filter bar
+        fbar = ttk.Frame(parent)
+        fbar.grid(row=0, column=0, columnspan=2, sticky=tk.EW, padx=4, pady=(4, 2))
+        ttk.Label(fbar, text="Type:").pack(side=tk.LEFT)
+        oi_type_var = tk.StringVar(value="(all)")
+        type_cb = ttk.Combobox(fbar, textvariable=oi_type_var, width=18, state='readonly')
+        type_cb.pack(side=tk.LEFT, padx=2)
+        ttk.Label(fbar, text="Domain:").pack(side=tk.LEFT, padx=(6, 2))
+        oi_dom_var = tk.StringVar(value="(all)")
+        dom_cb = ttk.Combobox(fbar, textvariable=oi_dom_var, width=16, state='readonly')
+        dom_cb.pack(side=tk.LEFT, padx=2)
+        ttk.Label(fbar, text="SHA:").pack(side=tk.LEFT, padx=(6, 2))
+        oi_sha_var = tk.StringVar()
+        ttk.Entry(fbar, textvariable=oi_sha_var, width=12).pack(side=tk.LEFT)
+
+        status_var = tk.StringVar(value="Loading…")
+        ttk.Label(fbar, textvariable=status_var, foreground='#858585').pack(side=tk.LEFT, padx=8)
+
+        # Treeview
+        cols = ('sha', 'type', 'domain', 'seen', 'count')
+        tree = ttk.Treeview(parent, columns=cols, show='headings', selectmode='browse', height=16)
+        for col, w in zip(cols, (90, 130, 110, 60, 55)):
+            tree.heading(col, text=col.title())
+            tree.column(col, width=w, stretch=(col == 'type'))
+        vsb = ttk.Scrollbar(parent, orient='vertical', command=tree.yview)
+        tree.configure(yscrollcommand=vsb.set)
+        tree.grid(row=1, column=0, sticky=tk.NSEW, padx=(4, 0), pady=2)
+        vsb.grid(row=1, column=1, sticky=tk.NS)
+
+        detail = tk.Text(parent, height=6, state=tk.DISABLED, wrap=tk.WORD,
+                         background='#1e1e1e', foreground='#d4d4d4',
+                         font=('Consolas', 9))
+        detail.grid(row=2, column=0, columnspan=2, sticky=tk.EW, padx=4, pady=(0, 4))
+        parent.rowconfigure(2, minsize=80)
+
+        all_rows = []
+
+        def _filter(*_):
+            tf = oi_type_var.get()
+            df = oi_dom_var.get()
+            sf = oi_sha_var.get().lower()
+            filtered = [r for r in all_rows
+                        if (tf in ('(all)', '', r[1]))
+                        and (df in ('(all)', '', r[2]))
+                        and (not sf or sf in r[0].lower())]
+            for item in tree.get_children():
+                tree.delete(item)
+            for r in filtered[:500]:
+                tree.insert('', 'end', values=r[:5])
+
+        def _on_select(event=None):
+            sel = tree.selection()
+            if not sel:
+                return
+            idx = tree.index(sel[0])
+            visible = [r for r in all_rows]  # simplified lookup
+            if idx < len(all_rows):
+                raw = all_rows[idx][5] if len(all_rows[idx]) > 5 else {}
+                detail.config(state=tk.NORMAL)
+                detail.delete('1.0', tk.END)
+                detail.insert('1.0', _jp.dumps(raw, indent=2))
+                detail.config(state=tk.DISABLED)
+
+        tree.bind('<<TreeviewSelect>>', _on_select)
+        for var in (oi_type_var, oi_dom_var):
+            var.trace_add('write', _filter)
+        oi_sha_var.trace_add('write', _filter)
+
+        def _load():
+            pfiles = list(vdir.glob(f"patterns*{name}*.json"))
+            if not pfiles:
+                self.after(0, lambda: status_var.set("No pattern file found."))
+                return
+            try:
+                data = _jp.loads(pfiles[-1].read_text())
+                items = list(data.values()) if isinstance(data, dict) else data
+            except Exception as e:
+                self.after(0, lambda: status_var.set(f"Load error: {e}"))
+                return
+
+            seen_t, seen_d = set(), set()
+            for rec in items[:500]:
+                if isinstance(rec, dict):
+                    sha   = str(rec.get('context_hash', rec.get('sha', '')))[:8]
+                    ptype = str(rec.get('pattern_type', rec.get('type', '')))
+                    dom   = str(rec.get('domain', ''))
+                    seen  = str(rec.get('first_seen', ''))[:10]
+                    cnt   = str(rec.get('occurrence_count', rec.get('count', '')))
+                    all_rows.append((sha, ptype, dom, seen, cnt, rec))
+                    seen_t.add(ptype); seen_d.add(dom)
+
+            def _update():
+                type_cb['values'] = ['(all)'] + sorted(seen_t)
+                dom_cb['values']  = ['(all)'] + sorted(seen_d)
+                status_var.set(f"{len(all_rows)} patterns loaded (top 500)")
+                _filter()
+            self.after(0, _update)
+
+        _thi.Thread(target=_load, daemon=True).start()
+
+    def _build_oi_weights_tab(self, parent, name: str, domain: str,
+                               script: str, vdir):
+        """Weights tab — scratchpad bar chart + morph_index.jsonl snapshot (EXT-3)."""
+        import json as _jw
+        try:
+            from matplotlib.figure import Figure
+            from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+            _mpl = True
+        except ImportError:
+            _mpl = False
+
+        parent.columnconfigure(0, weight=1)
+        parent.rowconfigure(0, weight=1)
+        parent.rowconfigure(1, weight=0)
+
+        # Radio: scratchpad vs morph_index
+        src_var = tk.StringVar(value="scratchpad")
+        ctrl = ttk.Frame(parent)
+        ctrl.grid(row=0, column=0, sticky=tk.NW, padx=4, pady=4)
+        ttk.Radiobutton(ctrl, text="Scratchpad weights", variable=src_var,
+                        value="scratchpad", command=lambda: _show()).pack(side=tk.LEFT)
+        ttk.Radiobutton(ctrl, text="morph_index snapshot", variable=src_var,
+                        value="morph_index", command=lambda: _show()).pack(side=tk.LEFT, padx=8)
+
+        content = ttk.Frame(parent)
+        content.grid(row=1, column=0, sticky=tk.NSEW, padx=4, pady=2)
+        content.columnconfigure(0, weight=1)
+        content.rowconfigure(0, weight=1)
+        parent.rowconfigure(1, weight=1)
+
+        info_var = tk.StringVar(value="")
+        ttk.Label(parent, textvariable=info_var, foreground='#858585').grid(
+            row=2, column=0, sticky=tk.W, padx=4, pady=2)
+
+        fig_holder = [None, None]  # [Figure, FigureCanvasTkAgg]
+
+        def _show():
+            for w in content.winfo_children():
+                w.destroy()
+            if src_var.get() == "scratchpad":
+                _show_scratchpad()
+            else:
+                _show_morph_index()
+
+        def _show_scratchpad():
+            sp_path = vdir / "scratch_pad.json"
+            if not sp_path.exists():
+                ttk.Label(content, text="scratch_pad.json not found").pack()
+                return
+            try:
+                data = _jw.loads(sp_path.read_text())
+            except Exception as e:
+                ttk.Label(content, text=f"Load error: {e}").pack()
+                return
+
+            grade_map = {"A": 1.0, "B": 0.75, "C": 0.5, "D": 0.25, "F": 0.0}
+            # Filter by domain if alpha
+            domains_show = [domain] if domain and domain in data else list(
+                k for k in data if not k.startswith('_'))
+            sums, all_items = {}, []
+            for d in domains_show:
+                items = data.get(d, [])
+                if isinstance(items, list):
+                    s = 0.0
+                    for it in items:
+                        w  = float(it.get('weight', 0))
+                        g  = str(it.get('meta', {}).get('grade', it.get('grade', 'D'))).upper()
+                        s += w * grade_map.get(g, 0.5)
+                        all_items.append((d, it.get('id', '')[:10], it.get('type', ''),
+                                          w, it.get('ttl', ''), g))
+                    sums[d] = s
+
+            if _mpl:
+                content.columnconfigure(0, weight=1)
+                content.rowconfigure(0, weight=2)
+                content.rowconfigure(1, weight=1)
+                pf = ttk.Frame(content)
+                pf.grid(row=0, column=0, sticky=tk.NSEW)
+                pf.columnconfigure(0, weight=1); pf.rowconfigure(0, weight=1)
+                fig = Figure(figsize=(6, 2.5), facecolor='#1a1a2e')
+                ax  = fig.add_subplot(111, facecolor='#1a1a2e')
+                ax.barh(list(sums.keys()), list(sums.values()), color='#4ec9b0')
+                ax.set_title('Scratchpad Weight Sums', color='#cccccc', fontsize=9)
+                ax.tick_params(colors='#cccccc', labelsize=8)
+                fig.tight_layout(pad=0.5)
+                canvas = FigureCanvasTkAgg(fig, master=pf)
+                canvas.get_tk_widget().grid(row=0, column=0, sticky=tk.NSEW)
+                canvas.draw()
+                fig_holder[:] = [fig, canvas]
+
+            cols2 = ('domain', 'id', 'type', 'weight', 'ttl', 'grade')
+            tree2 = ttk.Treeview(content, columns=cols2, show='headings', height=8)
+            for c2, w2 in zip(cols2, (80, 90, 80, 60, 40, 45)):
+                tree2.heading(c2, text=c2.title())
+                tree2.column(c2, width=w2, stretch=(c2 == 'id'))
+            for row in all_items[:300]:
+                tree2.insert('', 'end', values=(row[0], row[1], row[2],
+                                                 f"{row[3]:.3f}", row[4], row[5]))
+            vsb5 = ttk.Scrollbar(content, orient='vertical', command=tree2.yview)
+            tree2.configure(yscrollcommand=vsb5.set)
+            r_idx = 1 if _mpl else 0
+            tree2.grid(row=r_idx, column=0, sticky=tk.NSEW, padx=(4, 0))
+            vsb5.grid(row=r_idx, column=1, sticky=tk.NS)
+            info_var.set(f"{len(all_items)} scratchpad items shown")
+
+        def _show_morph_index():
+            mi_path = vdir / "morph_index.jsonl"
+            if not mi_path.exists():
+                ttk.Label(content, text="morph_index.jsonl not found").pack()
+                return
+            entry_data = {}
+            try:
+                for line in mi_path.read_text().splitlines():
+                    if line.strip():
+                        e = _jw.loads(line)
+                        if e.get('name') == name:
+                            entry_data = e
+            except Exception:
+                pass
+            if not entry_data:
+                ttk.Label(content, text=f"No morph_index entry for '{name}'").pack()
+                return
+            lf = ttk.LabelFrame(content, text="morph_index snapshot", padding=8)
+            lf.pack(fill=tk.X, padx=4, pady=4)
+            for k, v in entry_data.items():
+                r = ttk.Frame(lf)
+                r.pack(fill=tk.X, pady=1)
+                ttk.Label(r, text=f"{k}:", width=28, foreground='#858585').pack(side=tk.LEFT)
+                ttk.Label(r, text=str(v), wraplength=320).pack(side=tk.LEFT, padx=4)
+            info_var.set("morph_index.jsonl entry displayed")
+
+        _show()
+
+    def _build_oi_regex_tab(self, parent, name: str, script: str, vdir):
+        """Regex Chain tab — morph_regex_index from build JSON or Morph_regex/ scan (EXT-4)."""
+        import json as _jr
+        from pathlib import Path
+
+        parent.columnconfigure(0, weight=1)
+        parent.rowconfigure(1, weight=1)
+
+        ttk.Label(parent, text="Regex chain from build JSON morph_regex_index:",
+                  foreground='#858585').grid(row=0, column=0, sticky=tk.W, padx=4, pady=4)
+
+        cols = ('regex_id', 'domain', 'ptype', 'sha', 'audit')
+        tree = ttk.Treeview(parent, columns=cols, show='headings', height=14)
+        for col, w in zip(cols, (100, 90, 110, 90, 60)):
+            tree.heading(col, text=col.title())
+            tree.column(col, width=w, stretch=(col == 'regex_id'))
+        vsb = ttk.Scrollbar(parent, orient='vertical', command=tree.yview)
+        tree.configure(yscrollcommand=vsb.set)
+        tree.grid(row=1, column=0, sticky=tk.NSEW, padx=(4, 0))
+        vsb.grid(row=1, column=1, sticky=tk.NS)
+
+        detail = tk.Text(parent, height=5, state=tk.DISABLED, wrap=tk.WORD,
+                         background='#1e1e1e', foreground='#d4d4d4', font=('Consolas', 9))
+        detail.grid(row=2, column=0, columnspan=2, sticky=tk.EW, padx=4, pady=(0, 4))
+        parent.rowconfigure(2, minsize=70)
+
+        rows_rx = []
+
+        def _on_rx_select(event=None):
+            sel = tree.selection()
+            if not sel:
+                return
+            idx = tree.index(sel[0])
+            if idx < len(rows_rx):
+                detail.config(state=tk.NORMAL)
+                detail.delete('1.0', tk.END)
+                detail.insert('1.0', _jr.dumps(rows_rx[idx], indent=2))
+                detail.config(state=tk.DISABLED)
+
+        tree.bind('<<TreeviewSelect>>', _on_rx_select)
+
+        # Load from build JSON
+        if script:
+            try:
+                bj = vdir / f"build_{script.replace('.py', '')}.json"
+                if bj.exists():
+                    bdata = _jr.loads(bj.read_text())
+                    rx_idx = bdata.get('morph_regex_index', {})
+                    for k, v in (rx_idx.items() if isinstance(rx_idx, dict) else enumerate(rx_idx)):
+                        rows_rx.append({'regex_id': str(k), 'domain': str(v.get('domain', '') if isinstance(v, dict) else ''),
+                                        'ptype': str(v.get('pattern_type', '') if isinstance(v, dict) else ''),
+                                        'sha': str(v.get('sha', '') if isinstance(v, dict) else '')[:12],
+                                        'audit': str(v.get('audit_status', '') if isinstance(v, dict) else '')})
+            except Exception:
+                pass
+
+        if not rows_rx:
+            tree.insert('', 'end', values=('(no morph_regex_index in build JSON)',
+                                            '', '', '', ''))
+        else:
+            for r in rows_rx:
+                tree.insert('', 'end', values=(r['regex_id'], r['domain'],
+                                                r['ptype'], r['sha'], r['audit']))
+
+    def _build_oi_lineage_tab(self, parent, name: str, domain: str, vdir):
+        """Lineage tab — back-propagated chain + superposition view (EXT-5)."""
+        import json as _jl
+
+        parent.columnconfigure(0, minsize=250)
+        parent.columnconfigure(1, weight=1)
+        parent.rowconfigure(0, weight=1)
+
+        # ── LEFT: back-propagated chain ────────────────────────────────────────
+        left = ttk.LabelFrame(parent, text="Back-Propagated Chain", padding=4)
+        left.grid(row=0, column=0, sticky=tk.NSEW, padx=(4, 2), pady=4)
+        left.columnconfigure(0, weight=1)
+        left.rowconfigure(0, weight=1)
+
+        tier_col = {'omega': '#569cd6', 'alpha': '#4ec9b0',
+                    'fix': '#d7ba7d', 'ancestor': '#858585', 'mutant': '#e68aff'}
+        c_lin = ('tier', 'gen', 'patterns', 'grade')
+        lin_tree = ttk.Treeview(left, columns=c_lin, show='tree headings',
+                                 selectmode='browse', height=20)
+        lin_tree.heading('#0',       text='Name')
+        lin_tree.heading('tier',     text='Tier')
+        lin_tree.heading('gen',      text='Gen')
+        lin_tree.heading('patterns', text='Pats')
+        lin_tree.heading('grade',    text='Grade')
+        lin_tree.column('#0',        width=110, stretch=True)
+        for c, w in zip(c_lin, (50, 32, 55, 40)):
+            lin_tree.column(c, width=w, stretch=False)
+        vsb_l = ttk.Scrollbar(left, orient='vertical', command=lin_tree.yview)
+        lin_tree.configure(yscrollcommand=vsb_l.set)
+        lin_tree.grid(row=0, column=0, sticky=tk.NSEW)
+        vsb_l.grid(row=0, column=1, sticky=tk.NS)
+
+        # Load lineage graph and walk back from name to root
+        graph = {}
+        pc_map = {}
+        try:
+            graph = _jl.loads((vdir / 'lineage_graph.json').read_text())
+        except Exception:
+            pass
+        try:
+            for line in (vdir / 'spawn_log.jsonl').read_text().splitlines():
+                if line.strip():
+                    e = _jl.loads(line)
+                    if e.get('name'):
+                        pc_map[e['name']] = e.get('pattern_count', 0)
+        except Exception:
+            pass
+
+        # Build ancestor chain: walk parent links
+        chain = []
+        cur = name
+        visited = set()
+        while cur and cur not in visited:
+            visited.add(cur)
+            node = graph.get(cur, {})
+            chain.append((cur, node))
+            cur = node.get('parent')
+
+        for node_name, node in chain:
+            t   = node.get('tier', 'ancestor')
+            gen = node.get('generation', '')
+            pc  = pc_map.get(node_name, '')
+            pg  = node.get('peak_grade', '')
+            iid = lin_tree.insert('', 'end', text=node_name,
+                                   values=(t[:6], gen, pc, pg or ''),
+                                   tags=(t,))
+            try:
+                lin_tree.tag_configure(t, foreground=tier_col.get(t, '#cccccc'))
+            except Exception:
+                pass
+
+        # ── RIGHT: superposition view ──────────────────────────────────────────
+        right = ttk.Frame(parent)
+        right.grid(row=0, column=1, sticky=tk.NSEW, padx=(2, 4), pady=4)
+        right.columnconfigure(0, weight=1)
+        right.rowconfigure(1, weight=1)
+
+        ctrl2 = ttk.Frame(right)
+        ctrl2.grid(row=0, column=0, sticky=tk.EW, padx=2, pady=(2, 4))
+        ttk.Label(ctrl2, text="Turn:").pack(side=tk.LEFT)
+        turn_var = tk.IntVar(value=0)
+        summary_var   = tk.StringVar(value="")
+        query_var     = tk.StringVar(value="")
+
+        c_sup = ('step', 'pid', 'type', 'domain', 'weight')
+        sup_tree = ttk.Treeview(right, columns=c_sup, show='headings', height=14)
+        for c, w in zip(c_sup, (38, 110, 110, 90, 58)):
+            sup_tree.heading(c, text='Pattern ID' if c == 'pid' else c.title())
+            sup_tree.column(c, width=w, stretch=(c == 'pid'))
+        vsb_r = ttk.Scrollbar(right, orient='vertical', command=sup_tree.yview)
+        sup_tree.configure(yscrollcommand=vsb_r.set)
+        sup_tree.grid(row=1, column=0, sticky=tk.NSEW, padx=(2, 0))
+        vsb_r.grid(row=1, column=1, sticky=tk.NS)
+        ttk.Label(right, textvariable=query_var, foreground='#cccccc',
+                  wraplength=400).grid(row=2, column=0, sticky=tk.EW, padx=2, pady=2)
+        ttk.Label(right, textvariable=summary_var, foreground='#4ec9b0').grid(
+            row=3, column=0, sticky=tk.EW, padx=2, pady=(0, 4))
+
+        def _load_turn(idx):
+            for item in sup_tree.get_children():
+                sup_tree.delete(item)
+            sess_path = vdir / 'session_state.json'
+            if not sess_path.exists():
+                summary_var.set("session_state.json not found")
+                return
+            try:
+                ss    = _jl.loads(sess_path.read_text())
+                turns = ss.get('turn_history', [])
+            except Exception:
+                return
+            # Filter to this domain for alphas
+            filtered = [t for t in turns if t.get('domain') == domain] if domain else turns
+            spin.config(to=max(0, len(filtered) - 1))
+            if idx >= len(filtered):
+                summary_var.set(f"Turn {idx} out of range ({len(filtered)} for domain={domain})")
+                return
+            turn    = filtered[idx]
+            pids    = turn.get('activated_pids', [])
+            grade   = turn.get('grade', '?')
+            gap     = turn.get('gap', '?')
+            td      = turn.get('domain', '?')
+            query_var.set(str(turn.get('user', ''))[:120])
+            for step, pid in enumerate(pids):
+                sup_tree.insert('', 'end', values=(step, str(pid)[:12], '', td, ''))
+            summary_var.set(f"grade={grade}  gap={gap}  domain={td}  pids={len(pids)}")
+
+        spin = ttk.Spinbox(ctrl2, from_=0, to=50, textvariable=turn_var, width=5,
+                           command=lambda: _load_turn(turn_var.get()))
+        spin.pack(side=tk.LEFT, padx=4)
+        ttk.Label(ctrl2, textvariable=query_var, foreground='#858585',
+                  wraplength=300).pack(side=tk.LEFT, padx=4)
+
+        _load_turn(0)

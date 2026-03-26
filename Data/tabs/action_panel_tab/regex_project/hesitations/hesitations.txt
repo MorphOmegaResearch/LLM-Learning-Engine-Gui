@@ -1,0 +1,10 @@
+\b(um|uh|er)\b
+\b(well)\b
+\b(like)\b
+\b(you know)\b
+\b(I mean)\b
+\b(actually)\b
+\b(basically)\b
+\b(sort of|kind of)\b
+\b(let me see|let me think)\b
+\b(hang on|hold on)\b

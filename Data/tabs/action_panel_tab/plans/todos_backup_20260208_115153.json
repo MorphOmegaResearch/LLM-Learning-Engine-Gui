@@ -1,0 +1,722 @@
+[
+  {
+    "id": "bjbt4l3f0",
+    "title": "Run onboarder.py catalog to get a fresh baseline a",
+    "description": "Run onboarder.py catalog to get a fresh baseline analysis and capture the Os_Toolkit session ID.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-05T12:40:24.487Z",
+    "updated_at": "2026-02-08T11:49:03.034075"
+  },
+  {
+    "id": "2oe1wmlas",
+    "title": "Export the Os_Toolkit session to populate babel_da",
+    "description": "Export the Os_Toolkit session to populate babel_data/profile/exports/.",
+    "status": "cancelled",
+    "directory": ".",
+    "created_at": "2026-02-05T12:40:24.487Z",
+    "updated_at": "2026-02-08T11:49:03.034084"
+  },
+  {
+    "id": "i0an76g64",
+    "title": "Export the Os_Toolkit session to populate babel_da",
+    "description": "Export the Os_Toolkit session to populate babel_data/profile/exports/ with corrected path.",
+    "status": "cancelled",
+    "directory": ".",
+    "created_at": "2026-02-05T12:40:54.877Z",
+    "updated_at": "2026-02-08T11:49:03.034091"
+  },
+  {
+    "id": "dlt3w03s7",
+    "title": "Export the Os_Toolkit session to populate babel_da",
+    "description": "Export the Os_Toolkit session to populate babel_data/profile/exports/ using the correct output directory.",
+    "status": "cancelled",
+    "directory": ".",
+    "created_at": "2026-02-05T12:42:08.189Z",
+    "updated_at": "2026-02-08T11:49:03.034098"
+  },
+  {
+    "id": "t7tr0592v",
+    "title": "Copy the exported Os_Toolkit session from forekit_",
+    "description": "Copy the exported Os_Toolkit session from forekit_data/exports to babel_data/profile/exports as a workaround.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-05T12:42:28.418Z",
+    "updated_at": "2026-02-08T11:49:03.034104"
+  },
+  {
+    "id": "iwdrenpd0",
+    "title": "Organize files using Filesync.py to populate babel",
+    "description": "Organize files using Filesync.py to populate babel_data/timeline/organized/.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-05T12:40:24.488Z",
+    "updated_at": "2026-02-08T11:49:03.034110"
+  },
+  {
+    "id": "ekyhjaaew",
+    "title": "Query Os_Toolkit.py about onboarder.py to confirm ",
+    "description": "Query Os_Toolkit.py about onboarder.py to confirm profiling and cataloging of a specific file.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-05T12:40:24.488Z",
+    "updated_at": "2026-02-08T11:49:03.034115"
+  },
+  {
+    "id": "t7xaar2u9",
+    "title": "Manually analyze onboarder.py using Os_Toolkit.py'",
+    "description": "Manually analyze onboarder.py using Os_Toolkit.py's 'file' command.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-05T12:44:39.748Z",
+    "updated_at": "2026-02-08T11:49:03.034121"
+  },
+  {
+    "id": "d07l3t07v",
+    "title": "Re-query Os_Toolkit.py about onboarder.py using th",
+    "description": "Re-query Os_Toolkit.py about onboarder.py using the full path to confirm profiling and cataloging of a specific file.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-05T12:45:07.885Z",
+    "updated_at": "2026-02-08T11:49:03.034127"
+  },
+  {
+    "id": "5at6u2fe3",
+    "title": "Inspect Os_Toolkit.py's _load_session method for p",
+    "description": "Inspect Os_Toolkit.py's _load_session method for path_index and directly inspect the artifacts.json file for onboarder.py's entry.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-05T12:47:00.554Z",
+    "updated_at": "2026-02-08T11:49:03.034133"
+  },
+  {
+    "id": "l2njjf0z5",
+    "title": "Modify Os_Toolkit.py to rebuild path_index and str",
+    "description": "Modify Os_Toolkit.py to rebuild path_index and string_index when a session is loaded.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-05T12:47:10.829Z",
+    "updated_at": "2026-02-08T11:49:03.034138"
+  },
+  {
+    "id": "ftyjunxtb",
+    "title": "Re-run the Os_Toolkit.py analyze_file command for ",
+    "description": "Re-run the Os_Toolkit.py analyze_file command for onboarder.py and then re-query.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-05T12:47:10.829Z",
+    "updated_at": "2026-02-08T11:49:03.034144"
+  },
+  {
+    "id": "uprxyupj8",
+    "title": "Modify onboarder.py to call Os_Toolkit.py analyze_",
+    "description": "Modify onboarder.py to call Os_Toolkit.py analyze_file for each discovered tool during the catalog process.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-05T12:52:18.607Z",
+    "updated_at": "2026-02-08T11:49:03.034150"
+  },
+  {
+    "id": "uu544cua1",
+    "title": "Re-run onboarder.py catalog.",
+    "description": "Re-run onboarder.py catalog.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-05T12:52:18.607Z",
+    "updated_at": "2026-02-08T11:49:03.034156"
+  },
+  {
+    "id": "qt11ch6tx",
+    "title": "Modify Os_Toolkit.py's query output to display det",
+    "description": "Modify Os_Toolkit.py's query output to display detailed file breakdown for artifacts, nodes, and verbs. Benchmark: Query Os_Toolkit.py about onboarder.py and verify that the output contains all requested detailed fields (imports, URLs, IPs, strings, 6W1H, hashes, etc.) for file artifacts.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-05T13:17:15.991Z",
+    "updated_at": "2026-02-08T11:49:03.034161"
+  },
+  {
+    "id": "jldqub20z",
+    "title": "Demonstrate Filesync.py insights for a file (timel",
+    "description": "Demonstrate Filesync.py insights for a file (timeline context and relationships). Benchmark: For a queried file, successfully retrieve its related entries from the latest Filesync report and identify other files referencing it using Filesync.py --match-file.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-05T13:17:15.991Z",
+    "updated_at": "2026-02-08T11:49:03.034167"
+  },
+  {
+    "id": "vx846j6z1",
+    "title": "Demonstrate \"Inverse Query\" using Os_Toolkit.py (f",
+    "description": "Demonstrate \"Inverse Query\" using Os_Toolkit.py (find files that import a specific module). Benchmark: Execute an Os_Toolkit.py query for a common Python import string and get a list of relevant files.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-05T13:17:15.991Z",
+    "updated_at": "2026-02-08T11:49:03.034173"
+  },
+  {
+    "id": "cpz7pohkh",
+    "title": "Understand onboarder.py's tool loading logic. Benc",
+    "description": "Understand onboarder.py's tool loading logic. Benchmark: Pinpoint the exact code responsible for loading/accessing onboarded_tools and consolidated_menu.json within the handle_list function.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-05T13:28:46.224Z",
+    "updated_at": "2026-02-08T11:49:03.034179"
+  },
+  {
+    "id": "prlshgn5n",
+    "title": "Verify babel_data/inventory/consolidated_menu.json",
+    "description": "Verify babel_data/inventory/consolidated_menu.json content. Benchmark: Output of the consolidated_menu.json showing tool entries.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-05T13:28:46.224Z",
+    "updated_at": "2026-02-08T11:49:03.034184"
+  },
+  {
+    "id": "h1qf10gpy",
+    "title": "Fix onboarder.py list tool loading. Benchmark: Run",
+    "description": "Fix onboarder.py list tool loading. Benchmark: Run python3 onboarder.py list --detailed and verify it successfully lists the tools with detailed metadata.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-05T13:28:46.224Z",
+    "updated_at": "2026-02-08T11:49:03.034190"
+  },
+  {
+    "id": "glyxdtwc5",
+    "title": "Add query-unified command to onboarder.py. Benchma",
+    "description": "Add query-unified command to onboarder.py. Benchmark: Running python3 onboarder.py query-unified --help displays correct usage.",
+    "status": "in-progress",
+    "directory": ".",
+    "created_at": "2026-02-05T13:43:26.629Z",
+    "updated_at": "2026-02-08T11:49:03.034195"
+  },
+  {
+    "id": "im4racjei",
+    "title": "Implement handle_query_unified initial verbose out",
+    "description": "Implement handle_query_unified initial verbose output. Benchmark: Run python3 onboarder.py query-unified /home/commander/Desktop/System_Journal/System_Journal/inventory/tools/scripts/Babel_v01a/onboarder.py (or using its tool_id). Verify that the output is a comprehensive, combined view of the tool's profile from all three tools.",
+    "status": "in-progress",
+    "directory": ".",
+    "created_at": "2026-02-05T13:43:26.629Z",
+    "updated_at": "2026-02-08T11:49:03.034201"
+  },
+  {
+    "id": "2tpdn7x0m",
+    "title": "Add interactive drill-down to handle_query_unified",
+    "description": "Add interactive drill-down to handle_query_unified. Benchmark: Run python3 onboarder.py query-unified <target>, observe the initial output, and then interactively select an option (e.g., '1' for 6W1H) and verify the detailed follow-up.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-05T13:43:26.629Z",
+    "updated_at": "2026-02-08T11:49:03.034207"
+  },
+  {
+    "id": "icct2p7rd",
+    "title": "Formalize \"Gap\" Analysis Integration. Benchmark: T",
+    "description": "Formalize \"Gap\" Analysis Integration. Benchmark: Trigger the \"gap\" analysis and verify that it intelligently points out specific areas of missing or inconsistent information.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-05T13:43:26.629Z",
+    "updated_at": "2026-02-08T11:49:03.034213"
+  },
+  {
+    "id": "pe66fa429",
+    "title": "Understand Filesync's exact temporal grouping logi",
+    "description": "Understand Filesync's exact temporal grouping logic. Benchmark: Provide a clear explanation of Filesync.py's temporal grouping logic.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-05T13:28:46.224Z",
+    "updated_at": "2026-02-08T11:49:03.034218"
+  },
+  {
+    "id": "89tugw01q",
+    "title": "Final Directory Verification. Benchmark: Confirm e",
+    "description": "Final Directory Verification. Benchmark: Confirm exports and organized contain data; note status of journals, logs, and catalogs subdirs.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-05T13:28:46.224Z",
+    "updated_at": "2026-02-08T11:49:03.034224"
+  },
+  {
+    "id": "P2-6",
+    "title": "Project Intelligence Layer",
+    "description": "Implement _infer_project_type logic in Filesync.py to analyze clusters.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-07T12:00:00.000Z",
+    "updated_at": "2026-02-08T11:49:03.034230"
+  },
+  {
+    "id": "P2-correction",
+    "title": "Correction Interface",
+    "description": "Add CLI flags to Filesync.py for manual project correction.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-07T12:00:00.000Z",
+    "updated_at": "2026-02-08T11:49:03.034236"
+  },
+  {
+    "id": "P2-6-display",
+    "title": "Os_Toolkit Display Integration",
+    "description": "Integrate Filesync timeline data into Os_Toolkit file analysis output.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-07T12:00:00.000Z",
+    "updated_at": "2026-02-08T11:49:03.034241"
+  },
+  {
+    "id": "P2-5",
+    "title": "Launcher Query Integration",
+    "description": "Update launcher.py to route generic queries to Os_Toolkit.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-07T12:00:00.000Z",
+    "updated_at": "2026-02-08T11:49:03.034247"
+  },
+  {
+    "id": "P2-7",
+    "title": "Fix Project Association",
+    "description": "Ensure file IDs are correctly linked to Project IDs in Filesync manifest.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-07T12:00:00.000Z",
+    "updated_at": "2026-02-08T11:49:03.034252"
+  },
+  {
+    "id": "24fb8368",
+    "title": "P0: Remove Gemini/Node from SYSTEM_DNA",
+    "description": "Lines 88-89 incorrectly mark external agents as core system. Critical security fix.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-07T16:23:00.540486",
+    "updated_at": "2026-02-08T11:49:03.034258"
+  },
+  {
+    "id": "2f259b5b",
+    "title": "P0: Create trust_registry.json",
+    "description": "Track first-seen timestamps for processes/PIDs/IPs to verify identity after breach.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-07T16:23:00.823630",
+    "updated_at": "2026-02-08T11:49:03.034263"
+  },
+  {
+    "id": "e3fa04d3",
+    "title": "P1: Implement SystemLogAnalyzer",
+    "description": "Interface with journalctl and /var/log for system event correlation.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:23:01.160365",
+    "updated_at": "2026-02-08T11:49:03.034269"
+  },
+  {
+    "id": "78cf618c",
+    "title": "P1: Integrate /.claude/plans with export",
+    "description": "Make Claude plans visible in Os_Toolkit, upgrade legacy export functions.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:23:01.448410",
+    "updated_at": "2026-02-08T11:49:03.034275"
+  },
+  {
+    "id": "71d4474e",
+    "title": "P1: Upgrade export to include todos + plans + Filesync data",
+    "description": "Export currently only saves session artifacts. Should bundle: plans/todos.json, ~/.claude/plans/*.md, Filesync manifests, onboarder inventory. Universal context pool.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:26:06.618340",
+    "updated_at": "2026-02-08T11:49:03.034281"
+  },
+  {
+    "id": "b33b8c89",
+    "title": "P1: Add logs subcommand to Os_Toolkit CLI",
+    "description": "New subcommand: Os_Toolkit.py logs --auth --systemd --network --correlate for direct Linux log querying via journalctl.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:26:08.637564",
+    "updated_at": "2026-02-08T11:49:03.034286"
+  },
+  {
+    "id": "c01e98a3",
+    "title": "P1: Extend 6W1H for system events",
+    "description": "Add context_type param to _generate_6w1h for process/service/network events. Use SYSTEM_DNA as seed. Currently only handles files.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:26:10.921733",
+    "updated_at": "2026-02-08T11:49:03.034292"
+  },
+  {
+    "id": "248a47a7",
+    "title": "P1: Refactor SYSTEM_DNA to structured format",
+    "description": "Convert flat string dict to include why/category/trust/alerts_on_modification fields for proper 6W1H seeding.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:26:12.699162",
+    "updated_at": "2026-02-08T11:49:03.034298"
+  },
+  {
+    "id": "c6ba38d6",
+    "title": "P2: Debug Filesync project association (all None)",
+    "description": "All files show project: None in manifests. Check _cluster_by_similarity() and _infer_project_type() execution in Filesync.py.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:26:14.631082",
+    "updated_at": "2026-02-08T11:49:03.034303"
+  },
+  {
+    "id": "469694de",
+    "title": "P2: Activity-based project inference in latest",
+    "description": "Detect current project from terminal CWDs (/proc/pid/cwd), open editor files, recent modifications. Show in latest output.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:26:16.518420",
+    "updated_at": "2026-02-08T11:49:03.034309"
+  },
+  {
+    "id": "7cc4fcde",
+    "title": "P2: Add System Health + Trust Status to latest",
+    "description": "latest should show journalctl failed services, auth anomalies, new IPs since last session, PID changes needing review.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:26:18.410969",
+    "updated_at": "2026-02-08T11:49:03.034315"
+  },
+  {
+    "id": "891e2138",
+    "title": "P2: Zenity interactive trust verification dialogs",
+    "description": "When untrusted IPs/processes detected, pop Zenity alert for Verify/Block/Review with DNS+TLS verification.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:26:20.540543",
+    "updated_at": "2026-02-08T11:49:03.034321"
+  },
+  {
+    "id": "fd4af0cd",
+    "title": "CARRY: Verify onboarder discover/consolidate/list/info/check-paths/session/run-menu/gui",
+    "description": "Unchecked from CHECKLIST.md - none of these subcommands have been verified since integration.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:26:27.075054",
+    "updated_at": "2026-02-08T11:49:03.034327"
+  },
+  {
+    "id": "f06c6137",
+    "title": "CARRY: Verify Os_Toolkit analyze/query/file/journal/export/stats/save/interactive",
+    "description": "Unchecked from CHECKLIST.md - these subcommands need testing. Export is confirmed legacy-only.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:26:28.765860",
+    "updated_at": "2026-02-08T11:49:03.034333"
+  },
+  {
+    "id": "b4c3f6fd",
+    "title": "CARRY: Verify Filesync catalog/report/string-match/analyze-relationships/cluster-projects/organize/match-file",
+    "description": "Unchecked from CHECKLIST.md - these flags need testing against babel_data/timeline.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:26:30.601975",
+    "updated_at": "2026-02-08T11:49:03.034338"
+  },
+  {
+    "id": "e760a86f",
+    "title": "CARRY: Deduplicate consolidated_menu.json",
+    "description": "34 tools with duplicates (3x Onboarder, 3x Orchestrator). Listed as P1 quick win in INTEGRATION_COMPLETE.md.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:26:32.824035",
+    "updated_at": "2026-02-08T11:49:03.034344"
+  },
+  {
+    "id": "8ad2fbdf",
+    "title": "CARRY: Remove duplicate 6W1H printout in query output",
+    "description": "Lines 2668-2678 and 2711-2720 print same data. Minor UX issue from INTEGRATION_COMPLETE.md.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:26:34.951192",
+    "updated_at": "2026-02-08T11:49:03.034349"
+  },
+  {
+    "id": "8f68fb08",
+    "title": "LATER: Extend backup suggestion to ongoing activity",
+    "description": "Monitor ongoing activity and proactively suggest backups. Trigger if significant changes without recent backup.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:37:00.664944",
+    "updated_at": "2026-02-08T11:49:03.034355"
+  },
+  {
+    "id": "877d6173",
+    "title": "LATER: AST-based debug suggestion system",
+    "description": "AST checks on Python scripts, infer suggested-actions (missing imports, unused vars). Requires package catalog coherence. stdlib ast or pylint/flake8.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:37:02.697578",
+    "updated_at": "2026-02-08T11:49:03.034361"
+  },
+  {
+    "id": "ecdc784e",
+    "title": "META: Fix todo display bug",
+    "description": "Line 616 Os_Toolkit.py - only done shows [x]. Add [~] in-progress, [-] cancelled, [ ] open. Add --status filter flag.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:37:04.740322",
+    "updated_at": "2026-02-08T11:49:03.034367"
+  },
+  {
+    "id": "73e4ccb1",
+    "title": "P1: Design SuggestiveGrepEngine class",
+    "description": "Context-aware grep suggestions based on telemetry/activity/security. Categories: security, project_alignment, activity_inference, system_health.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:46:38.209849",
+    "updated_at": "2026-02-08T11:49:03.034372"
+  },
+  {
+    "id": "5aa3d3cc",
+    "title": "P1: Integrate suggestive grep into latest workflow",
+    "description": "Add SUGGESTED ACTIONS section to latest output with actionable commands.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:46:38.492292",
+    "updated_at": "2026-02-08T11:49:03.034378"
+  },
+  {
+    "id": "933fd1da",
+    "title": "P1: Integrate suggestive grep into check_security",
+    "description": "When security warnings found, append kill/block/check commands.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:46:38.835892",
+    "updated_at": "2026-02-08T11:49:03.034384"
+  },
+  {
+    "id": "39fc3429",
+    "title": "LATER: CLI Command Strategy-Pattern Knowledge Base",
+    "description": "Create .json with linux CLI commands mapped to situations (security/debug/project/health). Integrate with regex patterns and 6W1H classification. Grade suggested action quality, correct arg sequences based on --latest state. Examples: suspect telemetry->check IPs/paths, package installed->track PIDs/connections, clipboard routing->alert weird networking.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T16:55:11.617524",
+    "updated_at": "2026-02-08T11:49:03.034390"
+  },
+  {
+    "id": "cad27f58",
+    "title": "P1: Bidirectional Todo/Mark Sync System",
+    "description": "Sync between ~/.claude/tasks/, plans/todos.json, and #[Mark] annotations. On --latest: read Claude tasks, Os_Toolkit todos, scan marks, reconcile status. Update all three sources to match.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-07T17:02:05.536186",
+    "updated_at": "2026-02-08T11:49:03.034395"
+  },
+  {
+    "id": "440b92ad",
+    "title": "P1: Implement sync_all_todos action",
+    "description": "New action that reads ~/.claude/tasks/*.json, plans/todos.json, scans #[Mark] in codebase. Creates unified view, prompts user for conflicts, updates all sources.",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-07T17:02:05.837588",
+    "updated_at": "2026-02-08T11:49:03.034401"
+  },
+  {
+    "id": "claude_2",
+    "title": "Create trust_registry.json schema and loader",
+    "description": "Implement TrustRegistry class with first-seen tracking for processes, PIDs, and IPs. Initialize on baseline_wakeup. Schema includes: os_components, external_agents, network_trust with verification methods. Priority: P0-security-2",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-07T17:07:27.164475",
+    "updated_at": "2026-02-08T11:49:03.034407"
+  },
+  {
+    "id": "claude_11",
+    "title": "Implement UnifiedTodoSync class in Os_Toolkit.py",
+    "description": "Create class to sync ~/.claude/tasks, plans/todos.json, and #[Mark:] annotations. Methods: read_claude_tasks, read_os_toolkit_todos, scan_code_marks, reconcile, sync_to_os_toolkit, sync_to_marks",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-07T17:07:27.164479",
+    "updated_at": "2026-02-08T11:49:03.034413"
+  },
+  {
+    "id": "claude_8",
+    "title": "Integrate /.claude/plans with export system",
+    "description": "Make /.claude/plans/*.md visible in Os_Toolkit list, integrate with export command. Allow viewing/reviewing plans from CLI. Upgrade legacy export functions. Priority: P1-integration",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T17:07:27.164482",
+    "updated_at": "2026-02-08T11:49:03.034418"
+  },
+  {
+    "id": "claude_4",
+    "title": "Implement SystemLogAnalyzer class",
+    "description": "Create new class for journalctl, auth.log, and syslog parsing. Methods: get_auth_events(), get_systemd_events(), get_network_events(), correlate_with_artifacts(). Priority: P1-logs-1",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T17:07:27.164486",
+    "updated_at": "2026-02-08T11:49:03.034424"
+  },
+  {
+    "id": "claude_6",
+    "title": "Enhance check_security with log correlation",
+    "description": "Cross-reference processes with journalctl, check auth.log for failures, verify network IPs against DNS. Integrate SystemLogAnalyzer into security check action. Priority: P1-logs-3",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T17:07:27.164490",
+    "updated_at": "2026-02-08T11:49:03.034429"
+  },
+  {
+    "id": "claude_9",
+    "title": "Clean up stale/cancelled todos from plans/todos.json",
+    "description": "3 cancelled export tasks (2oe1wmlas, i0an76g64, dlt3w03s7) and stale in-progress items (glyxdtwc5, im4racjei) need status cleanup. Clear dead weight from the todo list.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T17:07:27.164494",
+    "updated_at": "2026-02-08T11:49:03.034435"
+  },
+  {
+    "id": "claude_7",
+    "title": "Extend _generate_6w1h for system events",
+    "description": "Add context_type parameter ('file'|'process'|'service'|'network') and implement event-specific 6W1H generation using SYSTEM_DNA and journalctl data. Priority: P1-6w1h-1",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T17:07:27.164498",
+    "updated_at": "2026-02-08T11:49:03.034441"
+  },
+  {
+    "id": "claude_10",
+    "title": "Verify all Os_Toolkit/Onboarder/Filesync subcommands from CHECKLIST.md",
+    "description": "Most subcommands in CHECKLIST.md are unchecked. Systematic -h and smoke test for each. Pushed into Os_Toolkit todos as CARRY tasks.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T17:07:27.164501",
+    "updated_at": "2026-02-08T11:49:03.034446"
+  },
+  {
+    "id": "claude_13",
+    "title": "Integrate sync into --latest workflow",
+    "description": "Call UnifiedTodoSync at end of latest command, show conflicts, prompt for sync via Zenity",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-07T17:07:27.164505",
+    "updated_at": "2026-02-08T11:49:03.034452"
+  },
+  {
+    "id": "claude_3",
+    "title": "Add telemetry tracking to process/connection analysis",
+    "description": "Enhance _analyze_processes() and _analyze_active_connections() to record first-seen timestamps, PID changes, and verify against trust_registry. Track telemetry for security verification. Priority: P0-security-3",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-07T17:07:27.164509",
+    "updated_at": "2026-02-08T11:49:03.034458"
+  },
+  {
+    "id": "claude_12",
+    "title": "Add sync_all_todos action to ConformityAction framework",
+    "description": "New action in actions dict that runs UnifiedTodoSync.reconcile(), prompts for conflicts, syncs all sources",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-07T17:07:27.164513",
+    "updated_at": "2026-02-08T11:49:03.034464"
+  },
+  {
+    "id": "claude_5",
+    "title": "Add 'logs' subcommand to Os_Toolkit CLI",
+    "description": "New subcommand with --auth, --systemd, --network, --correlate flags for direct log querying. Integrates with SystemLogAnalyzer class. Priority: P1-logs-2",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T17:07:27.164516",
+    "updated_at": "2026-02-08T11:49:03.034469"
+  },
+  {
+    "id": "P3-OPEN",
+    "title": "Orphaned mark in TODOS_CURRENT.md",
+    "description": "### 9. Interactive Drill-Down (query-unified) #[Mark:P3-OPEN]",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T17:07:27.164520",
+    "updated_at": "2026-02-08T11:49:03.034475"
+  },
+  {
+    "id": "P0-COMPLETE",
+    "title": "Orphaned mark in TODOS_CURRENT.md",
+    "description": "### 12. Remove Gemini/Node from SYSTEM_DNA #[Mark:P0-COMPLETE]",
+    "status": "done",
+    "directory": ".",
+    "created_at": "2026-02-07T17:07:27.164524",
+    "updated_at": "2026-02-08T11:49:03.034480"
+  },
+  {
+    "id": "P1-PENDING",
+    "title": "Orphaned mark in TODOS_CURRENT.md",
+    "description": "### 15. Implement SystemLogAnalyzer class #[Mark:P1-PENDING]",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T17:07:27.164528",
+    "updated_at": "2026-02-08T11:49:03.034486"
+  },
+  {
+    "id": "CARRY-PENDING",
+    "title": "Orphaned mark in TODOS_CURRENT.md",
+    "description": "### 22. Verify onboarder subcommands #[Mark:CARRY-PENDING]",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T17:07:27.164532",
+    "updated_at": "2026-02-08T11:49:03.034492"
+  },
+  {
+    "id": "P2-PENDING",
+    "title": "Orphaned mark in TODOS_CURRENT.md",
+    "description": "### 27. Debug Filesync project association (all None) #[Mark:P2-PENDING]",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T17:07:27.164536",
+    "updated_at": "2026-02-08T11:49:03.034497"
+  },
+  {
+    "id": "",
+    "title": "Orphaned mark in TODOS_CURRENT.md",
+    "description": "- **Purpose:** Three-way sync between ~/.claude/tasks/, plans/todos.json, and #[Mark:] annotations",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T17:07:27.164540",
+    "updated_at": "2026-02-08T11:49:03.034503"
+  },
+  {
+    "id": "99adb1f5",
+    "title": "SWEEP1: Zenity helper functions & enhanced display",
+    "description": "Added zenity_forms, zenity_checklist, zenity_progress, zenity_notification, zenity_question, zenity_radiolist, and display_output_with_actions at line 3820. Foundation for all interactive Zenity workflows. Enables Groups 2-7.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T17:17:59.620289",
+    "updated_at": "2026-02-08T11:49:03.034509"
+  },
+  {
+    "id": "024b8ad4",
+    "title": "SWEEP2: High-Impact UX - Query/File/Latest Suggestions",
+    "description": "Added SuggestiveGrepEngine class and integrated --suggest flag into query/file commands. Latest command now shows action radiolist with Zenity. Implemented context-aware CLI suggestions based on file type, security warnings, and todo conflicts. Lines 4160-4360, 4800-4850.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T17:24:20.152722",
+    "updated_at": "2026-02-08T11:49:03.034515"
+  },
+  {
+    "id": "fc4090ce",
+    "title": "Test Deferred Feature",
+    "description": "This tests the new deferred status functionality",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T17:29:10.882639",
+    "updated_at": "2026-02-08T11:49:03.034521"
+  },
+  {
+    "id": "a1d0b21e",
+    "title": "DISTRIBUTION: Implement clean Babel export system",
+    "description": "Phase 1: Version increment, clean structure (bin/lib/data/docs), launcher scripts (babel, install.sh, babel.desktop), auto-generated docs. See BABEL_DISTRIBUTION_PLAN.md for complete vision. Goal: Export creates ready-to-run Babel_v01b from messy dev workspace.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-07T18:28:33.543030",
+    "updated_at": "2026-02-08T11:49:03.034527"
+  },
+  {
+    "id": "claude_1",
+    "title": "Test sync propagation - small test task",
+    "description": "This is a test task to verify that when I create a task in Claude, it propagates to Os_Toolkit todos and potentially to code marks. This should appear in plans/todos.json after sync.",
+    "status": "open",
+    "directory": ".",
+    "created_at": "2026-02-08T11:48:53.075846",
+    "updated_at": "2026-02-08T11:49:03.034533"
+  }
+]

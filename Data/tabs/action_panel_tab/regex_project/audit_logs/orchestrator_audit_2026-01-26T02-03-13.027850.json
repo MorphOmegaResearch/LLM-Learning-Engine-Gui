@@ -1,0 +1,1152 @@
+{
+  "timestamp": "2026-01-26T02-03-13.027850",
+  "code_issues": [
+    {
+      "severity": "high",
+      "category": "integration",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:0:imports",
+      "description": "Missing import: InteractionResolver from interaction_resolver",
+      "suggestion": "Add: from interaction_resolver import InteractionResolver",
+      "confidence": 0.9,
+      "code_excerpt": "# Missing import detected"
+    },
+    {
+      "severity": "high",
+      "category": "integration",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:0:imports",
+      "description": "Missing import: RealizationEngine from realization_engine",
+      "suggestion": "Add: from realization_engine import RealizationEngine",
+      "confidence": 0.9,
+      "code_excerpt": "# Missing import detected"
+    },
+    {
+      "severity": "low",
+      "category": "integration",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:0:imports",
+      "description": "Missing import: KnowledgeManager from orchestrator (self)",
+      "suggestion": "Add: from orchestrator (self) import KnowledgeManager",
+      "confidence": 0.9,
+      "code_excerpt": "# Missing import detected"
+    },
+    {
+      "severity": "high",
+      "category": "integration",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:0:imports",
+      "description": "Missing import: BackupManager from version_manager",
+      "suggestion": "Add: from version_manager import BackupManager",
+      "confidence": 0.9,
+      "code_excerpt": "# Missing import detected"
+    },
+    {
+      "severity": "high",
+      "category": "integration",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:0:imports",
+      "description": "Missing import: JournalSystem from version_manager",
+      "suggestion": "Add: from version_manager import JournalSystem",
+      "confidence": 0.9,
+      "code_excerpt": "# Missing import detected"
+    },
+    {
+      "severity": "high",
+      "category": "integration",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:0:imports",
+      "description": "Missing import: ConversationalTrainer from conversational_trainer",
+      "suggestion": "Add: from conversational_trainer import ConversationalTrainer",
+      "confidence": 0.9,
+      "code_excerpt": "# Missing import detected"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:1543:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "if \"entities_mentioned\" in entry:"
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:177:get_path",
+      "description": "Missing docstring for FunctionDef 'get_path'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:183:KnowledgeManager",
+      "description": "Missing docstring for ClassDef 'KnowledgeManager'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:237:AutoIngestor",
+      "description": "Missing docstring for ClassDef 'AutoIngestor'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:291:GratificationTracker",
+      "description": "Missing docstring for ClassDef 'GratificationTracker'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:302:UnresolvedQuestionPool",
+      "description": "Missing docstring for ClassDef 'UnresolvedQuestionPool'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:320:NovelStoryGenerator",
+      "description": "Missing docstring for ClassDef 'NovelStoryGenerator'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:343:DreamState",
+      "description": "Missing docstring for ClassDef 'DreamState'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:368:TokenLogger",
+      "description": "Missing docstring for ClassDef 'TokenLogger'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:395:SystemMonitor",
+      "description": "Missing docstring for ClassDef 'SystemMonitor'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:427:TimeStateEngine",
+      "description": "Missing docstring for ClassDef 'TimeStateEngine'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:462:ReasoningLogger",
+      "description": "Missing docstring for ClassDef 'ReasoningLogger'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:482:InteractionTypeLearner",
+      "description": "Missing docstring for ClassDef 'InteractionTypeLearner'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:515:PersonaGuard",
+      "description": "Missing docstring for ClassDef 'PersonaGuard'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:543:DialogueModeTracker",
+      "description": "Missing docstring for ClassDef 'DialogueModeTracker'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:554:AltruismManager",
+      "description": "Missing docstring for ClassDef 'AltruismManager'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:616:CreativeActivityEngine",
+      "description": "Missing docstring for ClassDef 'CreativeActivityEngine'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:688:MetacognitiveOrchestrator",
+      "description": "Missing docstring for ClassDef 'MetacognitiveOrchestrator'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:2024:main",
+      "description": "Missing docstring for FunctionDef 'main'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:2073:run_tests",
+      "description": "Missing docstring for FunctionDef 'run_tests'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:29:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:62:to_dict",
+      "description": "Missing docstring for FunctionDef 'to_dict'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:69:from_dict",
+      "description": "Missing docstring for FunctionDef 'from_dict'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:81:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:184:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:190:save_concept",
+      "description": "Missing docstring for FunctionDef 'save_concept'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:214:get_concept",
+      "description": "Missing docstring for FunctionDef 'get_concept'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:217:check_consistency",
+      "description": "Missing docstring for FunctionDef 'check_consistency'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:238:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:245:get_top_candidate",
+      "description": "Missing docstring for FunctionDef 'get_top_candidate'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:251:mark_learned",
+      "description": "Missing docstring for FunctionDef 'mark_learned'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:263:capture_unknowns",
+      "description": "Missing docstring for FunctionDef 'capture_unknowns'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:292:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:295:check",
+      "description": "Missing docstring for FunctionDef 'check'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:303:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:309:add",
+      "description": "Missing docstring for FunctionDef 'add'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:321:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:325:generate",
+      "description": "Missing docstring for FunctionDef 'generate'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:344:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:348:analyze",
+      "description": "Missing docstring for FunctionDef 'analyze'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:369:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:375:log_interaction",
+      "description": "Missing docstring for FunctionDef 'log_interaction'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:396:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:401:get_signals",
+      "description": "Missing docstring for FunctionDef 'get_signals'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:428:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:432:get_fatigue_factor",
+      "description": "Missing docstring for FunctionDef 'get_fatigue_factor'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:443:update_interaction_time",
+      "description": "Missing docstring for FunctionDef 'update_interaction_time'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:446:get_routine_match",
+      "description": "Missing docstring for FunctionDef 'get_routine_match'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:455:get_output_cadence",
+      "description": "Missing docstring for FunctionDef 'get_output_cadence'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:463:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:469:log_thought",
+      "description": "Missing docstring for FunctionDef 'log_thought'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:483:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:489:learn_type",
+      "description": "Missing docstring for FunctionDef 'learn_type'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:516:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:532:validate",
+      "description": "Missing docstring for FunctionDef 'validate'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:544:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:547:determine_mode",
+      "description": "Missing docstring for FunctionDef 'determine_mode'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:555:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:558:calculate",
+      "description": "Missing docstring for FunctionDef 'calculate'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:570:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:579:boost_weight",
+      "description": "Missing docstring for FunctionDef 'boost_weight'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:588:get_weight",
+      "description": "Missing docstring for FunctionDef 'get_weight'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:593:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:599:suggest",
+      "description": "Missing docstring for FunctionDef 'suggest'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:617:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:621:run_simulation",
+      "description": "Missing docstring for FunctionDef 'run_simulation'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:648:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:651:resolve_unknowns",
+      "description": "Missing docstring for FunctionDef 'resolve_unknowns'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:689:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:745:add_thought",
+      "description": "Missing docstring for FunctionDef 'add_thought'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:748:_load_state",
+      "description": "Missing docstring for FunctionDef '_load_state'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:808:_save_state",
+      "description": "Missing docstring for FunctionDef '_save_state'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:830:process_interaction",
+      "description": "Missing docstring for FunctionDef 'process_interaction'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:851:_execute_single_interaction",
+      "description": "Missing docstring for FunctionDef '_execute_single_interaction'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:1410:_contains_pronoun",
+      "description": "Missing docstring for FunctionDef '_contains_pronoun'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:1417:_update_active_domain",
+      "description": "Missing docstring for FunctionDef '_update_active_domain'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:1440:_update_active_persona",
+      "description": "Missing docstring for FunctionDef '_update_active_persona'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:1449:_update_entity_stack",
+      "description": "Missing docstring for FunctionDef '_update_entity_stack'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:1620:_check_sequential_similarity",
+      "description": "Missing docstring for FunctionDef '_check_sequential_similarity'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:1631:_calculate_understanding_stats",
+      "description": "Missing docstring for FunctionDef '_calculate_understanding_stats'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:1754:_handle_situation_command",
+      "description": "Missing docstring for FunctionDef '_handle_situation_command'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:1790:_activate_random_situation",
+      "description": "Missing docstring for FunctionDef '_activate_random_situation'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:1796:_handle_scheduled_dream",
+      "description": "Missing docstring for FunctionDef '_handle_scheduled_dream'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:1837:_handle_teach",
+      "description": "Missing docstring for FunctionDef '_handle_teach'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:1919:_format_token_output",
+      "description": "Missing docstring for FunctionDef '_format_token_output'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:1461:is_property_value",
+      "description": "Missing docstring for FunctionDef 'is_property_value'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "structure",
+      "location": "/home/commander/Desktop/Sandbox/Sandbox3/language/backup/regex_project/orchestrator.py:17:ConversationState",
+      "description": "Class ConversationState missing __init__ method",
+      "suggestion": "Add __init__ method to initialize class properties",
+      "confidence": 0.7,
+      "code_excerpt": null
+    }
+  ],
+  "orchestrator_state": {
+    "class_initialized": true,
+    "components_loaded": [
+      "datetime",
+      "enum",
+      "typing",
+      "interaction_resolver",
+      "realization_engine",
+      "version_manager",
+      "conversational_trainer",
+      "argparse",
+      "json",
+      "os",
+      "sys",
+      "random",
+      "re",
+      "Enum",
+      "Dict",
+      "InteractionResolver",
+      "RealizationEngine",
+      "BackupManager",
+      "time",
+      "ConversationalTrainer"
+    ],
+    "missing_imports": [],
+    "runtime_errors": [],
+    "method_coverage": {
+      "ConversationFlowManager": 7,
+      "ResponseBuilder": 12,
+      "KnowledgeManager": 4,
+      "AutoIngestor": 4,
+      "GratificationTracker": 2,
+      "UnresolvedQuestionPool": 2,
+      "NovelStoryGenerator": 2,
+      "DreamState": 2,
+      "TokenLogger": 2,
+      "SystemMonitor": 2,
+      "TimeStateEngine": 5,
+      "ReasoningLogger": 2,
+      "InteractionTypeLearner": 2,
+      "PersonaGuard": 2,
+      "DialogueModeTracker": 2,
+      "AltruismManager": 2,
+      "FormatManager": 3,
+      "ActivitySuggestionEngine": 2,
+      "CreativeActivityEngine": 2,
+      "ThoughtEngine": 2,
+      "MetacognitiveOrchestrator": 29
+    },
+    "pattern_references": {
+      "level_3_lexical": 1,
+      "level_4_syntax": 3,
+      "level_5_semantics": 1,
+      "level_6_pragmatics": 3,
+      "domain_academic": 7,
+      "domain_technical": 7,
+      "domain_informal": 3,
+      "entities_temporal": 2,
+      "entities_numerical": 1,
+      "entities_properties": 1
+    }
+  },
+  "pattern_matches": [
+    {
+      "line_num": 146,
+      "pattern_name": "re.sub call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 273,
+      "pattern_name": "level_3_lexical",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 273,
+      "pattern_name": "domain_technical",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 273,
+      "pattern_name": "domain_academic",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 273,
+      "pattern_name": "entities_temporal",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 414,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 420,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 538,
+      "pattern_name": "re.compile call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 677,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 834,
+      "pattern_name": "re.split call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 878,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 899,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 900,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 951,
+      "pattern_name": "level_5_semantics",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1008,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 1013,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 1031,
+      "pattern_name": "level_6_pragmatics",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1032,
+      "pattern_name": "level_6_pragmatics",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1196,
+      "pattern_name": "domain_technical",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1196,
+      "pattern_name": "domain_academic",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1197,
+      "pattern_name": "domain_academic",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1413,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 1433,
+      "pattern_name": "domain_technical",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1433,
+      "pattern_name": "domain_academic",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1443,
+      "pattern_name": "domain_academic",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1444,
+      "pattern_name": "domain_technical",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1464,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 1475,
+      "pattern_name": "re.split call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 1490,
+      "pattern_name": "level_4_syntax",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1490,
+      "pattern_name": "domain_technical",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1490,
+      "pattern_name": "domain_academic",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1490,
+      "pattern_name": "entities_properties",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1490,
+      "pattern_name": "entities_temporal",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1691,
+      "pattern_name": "level_4_syntax",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1767,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 1798,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 1799,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 1929,
+      "pattern_name": "level_4_syntax",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1929,
+      "pattern_name": "level_6_pragmatics",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1974,
+      "pattern_name": "domain_academic",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1975,
+      "pattern_name": "domain_technical",
+      "matched": true,
+      "confidence": 1.0
+    }
+  ]
+}

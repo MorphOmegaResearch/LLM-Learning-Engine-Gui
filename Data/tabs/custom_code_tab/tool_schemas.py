@@ -356,6 +356,91 @@ TOOL_SCHEMAS = {
                 "required": ["resource_type", "amount"]
             }
         }
+    },
+
+    # Os_Toolkit Context Commands
+    "ostk_todo_view": {
+        "type": "function",
+        "function": {
+            "name": "ostk_todo_view",
+            "description": "View project tasks and todos. Shows active tasks, their status, and priority.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+
+    "ostk_assess": {
+        "type": "function",
+        "function": {
+            "name": "ostk_assess",
+            "description": "Assess a file for change impact: blast radius, risk warnings, downstream dependents, and AoE vector analysis.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "Path to the file to assess (relative to project root)"
+                    }
+                },
+                "required": ["file_path"]
+            }
+        }
+    },
+
+    "ostk_query": {
+        "type": "function",
+        "function": {
+            "name": "ostk_query",
+            "description": "Query file context: call graph, change history, task associations, and related files.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "Path to the file to query"
+                    },
+                    "graph": {
+                        "type": "boolean",
+                        "description": "Include call graph edges in output"
+                    }
+                },
+                "required": ["file_path"]
+            }
+        }
+    },
+
+    "ostk_explain": {
+        "type": "function",
+        "function": {
+            "name": "ostk_explain",
+            "description": "Explain what was worked on recently. Returns a natural language narrative of recent changes, tasks, and activity.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "since": {
+                        "type": "string",
+                        "description": "Time period: 'last 24h', 'yesterday', 'phase-j', or ISO date"
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+
+    "ostk_latest": {
+        "type": "function",
+        "function": {
+            "name": "ostk_latest",
+            "description": "Get the latest project report: recent changes, task suggestions, temporal analysis, and morph narrative.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
     }
 }
 

@@ -1,0 +1,2052 @@
+#!/usr/bin/env python3  # [MARK:{ ID:N002 }]  # [MARK:{ ID:N002 }]  # [MARK:{ ID:N002 }]  # [MARK:{ ID:N002 }]  # [MARK:{ ID:N002 }]  # [MARK:{ ID:N002 }]
+"""
+Tool Onboarder & Organization System
+====================================
+Non-invasive tool organization with right-click menu, treeview, and co-op nesting.
+Consolidates argparse tools into unified interface with pathfixer integration.
+"""
+
+import os
+import sys
+import json
+import argparse
+import subprocess
+import shutil
+import hashlib
+import datetime
+import tempfile
+import threading
+import re
+from pathlib import Path
+from typing import Dict, List, Set, Tuple, Any, Optional, Union
+from dataclasses import dataclass, field, asdict
+from enum import Enum
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox, scrolledtext
+import ast
+
+# #[EVENT] Setup logging
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(f"/tmp/onboarder_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# DATA STRUCTURES
+# =============================================================================
+
+class ToolCategory(Enum):
+    ANALYZER = "analyzer"
+    ORGANIZER = "organizer"
+    PATHFIXER = "pathfixer"
+    IMPORT_ORG = "import_organizer"
+    UTILITY = "utility"
+    CUSTOM = "custom"
+
+
+class ArgParseType(Enum):
+    POSITIONAL = "positional"
+    OPTIONAL = "optional"
+    FLAG = "flag"
+    SUBPARSER = "subparser"
+
+
+@dataclass
+class ArgParseArgument:
+    """Extracted argparse argument information."""
+    name: str
+    arg_type: ArgParseType
+    help_text: str = ""
+    default: Any = None
+    choices: List[str] = field(default_factory=list)
+    required: bool = False
+    nargs: Optional[str] = None
+    metavar: str = ""
+    dest: str = ""
+    action: str = "store"
+
+
+@dataclass
+class ArgParseCommand:
+    """Extracted argparse command (subparser)."""
+    name: str
+    help_text: str = ""
+    arguments: List[ArgParseArgument] = field(default_factory=list)
+
+
+@dataclass
+class ToolMetadata:
+    """Metadata for a discovered tool."""
+    tool_id: str
+    name: str
+    file_path: Path
+    category: ToolCategory
+    description: str = ""
+    version: str = "1.0.0"
+    has_argparse: bool = False
+    has_tkinter: bool = False
+    main_command: Optional[ArgParseCommand] = None
+    subcommands: List[ArgParseCommand] = field(default_factory=list)
+    global_arguments: List[ArgParseArgument] = field(default_factory=list)
+    dependencies: List[str] = field(default_factory=list)
+    usage_examples: List[str] = field(default_factory=list)
+    discovered_at: str = field(default_factory=lambda: datetime.datetime.now().isoformat())
+    last_used: Optional[str] = None
+    use_count: int = 0
+    efficiency_score: float = 0.0
+    priority: int = 100  # Lower = higher priority
+    tags: List[str] = field(default_factory=list)
+    emitters: List[str] = field(default_factory=list)  # Data fields this tool emits
+
+
+@dataclass
+class OnboardingSession:
+    """Session for tool onboarding."""
+    session_id: str
+    created_at: str
+    tools_dir: Path
+    onboarded_tools: List[ToolMetadata] = field(default_factory=list)
+    consolidated_tools: List[str] = field(default_factory=list)
+    issues_found: List[Dict[str, Any]] = field(default_factory=list)
+    fixes_applied: List[Dict[str, Any]] = field(default_factory=list)
+    current_step: int = 0
+    config: Dict[str, Any] = field(default_factory=dict)
+    log: List[Dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass
+class ToolMenuItem:
+    """Menu item for the consolidated tool menu."""
+    id: str
+    tool_id: str
+    display_name: str
+    category: str
+    command: str
+    arguments: List[Dict[str, Any]] = field(default_factory=list)
+    shortcut: str = ""
+    icon: str = ""
+    enabled: bool = True
+    order: int = 100
+
+
+@dataclass
+class ConsolidatedToolMenu:
+    """Consolidated menu for all tools."""
+    menu_id: str
+    created_at: str
+    version: str
+    tools: List[ToolMenuItem] = field(default_factory=list)
+    categories: List[Dict[str, Any]] = field(default_factory=list)
+    shortcuts: Dict[str, str] = field(default_factory=dict)
+    config: Dict[str, Any] = field(default_factory=dict)
+
+
+# =============================================================================
+# TOOL DISCOVERY & PARSING
+# =============================================================================
+
+class ToolDiscoverer:
+    """Discovers and parses tools in a directory."""
+    
+    def __init__(self, base_dir: Path):
+        self.base_dir = base_dir.resolve()
+        self.tools_dir = base_dir / "org_tools"
+        self.tools_dir.mkdir(exist_ok=True)
+        
+        # Known tool patterns
+        self.tool_patterns = {
+            "analyzer": ["analyzer.py", "code_analyzer.py", "analysis_tool.py"],
+            "organizer": ["organizer.py", "project_organizer.py"],
+            "pathfixer": ["pathfixer.py", "path_fixer.py"],
+            "import_organizer": ["import_organizer.py", "import_org.py"],
+        }
+        
+        # Known tool categories
+        self.known_tools = {
+            "analyzer.py": ToolCategory.ANALYZER,
+            "organizer.py": ToolCategory.ORGANIZER,
+            "pathfixer.py": ToolCategory.PATHFIXER,
+            "import_organizer.py": ToolCategory.IMPORT_ORG,
+        }
+        
+    def discover_tools(self, recursive: bool = True, max_depth: int = 3) -> List[ToolMetadata]:
+        """Discover tools in the directory."""
+        logger.info(f"[EVENT] Discovering tools in {self.base_dir}")
+        
+        tools = []
+        
+        # First, check for known tools
+        for tool_file, category in self.known_tools.items():
+            tool_path = self.base_dir / tool_file
+            if tool_path.exists():
+                tool_meta = self._parse_tool(tool_path, category)
+                if tool_meta:
+                    tools.append(tool_meta)
+                    logger.info(f"[EVENT] Found known tool: {tool_meta.name}")
+        
+        # Scan for other Python tools
+        search_pattern = "**/*.py" if recursive else "*.py"
+        
+        for py_file in self.base_dir.glob(search_pattern):
+            # Skip already processed files and __pycache__
+            if py_file.name in self.known_tools or "__pycache__" in str(py_file):
+                continue
+            
+            # Check if it looks like a tool (has argparse, main function, etc.)
+            if self._looks_like_tool(py_file):
+                category = self._categorize_tool(py_file)
+                tool_meta = self._parse_tool(py_file, category)
+                if tool_meta:
+                    tools.append(tool_meta)
+                    logger.info(f"[EVENT] Discovered tool: {tool_meta.name}")
+        
+        return tools
+    
+    def _looks_like_tool(self, file_path: Path) -> bool:
+        """Check if a file looks like a CLI tool."""
+        try:
+            content = file_path.read_text(encoding='utf-8', errors='ignore')
+            
+            # Heuristics for tool detection
+            checks = [
+                "argparse.ArgumentParser" in content,
+                "def main()" in content and "__name__ == '__main__'" in content,
+                "sys.argv" in content,
+                "click" in content,  # Click framework
+                "fire" in content,   # Google Fire
+                "typer" in content,  # Typer
+            ]
+            
+            return any(checks)
+        except:
+            return False
+    
+    def _categorize_tool(self, file_path: Path) -> ToolCategory:
+        """Categorize a tool based on filename and content."""
+        name_lower = file_path.name.lower()
+        
+        # Check filename patterns
+        if any(pattern in name_lower for pattern in ["analyzer", "analysis", "scan"]):
+            return ToolCategory.ANALYZER
+        elif any(pattern in name_lower for pattern in ["organizer", "organize", "manager"]):
+            return ToolCategory.ORGANIZER
+        elif any(pattern in name_lower for pattern in ["fixer", "fix", "repair"]):
+            return ToolCategory.PATHFIXER
+        elif any(pattern in name_lower for pattern in ["import", "dependency"]):
+            return ToolCategory.IMPORT_ORG
+        else:
+            return ToolCategory.UTILITY
+    
+    def _parse_tool(self, file_path: Path, category: ToolCategory) -> Optional[ToolMetadata]:
+        """Parse a tool file to extract metadata."""
+        try:
+            content = file_path.read_text(encoding='utf-8', errors='ignore')
+            
+            # Generate tool ID
+            file_hash = hashlib.md5(str(file_path).encode()).hexdigest()[:12]
+            tool_id = f"{category.value}_{file_hash}"
+            
+            # Extract name from file
+            tool_name = file_path.stem.replace("_", " ").title()
+            
+            # Parse with AST
+            tree = ast.parse(content)
+            
+            # Extract information
+            has_argparse = self._detect_argparse(tree)
+            has_tkinter = self._detect_tkinter(tree)
+            description = self._extract_description(content)
+            dependencies = self._extract_dependencies(tree)
+            emitters = self._extract_emitters(content)
+            
+            # Extract argparse structure if present
+            main_command, subcommands, global_args = None, [], []
+            if has_argparse:
+                arg_info = self._extract_argparse_info(content)
+                main_command = arg_info.get("main")
+                subcommands = arg_info.get("subcommands", [])
+                global_args = arg_info.get("global_args", [])
+            
+            # Extract usage examples
+            usage_examples = self._extract_usage_examples(content)
+            
+            return ToolMetadata(
+                tool_id=tool_id,
+                name=tool_name,
+                file_path=file_path,
+                category=category,
+                description=description,
+                has_argparse=has_argparse,
+                has_tkinter=has_tkinter,
+                main_command=main_command,
+                subcommands=subcommands,
+                global_arguments=global_args,
+                dependencies=dependencies,
+                usage_examples=usage_examples,
+                emitters=emitters,
+                tags=self._generate_tags(file_path, content, category)
+            )
+            
+        except Exception as e:
+            logger.error(f"[EVENT] Failed to parse tool {file_path}: {e}")
+            return None
+    
+    def _detect_argparse(self, tree: ast.AST) -> bool:
+        """Detect if argparse is used."""
+        class ArgParseDetector(ast.NodeVisitor):
+            def __init__(self):
+                self.found = False
+            
+            def visit_Import(self, node):
+                for alias in node.names:
+                    if alias.name == 'argparse':
+                        self.found = True
+                self.generic_visit(node)
+            
+            def visit_ImportFrom(self, node):
+                if node.module == 'argparse':
+                    self.found = True
+                self.generic_visit(node)
+        
+        detector = ArgParseDetector()
+        detector.visit(tree)
+        return detector.found
+    
+    def _detect_tkinter(self, tree: ast.AST) -> bool:
+        """Detect if tkinter is used."""
+        class TkinterDetector(ast.NodeVisitor):
+            def __init__(self):
+                self.found = False
+            
+            def visit_Import(self, node):
+                for alias in node.names:
+                    if alias.name in ['tkinter', 'Tkinter', 'Tk']:
+                        self.found = True
+                self.generic_visit(node)
+            
+            def visit_ImportFrom(self, node):
+                if node.module and any(tk in node.module for tk in ['tkinter', 'Tkinter']):
+                    self.found = True
+                self.generic_visit(node)
+            
+            def visit_Call(self, node):
+                if isinstance(node.func, ast.Name):
+                    if node.func.id in ['Tk', 'Toplevel', 'Frame', 'Button']:
+                        self.found = True
+                self.generic_visit(node)
+        
+        detector = TkinterDetector()
+        detector.visit(tree)
+        return detector.found
+    
+    def _extract_description(self, content: str) -> str:
+        """Extract description from docstring or comments."""
+        # Try to get module docstring
+        try:
+            tree = ast.parse(content)
+            docstring = ast.get_docstring(tree)
+            if docstring:
+                # Take first paragraph
+                lines = docstring.strip().split('\n')
+                first_para = []
+                for line in lines:
+                    line = line.strip()
+                    if not line:
+                        break
+                    first_para.append(line)
+                return ' '.join(first_para)[:200]  # Limit length
+        except:
+            pass
+        
+        # Look for description in argparse
+        desc_match = re.search(r'description=["\']([^"\']+)["\']', content)
+        if desc_match:
+            return desc_match.group(1)[:200]
+        
+        # Look for file header comment
+        lines = content.split('\n')
+        header_comments = []
+        for line in lines[:20]:  # Check first 20 lines
+            if line.strip().startswith('#'):
+                comment = line.strip('# ').strip()
+                if comment and not comment.startswith('!'):  # Skip shebang
+                    header_comments.append(comment)
+        
+        if header_comments:
+            return ' '.join(header_comments[:3])[:200]
+        
+        return "No description available"
+    
+    def _extract_dependencies(self, tree: ast.AST) -> List[str]:
+        """Extract imported modules as dependencies."""
+        class ImportVisitor(ast.NodeVisitor):
+            def __init__(self):
+                self.imports = []
+            
+            def visit_Import(self, node):
+                for alias in node.names:
+                    self.imports.append(alias.name)
+                self.generic_visit(node)
+            
+            def visit_ImportFrom(self, node):
+                if node.module:
+                    self.imports.append(node.module)
+                self.generic_visit(node)
+        
+        visitor = ImportVisitor()
+        visitor.visit(tree)
+        
+        # Filter out stdlib and common modules
+        stdlib_modules = ['os', 'sys', 'json', 'argparse', 'datetime', 'pathlib', 
+                         'typing', 're', 'logging', 'subprocess', 'shutil', 'tempfile']
+        
+        return [imp for imp in visitor.imports 
+                if imp not in stdlib_modules and not imp.startswith('_')]
+    
+    def _extract_emitters(self, content: str) -> List[str]:
+        """Extract data fields that this tool emits."""
+        emitters = []
+        
+        # Look for common output patterns
+        patterns = [
+            r'output["\']?\s*:\s*["\']([^"\']+)["\']',
+            r'emit["\']?\s*:\s*["\']([^"\']+)["\']',
+            r'export["\']?\s*:\s*["\']([^"\']+)["\']',
+            r'write.*json.*["\']([^"\']+)["\']',
+            r'write.*csv.*["\']([^"\']+)["\']',
+            r'manifest.*["\']([^"\']+)["\']',
+            r'snapshot.*["\']([^"\']+)["\']',
+        ]
+        
+        for pattern in patterns:
+            matches = re.finditer(pattern, content, re.IGNORECASE)
+            for match in matches:
+                emitter = match.group(1)
+                if emitter and emitter not in emitters:
+                    emitters.append(emitter)
+        
+        return emitters
+    
+    def _extract_argparse_info(self, content: str) -> Dict[str, Any]:
+        """Extract argparse structure from content."""
+        # This is a simplified parser - in reality would need full AST parsing
+        # or actually running the script with --help
+        
+        main_command = None
+        subcommands = []
+        global_args = []
+        
+        # Look for ArgumentParser creation
+        parser_match = re.search(r'ArgumentParser\([^)]*description=["\']([^"\']+)["\'][^)]*\)', content)
+        if parser_match:
+            main_command = ArgParseCommand(
+                name="main",
+                help_text=parser_match.group(1)
+            )
+        
+        # Look for add_argument calls
+        arg_pattern = r'add_argument\([^)]*\)'
+        arg_matches = re.finditer(arg_pattern, content)
+        
+        for match in arg_matches:
+            arg_text = match.group(0)
+            
+            # Extract argument name
+            name_match = re.search(r'["\']([^"\']+)["\']', arg_text)
+            if name_match:
+                arg_name = name_match.group(1)
+                
+                # Determine type
+                if arg_name.startswith('-'):
+                    arg_type = ArgParseType.OPTIONAL
+                else:
+                    arg_type = ArgParseType.POSITIONAL
+                
+                # Extract help
+                help_match = re.search(r'help=["\']([^"\']+)["\']', arg_text)
+                help_text = help_match.group(1) if help_match else ""
+                
+                arg = ArgParseArgument(
+                    name=arg_name,
+                    arg_type=arg_type,
+                    help_text=help_text
+                )
+                
+                if arg_type == ArgParseType.POSITIONAL:
+                    if main_command:
+                        main_command.arguments.append(arg)
+                else:
+                    global_args.append(arg)
+        
+        # Look for subparsers
+        subparser_pattern = r'add_subparsers\([^)]*\)'
+        if re.search(subparser_pattern, content):
+            # Find subcommand patterns (simplified)
+            # In reality, would need to parse the subparser.add_parser calls
+            
+            # For now, add placeholder subcommands
+            subcommands = [
+                ArgParseCommand(name="subcommand1", help_text="First subcommand"),
+                ArgParseCommand(name="subcommand2", help_text="Second subcommand"),
+            ]
+        
+        return {
+            "main": main_command,
+            "subcommands": subcommands,
+            "global_args": global_args
+        }
+    
+    def _extract_usage_examples(self, content: str) -> List[str]:
+        """Extract usage examples from comments or docstring."""
+        examples = []
+        
+        # Look for example patterns
+        example_patterns = [
+            r'# Examples?:?\s*\n(?:#\s+.*\n)+',
+            r'"""Examples?:?\s*\n(?:.*\n)+?"""',
+            r"'''Examples?:?\s*\n(?:.*\n)+?'''",
+            r'# Usage?:?\s*\n(?:#\s+.*\n)+',
+        ]
+        
+        for pattern in example_patterns:
+            matches = re.finditer(pattern, content, re.IGNORECASE | re.MULTILINE)
+            for match in matches:
+                example_block = match.group(0)
+                # Clean up the block
+                lines = example_block.split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if line.startswith('#') or line.startswith('"""') or line.startswith("'''"):
+                        line = line.lstrip('#\'" ').strip()
+                    if line and 'example' not in line.lower() and 'usage' not in line.lower():
+                        examples.append(line[:100])  # Limit length
+        
+        return examples[:5]  # Return first 5 examples
+    
+    def _generate_tags(self, file_path: Path, content: str, category: ToolCategory) -> List[str]:
+        """Generate tags for the tool."""
+        tags = [category.value]
+        
+        # Content-based tags
+        content_lower = content.lower()
+        
+        if 'tkinter' in content_lower:
+            tags.append('gui')
+        if 'argparse' in content_lower:
+            tags.append('cli')
+        if 'json' in content_lower:
+            tags.append('json')
+        if 'diff' in content_lower:
+            tags.append('diff')
+        if 'patch' in content_lower:
+            tags.append('patch')
+        if 'scan' in content_lower:
+            tags.append('scanner')
+        if 'fix' in content_lower:
+            tags.append('fixer')
+        if 'organize' in content_lower:
+            tags.append('organizer')
+        
+        # Filename-based tags
+        name_lower = file_path.name.lower()
+        if 'tool' in name_lower:
+            tags.append('tool')
+        if 'util' in name_lower:
+            tags.append('utility')
+        if 'helper' in name_lower:
+            tags.append('helper')
+        
+        return list(set(tags))  # Remove duplicates
+
+
+# =============================================================================
+# TOOL CONSOLIDATION & MENU BUILDER
+# =============================================================================
+
+class ToolConsolidator:
+    """Consolidates multiple tools into a unified interface."""
+    
+    def __init__(self, tools_dir: Path):
+        self.tools_dir = tools_dir
+        self.menu_file = tools_dir / "consolidated_menu.json"
+        self.launcher_file = tools_dir / "launcher.py"
+        
+    def consolidate_tools(self, tools: List[ToolMetadata], 
+                         menu_name: str = "Org Tools") -> ConsolidatedToolMenu:
+        """Consolidate tools into a unified menu."""
+        logger.info(f"[EVENT] Consolidating {len(tools)} tools")
+        
+        # Create menu items from tools
+        menu_items = []
+        category_map = {}
+        
+        for i, tool in enumerate(tools):
+            # Create menu item
+            menu_item = self._create_menu_item(tool, i)
+            menu_items.append(menu_item)
+            
+            # Track categories
+            category = tool.category.value
+            if category not in category_map:
+                category_map[category] = {
+                    "name": category,
+                    "display_name": category.title(),
+                    "count": 0,
+                    "tools": []
+                }
+            category_map[category]["count"] += 1
+            category_map[category]["tools"].append(menu_item.id)
+        
+        # Create categories list
+        categories = list(category_map.values())
+        categories.sort(key=lambda x: x["count"], reverse=True)
+        
+        # Create shortcuts
+        shortcuts = {}
+        for item in menu_items:
+            if item.order <= 26:  # A-Z
+                shortcuts[chr(64 + item.order)] = item.id
+        
+        # Create consolidated menu
+        menu = ConsolidatedToolMenu(
+            menu_id=f"menu_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            created_at=datetime.datetime.now().isoformat(),
+            version="1.0.0",
+            tools=menu_items,
+            categories=categories,
+            shortcuts=shortcuts,
+            config={
+                "name": menu_name,
+                "auto_refresh": True,
+                "show_icons": True,
+                "group_by_category": True,
+                "enable_shortcuts": True,
+                "max_recent_tools": 10,
+            }
+        )
+        
+        # Save menu
+        self._save_menu(menu)
+        
+        # Generate launcher
+        self._generate_launcher(menu)
+        
+        logger.info(f"[EVENT] Created consolidated menu with {len(menu_items)} items")
+        return menu
+    
+    def _create_menu_item(self, tool: ToolMetadata, index: int) -> ToolMenuItem:
+        """Create a menu item from tool metadata."""
+        # Determine command
+        if tool.has_argparse and tool.main_command:
+            # Use the first subcommand or main command
+            if tool.subcommands:
+                command = f"{tool.name.lower()}_{tool.subcommands[0].name}"
+            else:
+                command = tool.name.lower().replace(" ", "_")
+        else:
+            command = tool.name.lower().replace(" ", "_")
+        
+        # Determine display name
+        display_name = tool.name
+        
+        # Create arguments structure
+        arguments = []
+        if tool.global_arguments:
+            for arg in tool.global_arguments[:5]:  # Limit to 5 args
+                arguments.append({
+                    "name": arg.name,
+                    "type": arg.arg_type.value,
+                    "help": arg.help_text,
+                    "required": arg.required
+                })
+        
+        # Assign shortcut based on order
+        shortcut = ""
+        if index < 26:  # A-Z
+            shortcut = chr(65 + index)  # A=65
+        
+        return ToolMenuItem(
+            id=f"tool_{tool.tool_id}",
+            tool_id=tool.tool_id,
+            display_name=display_name,
+            category=tool.category.value,
+            command=command,
+            arguments=arguments,
+            shortcut=shortcut,
+            icon=self._get_icon_for_category(tool.category),
+            order=index + 1
+        )
+    
+    def _get_icon_for_category(self, category: ToolCategory) -> str:
+        """Get icon for tool category."""
+        icons = {
+            ToolCategory.ANALYZER: "📊",
+            ToolCategory.ORGANIZER: "🗂️",
+            ToolCategory.PATHFIXER: "🔧",
+            ToolCategory.IMPORT_ORG: "📦",
+            ToolCategory.UTILITY: "🛠️",
+            ToolCategory.CUSTOM: "🌟",
+        }
+        return icons.get(category, "📄")
+    
+    def _save_menu(self, menu: ConsolidatedToolMenu):
+        """Save menu to JSON file."""
+        menu_data = asdict(menu)
+        
+        with open(self.menu_file, 'w', encoding='utf-8') as f:
+            json.dump(menu_data, f, indent=2, default=str)
+        
+        logger.info(f"[EVENT] Menu saved to {self.menu_file}")
+    
+    def _generate_launcher(self, menu: ConsolidatedToolMenu):
+        """Generate a Python launcher script for the menu."""
+        launcher_content = f'''#!/usr/bin/env python3
+"""
+Consolidated Tool Launcher
+==========================
+Generated: {datetime.datetime.now().isoformat()}
+Version: {menu.version}
+
+Launch tool: {menu.config.get('name', 'Org Tools')}
+"""
+
+import os
+import sys
+import json
+import argparse
+import subprocess
+import tkinter as tk
+from pathlib import Path
+from typing import Dict, List, Any
+
+# Load menu configuration
+MENU_FILE = Path(__file__).parent / "consolidated_menu.json"
+
+def load_menu() -> Dict[str, Any]:
+    """Load the menu configuration."""
+    with open(MENU_FILE, 'r') as f:
+        return json.load(f)
+
+def list_tools(menu_data: Dict[str, Any]):
+    """List all available tools."""
+    print(f"\\n{{'='*60}}")
+    print(f"{{menu_data['config'].get('name', 'Available Tools')}}")
+    print(f"{{'='*60}}")
+
+    categories = {{}}
+    for tool in menu_data['tools']:
+        category = tool['category']
+        if category not in categories:
+            categories[category] = []
+        categories[category].append(tool)
+
+    for category, tools in categories.items():
+        print(f"\\n{{category.upper()}}:")
+        for tool in tools:
+            shortcut = tool.get('shortcut', '')
+            shortcut_display = f" [{{shortcut}}]" if shortcut else ""
+            print(f"  {{tool['display_name']}}{{shortcut_display}}")
+            if tool.get('description'):
+                print(f"    {{tool['description']}}")
+
+def launch_tool(tool_id: str, menu_data: Dict[str, Any], args: List[str] = None):
+    """Launch a specific tool."""
+    for tool in menu_data['tools']:
+        if tool['id'] == tool_id or tool['tool_id'] == tool_id:
+            print(f"Launching: {{tool['display_name']}}")
+            # In a real implementation, this would execute the actual tool
+            # For now, just show what would happen
+            print(f"Tool ID: {{tool['tool_id']}}")
+            print(f"Command: {{tool['command']}}")
+            if args:
+                print(f"Arguments: {{' '.join(args)}}")
+            return True
+    
+    print(f"Tool not found: {{tool_id}}")
+    return False
+
+def launch_gui(menu_data: Dict[str, Any]):
+    """Launch GUI version of the menu."""
+    try:
+        from tkinter import Tk, ttk, messagebox
+        import tkinter as tk
+        
+        class ToolLauncherGUI:
+            def __init__(self, menu_data: Dict[str, Any]):
+                self.menu_data = menu_data
+                self.root = Tk()
+                self.root.title(menu_data['config'].get('name', 'Tool Launcher'))
+                self.root.geometry("800x600")
+                
+                self.setup_ui()
+            
+            def setup_ui(self):
+                # Create notebook for categories
+                notebook = ttk.Notebook(self.root)
+                notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+                
+                # Group tools by category
+                categories = {{}}
+                for tool in self.menu_data['tools']:
+                    category = tool['category']
+                    if category not in categories:
+                        categories[category] = []
+                    categories[category].append(tool)
+                
+                # Create tab for each category
+                for category, tools in categories.items():
+                    frame = ttk.Frame(notebook)
+                    notebook.add(frame, text=category.title())
+                    
+                    # Create listbox for tools
+                    listbox = tk.Listbox(frame, font=("Courier", 12))
+                    scrollbar = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=listbox.yview)
+                    listbox.configure(yscrollcommand=scrollbar.set)
+                    
+                    for tool in tools:
+                        shortcut = tool.get('shortcut', '')
+                        shortcut_display = f" [{{shortcut}}]" if shortcut else ""
+                        listbox.insert(tk.END, f"{{tool['display_name']}}{{shortcut_display}}")
+                    
+                    listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+                    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+                    
+                    # Bind double-click
+                    listbox.bind('<Double-Button-1>', lambda e, t=tools: self.on_tool_selected(t, listbox.curselection()))
+                
+                # Add status bar
+                status_frame = ttk.Frame(self.root)
+                status_frame.pack(fill=tk.X, padx=5, pady=2)
+                
+                ttk.Label(status_frame, 
+                         text=f"{{len(self.menu_data['tools'])}} tools available").pack(side=tk.LEFT)
+                
+                ttk.Button(self.root, text="Refresh", command=self.refresh).pack(pady=5)
+                ttk.Button(self.root, text="Exit", command=self.root.quit).pack(pady=5)
+            
+            def on_tool_selected(self, tools, selection):
+                if selection:
+                    index = selection[0]
+                    if 0 <= index < len(tools):
+                        tool = tools[index]
+                        messagebox.showinfo("Tool Selected", 
+                                          f"Selected: {{tool['display_name']}}\\n\\n"
+                                          f"To launch from CLI:\\n"
+                                          f"  python launcher.py --tool {{tool['id']}}")
+            
+            def refresh(self):
+                messagebox.showinfo("Refresh", "Menu would be refreshed from disk")
+            
+            def run(self):
+                self.root.mainloop()
+        
+        gui = ToolLauncherGUI(menu_data)
+        gui.run()
+        
+    except ImportError as e:
+        print(f"GUI not available: {{e}}")
+        list_tools(menu_data)
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Consolidated Tool Launcher',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=f"""
+Examples:
+  # List all tools
+  {Path(__file__).name} --list
+
+  # Launch specific tool
+  {Path(__file__).name} --tool TOOL_ID [-- ARGS...]
+
+  # Launch GUI
+  {Path(__file__).name} --gui
+
+  # Get help for a tool
+  {Path(__file__).name} --help-tool TOOL_ID
+        """
+    )
+    
+    parser.add_argument('--list', '-l', action='store_true', help='List all available tools')
+    parser.add_argument('--tool', '-t', help='Launch specific tool by ID or name')
+    parser.add_argument('--gui', '-g', action='store_true', help='Launch GUI interface')
+    parser.add_argument('--help-tool', help='Show help for a specific tool')
+    parser.add_argument('args', nargs='*', help='Arguments to pass to the tool')
+    
+    args = parser.parse_args()
+    
+    # Load menu data
+    try:
+        menu_data = load_menu()
+    except Exception as e:
+        print(f"Error loading menu: {{e}}")
+        return 1
+    
+    if args.list:
+        list_tools(menu_data)
+    
+    elif args.tool:
+        launch_tool(args.tool, menu_data, args.args)
+    
+    elif args.gui:
+        launch_gui(menu_data)
+    
+    elif args.help_tool:
+        print(f"Help for tool {{args.help_tool}} would be displayed here")
+        # In reality, would show the tool's --help output
+    
+    else:
+        parser.print_help()
+        print(f"\\nUse --list to see available tools")
+
+if __name__ == '__main__':
+    main()
+'''
+        
+        with open(self.launcher_file, 'w', encoding='utf-8') as f:
+            f.write(launcher_content)
+        
+        # Make executable
+        self.launcher_file.chmod(0o755)
+        
+        logger.info(f"[EVENT] Launcher generated at {self.launcher_file}")
+
+
+# =============================================================================
+# PATHFIXER INTEGRATION
+# =============================================================================
+
+class PathFixerIntegrator:
+    """Integrates with pathfixer for path consolidation."""
+    
+    def __init__(self, tools_dir: Path):
+        self.tools_dir = tools_dir
+        self.pathfixer_path = None
+        
+    def find_pathfixer(self) -> Optional[Path]:
+        """Find pathfixer in the directory tree."""
+        # Check in current directory
+        possible_paths = [
+            self.tools_dir.parent / "pathfixer.py",
+            Path.cwd() / "pathfixer.py",
+            Path(__file__).parent / "pathfixer.py",
+            Path.home() / "pathfixer.py",
+        ]
+        
+        for path in possible_paths:
+            if path.exists():
+                self.pathfixer_path = path
+                logger.info(f"[EVENT] Found pathfixer at {path}")
+                return path
+        
+        logger.warning("[EVENT] Pathfixer not found")
+        return None
+    
+    def consolidate_paths(self, tools: List[ToolMetadata], 
+                         session: OnboardingSession) -> List[Dict[str, Any]]:
+        """Consolidate paths using pathfixer (if available)."""
+        if not self.find_pathfixer():
+            return []
+        
+        fixes_applied = []
+        
+        for tool in tools:
+            # Check if tool has path issues
+            issues = self._scan_tool_for_path_issues(tool)
+            
+            if issues:
+                # Apply fixes using pathfixer
+                fix_result = self._apply_pathfixer_fixes(tool, issues, session)
+                if fix_result:
+                    fixes_applied.append(fix_result)
+                    logger.info(f"[EVENT] Applied path fixes to {tool.name}")
+        
+        return fixes_applied
+    
+    def _scan_tool_for_path_issues(self, tool: ToolMetadata) -> List[Dict[str, Any]]:
+        """Scan a tool for path-related issues."""
+        issues = []
+        
+        try:
+            content = tool.file_path.read_text(encoding='utf-8')
+            
+            # Check for hardcoded paths
+            hardcoded_patterns = [
+                r'["\']/home/[^"\']+["\']',
+                r'["\']/usr/[^"\']+["\']',
+                r'["\']C:\\[^"\']+["\']',
+                r'["\']D:\\[^"\']+["\']',
+                r'["\'][A-Z]:\\\\[^"\']+["\']',
+            ]
+            
+            lines = content.split('\n')
+            for i, line in enumerate(lines, 1):
+                for pattern in hardcoded_patterns:
+                    if re.search(pattern, line):
+                        issues.append({
+                            "file": str(tool.file_path),
+                            "line": i,
+                            "issue": "hardcoded_path",
+                            "content": line.strip(),
+                            "pattern": pattern
+                        })
+            
+            # Check for relative paths that might break
+            relative_patterns = [
+                r'["\']\.\.[\\/][^"\']+["\']',
+                r'["\']\.[\\/][^"\']+["\']',
+            ]
+            
+            for i, line in enumerate(lines, 1):
+                for pattern in relative_patterns:
+                    if re.search(pattern, line):
+                        issues.append({
+                            "file": str(tool.file_path),
+                            "line": i,
+                            "issue": "relative_path",
+                            "content": line.strip(),
+                            "pattern": pattern
+                        })
+        
+        except Exception as e:
+            logger.error(f"[EVENT] Failed to scan {tool.file_path} for path issues: {e}")
+        
+        return issues
+    
+    def _apply_pathfixer_fixes(self, tool: ToolMetadata, issues: List[Dict[str, Any]],
+                              session: OnboardingSession) -> Optional[Dict[str, Any]]:
+        """Apply pathfixer fixes to a tool."""
+        if not self.pathfixer_path:
+            return None
+        
+        try:
+            # Run pathfixer scan on the tool
+            result = subprocess.run(
+                [sys.executable, str(self.pathfixer_path), "scan", str(tool.file_path)],
+                capture_output=True,
+                text=True,
+                cwd=tool.file_path.parent
+            )
+            
+            fix_result = {
+                "tool_id": tool.tool_id,
+                "tool_name": tool.name,
+                "scan_output": result.stdout,
+                "issues_found": len(issues),
+                "timestamp": datetime.datetime.now().isoformat(),
+                "success": result.returncode == 0
+            }
+            
+            # Log to session
+            session.log.append({
+                "timestamp": datetime.datetime.now().isoformat(),
+                "action": "pathfixer_scan",
+                "tool": tool.name,
+                "issues": len(issues),
+                "output": result.stdout[:500]  # Limit log size
+            })
+            
+            return fix_result
+            
+        except Exception as e:
+            logger.error(f"[EVENT] Failed to run pathfixer on {tool.file_path}: {e}")
+            return None
+
+
+# =============================================================================
+# ONBOARDING SESSION MANAGER
+# =============================================================================
+
+class OnboardingManager:
+    """Manages tool onboarding sessions."""
+    
+    def __init__(self, base_dir: Path = None):
+        self.base_dir = base_dir or Path.cwd()
+        self.sessions_dir = self.base_dir / ".onboarding_sessions"
+        self.sessions_dir.mkdir(exist_ok=True)
+        
+        self.current_session = None
+        self.discoverer = ToolDiscoverer(self.base_dir)
+        self.consolidator = ToolConsolidator(self.base_dir / "org_tools")
+        self.pathfixer_integration = PathFixerIntegrator(self.base_dir / "org_tools")
+        
+    def create_session(self, session_name: str = None) -> OnboardingSession:
+        """Create a new onboarding session."""
+        if not session_name:
+            session_name = f"session_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        session = OnboardingSession(
+            session_id=session_name,
+            created_at=datetime.datetime.now().isoformat(),
+            tools_dir=self.base_dir / "org_tools"
+        )
+        
+        self.current_session = session
+        self._save_session(session)
+        
+        logger.info(f"[EVENT] Created onboarding session: {session.session_id}")
+        return session
+    
+    def load_session(self, session_id: str) -> Optional[OnboardingSession]:
+        """Load an existing session."""
+        session_file = self.sessions_dir / f"{session_id}.json"
+        
+        if not session_file.exists():
+            return None
+        
+        try:
+            with open(session_file, 'r', encoding='utf-8') as f:
+                session_data = json.load(f)
+            
+            # Convert paths
+            session_data['tools_dir'] = Path(session_data['tools_dir'])
+            
+            # Convert tool metadata if present
+            if 'onboarded_tools' in session_data:
+                tools = []
+                for tool_data in session_data['onboarded_tools']:
+                    tool_data['file_path'] = Path(tool_data['file_path'])
+                    # Convert category string back to enum
+                    tool_data['category'] = ToolCategory(tool_data['category'])
+                    tools.append(ToolMetadata(**tool_data))
+                session_data['onboarded_tools'] = tools
+            
+            session = OnboardingSession(**session_data)
+            self.current_session = session
+            
+            logger.info(f"[EVENT] Loaded session: {session.session_id}")
+            return session
+            
+        except Exception as e:
+            logger.error(f"[EVENT] Failed to load session {session_id}: {e}")
+            return None
+    
+    def save_current_session(self):
+        """Save the current session."""
+        if self.current_session:
+            self._save_session(self.current_session)
+    
+    def _save_session(self, session: OnboardingSession):
+        """Save a session to disk."""
+        session_data = asdict(session)
+        
+        # Convert Path objects to strings
+        session_data['tools_dir'] = str(session.tools_dir)
+        
+        # Convert tool metadata
+        if session.onboarded_tools:
+            tool_data = []
+            for tool in session.onboarded_tools:
+                tool_dict = asdict(tool)
+                tool_dict['file_path'] = str(tool.file_path)
+                tool_dict['category'] = tool.category.value
+                tool_data.append(tool_dict)
+            session_data['onboarded_tools'] = tool_data
+        
+        session_file = self.sessions_dir / f"{session.session_id}.json"
+        
+        with open(session_file, 'w', encoding='utf-8') as f:
+            json.dump(session_data, f, indent=2, default=str)
+        
+        logger.debug(f"[EVENT] Session saved: {session_file}")
+    
+    def discover_and_onboard(self, recursive: bool = True, 
+                            max_depth: int = 3, 
+                            fix_paths: bool = True) -> List[ToolMetadata]:
+        """Discover and onboard tools."""
+        if not self.current_session:
+            self.create_session()
+        
+        session = self.current_session
+        
+        logger.info(f"[EVENT] Starting tool discovery (recursive: {recursive}, depth: {max_depth})")
+        
+        # Discover tools
+        tools = self.discoverer.discover_tools(recursive, max_depth)
+        
+        # Fix paths if requested and pathfixer available
+        if fix_paths:
+            logger.info("[EVENT] Running pathfixer integration")
+            fixes = self.pathfixer_integration.consolidate_paths(tools, session)
+            session.fixes_applied.extend(fixes)
+        
+        # Update session
+        session.onboarded_tools = tools
+        session.current_step = 1
+        self.save_current_session()
+        
+        logger.info(f"[EVENT] Discovered {len(tools)} tools")
+        return tools
+    
+    def consolidate_tools(self, menu_name: str = "Org Tools") -> ConsolidatedToolMenu:
+        """Consolidate discovered tools into a menu."""
+        if not self.current_session or not self.current_session.onboarded_tools:
+            logger.warning("[EVENT] No tools to consolidate. Run discovery first.")
+            return None
+        
+        session = self.current_session
+        
+        logger.info(f"[EVENT] Consolidating {len(session.onboarded_tools)} tools")
+        
+        # Consolidate tools
+        menu = self.consolidator.consolidate_tools(session.onboarded_tools, menu_name)
+        
+        # Update session
+        session.consolidated_tools = [tool.tool_id for tool in session.onboarded_tools]
+        session.current_step = 2
+        self.save_current_session()
+        
+        logger.info(f"[EVENT] Created consolidated menu with {len(menu.tools)} items")
+        return menu
+
+
+# =============================================================================
+# GUI INTERFACE
+# =============================================================================
+
+class OnboarderGUI:
+    """GUI interface for the onboarder."""
+    
+    def __init__(self, onboarding_manager: OnboardingManager):
+        self.manager = onboarding_manager
+        self.root = None
+        self.tree = None
+        self.current_tools = []
+        
+    def run(self):
+        """Run the GUI."""
+        self.root = tk.Tk()
+        self.root.title("Tool Onboarder & Organizer")
+        self.root.geometry("1200x800")
+        
+        # Setup menu
+        menubar = tk.Menu(self.root)
+        self.root.config(menu=menubar)
+        
+        # File menu
+        file_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="File", menu=file_menu)
+        file_menu.add_command(label="New Session", command=self.new_session)
+        file_menu.add_command(label="Load Session", command=self.load_session)
+        file_menu.add_command(label="Save Session", command=self.save_session)
+        file_menu.add_separator()
+        file_menu.add_command(label="Exit", command=self.root.quit)
+        
+        # Tools menu
+        tools_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Tools", menu=tools_menu)
+        tools_menu.add_command(label="Discover Tools", command=self.discover_tools)
+        tools_menu.add_command(label="Consolidate Tools", command=self.consolidate_tools)
+        tools_menu.add_command(label="Launch Consolidated Menu", command=self.launch_menu)
+        tools_menu.add_separator()
+        tools_menu.add_command(label="Run Pathfixer", command=self.run_pathfixer)
+        
+        # View menu
+        view_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="View", menu=view_menu)
+        view_menu.add_command(label="Refresh", command=self.refresh_view)
+        view_menu.add_command(label="Show Log", command=self.show_log)
+        
+        # Setup main interface
+        self.setup_main_interface()
+        
+        # Start with discovery
+        self.discover_tools()
+        
+        self.root.mainloop()
+    
+    def setup_main_interface(self):
+        """Setup the main GUI interface."""
+        # Create paned window
+        paned = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
+        paned.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Left panel - tool list
+        left_frame = ttk.Frame(paned)
+        paned.add(left_frame, weight=1)
+        
+        # Tool list header
+        ttk.Label(left_frame, text="Discovered Tools", font=("Arial", 12, "bold")).pack(pady=5)
+        
+        # Tool list treeview
+        tree_frame = ttk.Frame(left_frame)
+        tree_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        self.tree = ttk.Treeview(tree_frame, columns=("category", "status", "type"), show="tree headings")
+        
+        # Setup columns
+        self.tree.heading("#0", text="Tool")
+        self.tree.heading("category", text="Category")
+        self.tree.heading("status", text="Status")
+        self.tree.heading("type", text="Type")
+        
+        self.tree.column("#0", width=200)
+        self.tree.column("category", width=100)
+        self.tree.column("status", width=80)
+        self.tree.column("type", width=80)
+        
+        # Scrollbar
+        scrollbar = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL, command=self.tree.yview)
+        self.tree.configure(yscrollcommand=scrollbar.set)
+        
+        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Bind double-click
+        self.tree.bind("<Double-Button-1>", self.on_tool_double_click)
+        
+        # Right panel - tool details
+        right_frame = ttk.Frame(paned)
+        paned.add(right_frame, weight=2)
+        
+        # Tool details notebook
+        notebook = ttk.Notebook(right_frame)
+        notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Overview tab
+        overview_frame = ttk.Frame(notebook)
+        notebook.add(overview_frame, text="Overview")
+        
+        self.overview_text = scrolledtext.ScrolledText(overview_frame, wrap=tk.WORD, height=20)
+        self.overview_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.overview_text.config(state=tk.DISABLED)
+        
+        # Details tab
+        details_frame = ttk.Frame(notebook)
+        notebook.add(details_frame, text="Details")
+        
+        self.details_text = scrolledtext.ScrolledText(details_frame, wrap=tk.WORD, height=20)
+        self.details_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.details_text.config(state=tk.DISABLED)
+        
+        # Commands tab
+        commands_frame = ttk.Frame(notebook)
+        notebook.add(commands_frame, text="Commands")
+        
+        self.commands_text = scrolledtext.ScrolledText(commands_frame, wrap=tk.WORD, height=20)
+        self.commands_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.commands_text.config(state=tk.DISABLED)
+        
+        # Status bar
+        self.status_bar = ttk.Frame(self.root)
+        self.status_bar.pack(fill=tk.X, padx=5, pady=2)
+        
+        self.status_label = ttk.Label(self.status_bar, text="Ready")
+        self.status_label.pack(side=tk.LEFT)
+    
+    def update_status(self, message: str):
+        """Update status bar."""
+        self.status_label.config(text=message)
+        self.root.update()
+    
+    def new_session(self):
+        """Create a new session."""
+        self.manager.create_session()
+        self.update_status("New session created")
+        self.refresh_view()
+    
+    def load_session(self):
+        """Load an existing session."""
+        # In a full implementation, would show a dialog
+        self.update_status("Load session - not implemented")
+    
+    def save_session(self):
+        """Save current session."""
+        self.manager.save_current_session()
+        self.update_status("Session saved")
+    
+    def discover_tools(self):
+        """Discover tools."""
+        self.update_status("Discovering tools...")
+        
+        # Clear tree
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        
+        # Run discovery
+        tools = self.manager.discover_and_onboard()
+        self.current_tools = tools
+        
+        # Populate tree
+        categories = {}
+        for tool in tools:
+            category = tool.category.value
+            if category not in categories:
+                categories[category] = self.tree.insert("", "end", text=category.title(), open=True)
+            
+            # Determine status icon
+            status = "✓" if tool.has_argparse or tool.has_tkinter else "○"
+            tool_type = "CLI" if tool.has_argparse else ("GUI" if tool.has_tkinter else "Unknown")
+            
+            item = self.tree.insert(categories[category], "end", 
+                                   text=tool.name,
+                                   values=(tool.category.value, status, tool_type))
+            
+            # Store tool reference
+            self.tree.set(item, "tool", tool)
+        
+        self.update_status(f"Discovered {len(tools)} tools")
+    
+    def consolidate_tools(self):
+        """Consolidate tools into menu."""
+        self.update_status("Consolidating tools...")
+        
+        menu = self.manager.consolidate_tools()
+        if menu:
+            messagebox.showinfo("Success", 
+                              f"Consolidated {len(menu.tools)} tools into menu.\n\n"
+                              f"Menu saved to: org_tools/consolidated_menu.json\n"
+                              f"Launcher: org_tools/launcher.py")
+            self.update_status(f"Consolidated {len(menu.tools)} tools")
+        else:
+            messagebox.showerror("Error", "No tools to consolidate")
+    
+    def launch_menu(self):
+        """Launch the consolidated menu."""
+        launcher_path = self.manager.base_dir / "org_tools" / "launcher.py"
+        
+        if launcher_path.exists():
+            try:
+                subprocess.Popen([sys.executable, str(launcher_path), "--gui"])
+                self.update_status("Launched consolidated menu")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to launch menu: {e}")
+        else:
+            messagebox.showwarning("Not Found", "Launcher not found. Consolidate tools first.")
+    
+    def run_pathfixer(self):
+        """Run pathfixer on tools."""
+        self.update_status("Running pathfixer...")
+        
+        if self.manager.pathfixer_integration.find_pathfixer():
+            fixes = self.manager.pathfixer_integration.consolidate_paths(
+                self.current_tools, self.manager.current_session
+            )
+            
+            if fixes:
+                messagebox.showinfo("Pathfixer Results", 
+                                  f"Applied {len(fixes)} path fixes")
+                self.update_status(f"Applied {len(fixes)} path fixes")
+            else:
+                messagebox.showinfo("Pathfixer Results", "No path issues found")
+                self.update_status("No path issues found")
+        else:
+            messagebox.showwarning("Pathfixer Not Found", 
+                                 "Pathfixer not found. Skipping path consolidation.")
+            self.update_status("Pathfixer not found")
+    
+    def refresh_view(self):
+        """Refresh the view."""
+        self.discover_tools()
+    
+    def show_log(self):
+        """Show session log."""
+        if self.manager.current_session and self.manager.current_session.log:
+            log_window = tk.Toplevel(self.root)
+            log_window.title("Session Log")
+            log_window.geometry("800x600")
+            
+            log_text = scrolledtext.ScrolledText(log_window, wrap=tk.WORD)
+            log_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+            
+            for entry in self.manager.current_session.log:
+                timestamp = entry.get('timestamp', '')
+                action = entry.get('action', '')
+                log_text.insert(tk.END, f"{timestamp}: {action}\n")
+            
+            log_text.config(state=tk.DISABLED)
+        else:
+            messagebox.showinfo("Log", "No log entries")
+    
+    def on_tool_double_click(self, event):
+        """Handle tool double-click."""
+        item = self.tree.selection()[0]
+        tool = self.tree.set(item, "tool")
+        
+        if tool:
+            self.show_tool_details(tool)
+    
+    def show_tool_details(self, tool: ToolMetadata):
+        """Show details for a tool."""
+        # Update overview
+        self.overview_text.config(state=tk.NORMAL)
+        self.overview_text.delete(1.0, tk.END)
+        
+        overview = f"""
+Tool: {tool.name}
+Category: {tool.category.value}
+Path: {tool.file_path}
+Description: {tool.description}
+
+Has argparse: {tool.has_argparse}
+Has tkinter: {tool.has_tkinter}
+
+Dependencies: {', '.join(tool.dependencies) if tool.dependencies else 'None'}
+Emitters: {', '.join(tool.emitters) if tool.emitters else 'None'}
+Tags: {', '.join(tool.tags)}
+"""
+        self.overview_text.insert(1.0, overview)
+        self.overview_text.config(state=tk.DISABLED)
+        
+        # Update details
+        self.details_text.config(state=tk.NORMAL)
+        self.details_text.delete(1.0, tk.END)
+        
+        details = f"""
+File: {tool.file_path}
+Discovered: {tool.discovered_at}
+Tool ID: {tool.tool_id}
+
+Arguments:
+"""
+        if tool.main_command:
+            details += f"  Main command: {tool.main_command.name}\n"
+            details += f"  Help: {tool.main_command.help_text}\n"
+            
+            if tool.main_command.arguments:
+                details += "  Arguments:\n"
+                for arg in tool.main_command.arguments:
+                    details += f"    - {arg.name}: {arg.help_text}\n"
+        
+        if tool.subcommands:
+            details += f"\n  Subcommands: {len(tool.subcommands)}\n"
+            for sub in tool.subcommands[:3]:  # Show first 3
+                details += f"    - {sub.name}: {sub.help_text}\n"
+            if len(tool.subcommands) > 3:
+                details += f"    ... and {len(tool.subcommands) - 3} more\n"
+        
+        if tool.usage_examples:
+            details += "\nUsage Examples:\n"
+            for example in tool.usage_examples:
+                details += f"  {example}\n"
+        
+        self.details_text.insert(1.0, details)
+        self.details_text.config(state=tk.DISABLED)
+        
+        # Update commands
+        self.commands_text.config(state=tk.NORMAL)
+        self.commands_text.delete(1.0, tk.END)
+        
+        commands = f"""
+Command to run this tool:
+  python {tool.file_path.name} --help
+
+Quick commands:
+"""
+        # Generate example commands
+        if tool.has_argparse:
+            if tool.subcommands:
+                # Use first subcommand
+                sub = tool.subcommands[0]
+                commands += f"  python {tool.file_path.name} {sub.name}\n"
+            elif tool.global_arguments:
+                # Show with first optional argument
+                for arg in tool.global_arguments:
+                    if arg.arg_type == ArgParseType.OPTIONAL:
+                        commands += f"  python {tool.file_path.name} {arg.name} VALUE\n"
+                        break
+        
+        commands += f"""
+Consolidated menu command:
+  python org_tools/launcher.py --tool tool_{tool.tool_id}
+"""
+        self.commands_text.insert(1.0, commands)
+        self.commands_text.config(state=tk.DISABLED)
+
+
+# =============================================================================
+# COMMAND LINE INTERFACE
+# =============================================================================
+
+def main():
+    """Main CLI entry point."""
+    parser = argparse.ArgumentParser(
+        description="Tool Onboarder & Organization System",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Discover tools and create consolidated menu
+  onboarder.py discover --consolidate
+  
+  # Discover tools recursively with path fixing
+  onboarder.py discover --recursive --fix-paths
+  
+  # Launch GUI interface
+  onboarder.py gui
+  
+  # List discovered tools
+  onboarder.py list
+  
+  # Get tool information
+  onboarder.py info --tool TOOL_ID
+  
+  # Run consolidated menu
+  onboarder.py run-menu
+  
+  # Check for path issues
+  onboarder.py check-paths
+
+Workflows:
+  1. Discovery: onboarder.py discover --recursive
+  2. Consolidation: onboarder.py consolidate --name "My Tools"
+  3. Launch: onboarder.py run-menu --gui
+  4. Maintenance: onboarder.py check-paths --fix
+
+Session Management:
+  - Sessions are auto-saved in .onboarding_sessions/
+  - Use --session to specify a session
+  - Use --new-session to start fresh
+        """
+    )
+    
+    subparsers = parser.add_subparsers(dest='command', help='Command to execute')
+    
+    # Discover command
+    discover_parser = subparsers.add_parser('discover', help='Discover tools')
+    discover_parser.add_argument('--recursive', '-r', action='store_true', 
+                               help='Recursive discovery')
+    discover_parser.add_argument('--depth', '-d', type=int, default=3,
+                               help='Maximum recursion depth (default: 3)')
+    discover_parser.add_argument('--fix-paths', '-f', action='store_true',
+                               help='Fix path issues using pathfixer')
+    discover_parser.add_argument('--consolidate', '-c', action='store_true',
+                               help='Consolidate after discovery')
+    discover_parser.add_argument('--session', '-s', help='Session ID')
+    discover_parser.add_argument('--new-session', action='store_true',
+                               help='Start new session')
+    discover_parser.add_argument('--detailed', action='store_true',
+                               help='Show detailed output')
+
+    # Consolidate command
+    consolidate_parser = subparsers.add_parser('consolidate', help='Consolidate tools')
+    consolidate_parser.add_argument('--name', '-n', default="Org Tools",
+                                  help='Menu name (default: "Org Tools")')
+    consolidate_parser.add_argument('--session', '-s', help='Session ID')
+    
+    # GUI command
+    gui_parser = subparsers.add_parser('gui', help='Launch GUI')
+    gui_parser.add_argument('--session', '-s', help='Session ID')
+    
+    # List command
+    list_parser = subparsers.add_parser('list', help='List tools')
+    list_parser.add_argument('--session', '-s', help='Session ID')
+    list_parser.add_argument('--detailed', '-d', action='store_true',
+                           help='Detailed output')
+    list_parser.add_argument('--category', '-c', help='Filter by category')
+    
+    # Info command
+    info_parser = subparsers.add_parser('info', help='Get tool information')
+    info_parser.add_argument('--tool', '-t', required=True, help='Tool ID or name')
+    info_parser.add_argument('--session', '-s', help='Session ID')
+    
+    # Run menu command
+    run_parser = subparsers.add_parser('run-menu', help='Run consolidated menu')
+    run_parser.add_argument('--gui', '-g', action='store_true', help='Launch GUI')
+    run_parser.add_argument('--tool', '-t', help='Run specific tool')
+    run_parser.add_argument('--list', '-l', action='store_true', help='List tools')
+    
+    # Check paths command
+    check_parser = subparsers.add_parser('check-paths', help='Check for path issues')
+    check_parser.add_argument('--fix', '-f', action='store_true', help='Fix issues')
+    check_parser.add_argument('--session', '-s', help='Session ID')
+    
+    # Session command
+    session_parser = subparsers.add_parser('session', help='Session management')
+    session_parser.add_argument('--list', '-l', action='store_true', help='List sessions')
+    session_parser.add_argument('--info', '-i', help='Session ID to show')
+    session_parser.add_argument('--delete', '-d', help='Session ID to delete')
+    
+    args = parser.parse_args()
+    
+    if not args.command:
+        parser.print_help()
+        return
+    
+    # Initialize onboarding manager
+    manager = OnboardingManager()
+    
+    # Handle session
+    if hasattr(args, 'session') and args.session:
+        session = manager.load_session(args.session)
+        if not session:
+            print(f"Session not found: {args.session}")
+            return
+    elif hasattr(args, 'new_session') and args.new_session:
+        manager.create_session()
+    elif manager.current_session is None:
+        # Create default session
+        manager.create_session()
+    
+    # Execute command
+    if args.command == 'discover':
+        handle_discover(args, manager)
+    elif args.command == 'consolidate':
+        handle_consolidate(args, manager)
+    elif args.command == 'gui':
+        handle_gui(args, manager)
+    elif args.command == 'list':
+        handle_list(args, manager)
+    elif args.command == 'info':
+        handle_info(args, manager)
+    elif args.command == 'run-menu':
+        handle_run_menu(args, manager)
+    elif args.command == 'check-paths':
+        handle_check_paths(args, manager)
+    elif args.command == 'session':
+        handle_session(args, manager)
+
+def handle_discover(args, manager: OnboardingManager):
+    """Handle discover command."""
+    print(f"\n{'='*60}")
+    print("TOOL DISCOVERY")
+    print(f"{'='*60}")
+    
+    print(f"Mode: {'Recursive' if args.recursive else 'Current directory only'}")
+    if args.recursive:
+        print(f"Depth: {args.depth}")
+    print(f"Fix paths: {'Yes' if args.fix_paths else 'No'}")
+    
+    # Discover tools
+    tools = manager.discover_and_onboard(
+        recursive=args.recursive,
+        max_depth=args.depth,
+        fix_paths=args.fix_paths
+    )
+    
+    print(f"\nDiscovered {len(tools)} tools:")
+    
+    # Group by category
+    categories = {}
+    for tool in tools:
+        category = tool.category.value
+        if category not in categories:
+            categories[category] = []
+        categories[category].append(tool)
+    
+    for category, cat_tools in categories.items():
+        print(f"\n{category.upper()} ({len(cat_tools)}):")
+        for tool in cat_tools:
+            type_icon = "🖥️" if tool.has_argparse else ("🖼️" if tool.has_tkinter else "📄")
+            print(f"  {type_icon} {tool.name}")
+            if args.detailed:
+                print(f"     {tool.description[:80]}...")
+                if tool.dependencies:
+                    print(f"     Dependencies: {', '.join(tool.dependencies[:3])}")
+    
+    # Consolidate if requested
+    if args.consolidate:
+        print(f"\n{'='*60}")
+        print("CONSOLIDATING TOOLS")
+        print(f"{'='*60}")
+        
+        menu = manager.consolidate_tools()
+        if menu:
+            print(f"Created consolidated menu with {len(menu.tools)} items")
+            print(f"Menu saved to: org_tools/consolidated_menu.json")
+            print(f"Launcher: org_tools/launcher.py")
+            print(f"\nTo run: python org_tools/launcher.py --list")
+    
+    print(f"\nSession: {manager.current_session.session_id}")
+    print(f"{'='*60}")
+
+def handle_consolidate(args, manager: OnboardingManager):
+    """Handle consolidate command."""
+    print(f"\n{'='*60}")
+    print(f"TOOL CONSOLIDATION: {args.name}")
+    print(f"{'='*60}")
+    
+    menu = manager.consolidate_tools(args.name)
+    
+    if menu:
+        print(f"Successfully consolidated {len(menu.tools)} tools")
+        print(f"\nCategories:")
+        for category in menu.categories:
+            print(f"  {category['display_name']}: {category['count']} tools")
+        
+        print(f"\nTop tools:")
+        for tool in sorted(menu.tools, key=lambda x: x.order)[:10]:
+            shortcut = f" [{tool.shortcut}]" if tool.shortcut else ""
+            print(f"  {tool.order:2}. {tool.display_name}{shortcut}")
+        
+        print(f"\nFiles created:")
+        print(f"  org_tools/consolidated_menu.json")
+        print(f"  org_tools/launcher.py")
+        
+        print(f"\nUsage:")
+        print(f"  List tools: python org_tools/launcher.py --list")
+        print(f"  Launch GUI: python org_tools/launcher.py --gui")
+        print(f"  Run tool: python org_tools/launcher.py --tool TOOL_ID")
+    
+    else:
+        print("No tools to consolidate. Run discovery first.")
+    
+    print(f"{'='*60}")
+
+def handle_gui(args, manager: OnboardingManager):
+    """Handle GUI command."""
+    print("Launching GUI...")
+    gui = OnboarderGUI(manager)
+    gui.run()
+
+def handle_list(args, manager: OnboardingManager):
+    """Handle list command."""
+    if not manager.current_session or not manager.current_session.onboarded_tools:
+        print("No tools found. Run discovery first.")
+        return
+    
+    tools = manager.current_session.onboarded_tools
+    
+    # Filter by category if specified
+    if args.category:
+        tools = [t for t in tools if t.category.value == args.category]
+        if not tools:
+            print(f"No tools found in category: {args.category}")
+            return
+    
+    print(f"\n{'='*60}")
+    print(f"TOOLS LIST ({len(tools)} total)")
+    print(f"{'='*60}")
+    
+    if args.detailed:
+        for i, tool in enumerate(tools, 1):
+            print(f"\n{i:3}. {tool.name}")
+            print(f"     ID: {tool.tool_id}")
+            print(f"     Category: {tool.category.value}")
+            print(f"     Path: {tool.file_path}")
+            print(f"     Description: {tool.description}")
+            print(f"     Type: {'CLI' if tool.has_argparse else 'GUI' if tool.has_tkinter else 'Unknown'}")
+            print(f"     Dependencies: {', '.join(tool.dependencies) if tool.dependencies else 'None'}")
+            print(f"     Emitters: {', '.join(tool.emitters) if tool.emitters else 'None'}")
+            print(f"     Tags: {', '.join(tool.tags)}")
+            
+            if tool.usage_examples:
+                print(f"     Examples:")
+                for example in tool.usage_examples[:2]:
+                    print(f"       - {example}")
+    else:
+        # Simple list
+        for i, tool in enumerate(tools, 1):
+            type_icon = "🖥️" if tool.has_argparse else ("🖼️" if tool.has_tkinter else "📄")
+            print(f"{i:3}. {type_icon} {tool.name} ({tool.category.value})")
+            print(f"     {tool.description[:80]}...")
+    
+    print(f"\nUse 'onboarder.py info --tool TOOL_ID' for detailed information")
+    print(f"{'='*60}")
+
+def handle_info(args, manager: OnboardingManager):
+    """Handle info command."""
+    if not manager.current_session or not manager.current_session.onboarded_tools:
+        print("No tools found.")
+        return
+    
+    # Find tool
+    tool = None
+    for t in manager.current_session.onboarded_tools:
+        if t.tool_id == args.tool or t.name.lower() == args.tool.lower():
+            tool = t
+            break
+    
+    if not tool:
+        print(f"Tool not found: {args.tool}")
+        return
+    
+    print(f"\n{'='*60}")
+    print(f"TOOL INFORMATION: {tool.name}")
+    print(f"{'='*60}")
+    
+    print(f"\nBasic Information:")
+    print(f"  Name: {tool.name}")
+    print(f"  ID: {tool.tool_id}")
+    print(f"  Category: {tool.category.value}")
+    print(f"  File: {tool.file_path}")
+    print(f"  Discovered: {tool.discovered_at}")
+    
+    print(f"\nDescription:")
+    print(f"  {tool.description}")
+    
+    print(f"\nCapabilities:")
+    print(f"  Has argparse (CLI): {tool.has_argparse}")
+    print(f"  Has tkinter (GUI): {tool.has_tkinter}")
+    
+    print(f"\nMetadata:")
+    print(f"  Dependencies: {', '.join(tool.dependencies) if tool.dependencies else 'None'}")
+    print(f"  Emitters: {', '.join(tool.emitters) if tool.emitters else 'None'}")
+    print(f"  Tags: {', '.join(tool.tags)}")
+    
+    if tool.usage_examples:
+        print(f"\nUsage Examples:")
+        for example in tool.usage_examples:
+            print(f"  {example}")
+    
+    if tool.has_argparse and tool.main_command:
+        print(f"\nCLI Interface:")
+        print(f"  Main command: {tool.main_command.name}")
+        print(f"  Help: {tool.main_command.help_text}")
+        
+        if tool.main_command.arguments:
+            print(f"  Arguments:")
+            for arg in tool.main_command.arguments:
+                required = " (required)" if arg.required else ""
+                print(f"    - {arg.name}: {arg.help_text}{required}")
+        
+        if tool.subcommands:
+            print(f"  Subcommands ({len(tool.subcommands)}):")
+            for sub in tool.subcommands[:5]:  # Show first 5
+                print(f"    - {sub.name}: {sub.help_text}")
+            if len(tool.subcommands) > 5:
+                print(f"    ... and {len(tool.subcommands) - 5} more")
+    
+    print(f"\nCommands to run:")
+    print(f"  Direct: python {tool.file_path.name} --help")
+    print(f"  Via launcher: python org_tools/launcher.py --tool {tool.tool_id}")
+    
+    print(f"\n{'='*60}")
+
+def handle_run_menu(args, manager: OnboardingManager):
+    """Handle run-menu command."""
+    launcher_path = manager.base_dir / "org_tools" / "launcher.py"
+    
+    if not launcher_path.exists():
+        print("Consolidated menu not found. Run consolidation first.")
+        return
+    
+    # Build command
+    cmd = [sys.executable, str(launcher_path)]
+    
+    if args.gui:
+        cmd.append("--gui")
+    elif args.tool:
+        cmd.extend(["--tool", args.tool])
+    elif args.list:
+        cmd.append("--list")
+    else:
+        cmd.append("--list")  # Default to list
+    
+    print(f"Running: {' '.join(cmd)}")
+    
+    try:
+        subprocess.run(cmd)
+    except Exception as e:
+        print(f"Error running launcher: {e}")
+
+def handle_check_paths(args, manager: OnboardingManager):
+    """Handle check-paths command."""
+    if not manager.current_session or not manager.current_session.onboarded_tools:
+        print("No tools found. Run discovery first.")
+        return
+    
+    tools = manager.current_session.onboarded_tools
+    
+    print(f"\n{'='*60}")
+    print("PATH ISSUES CHECK")
+    print(f"{'='*60}")
+    
+    # Check for pathfixer
+    integrator = PathFixerIntegrator(manager.base_dir / "org_tools")
+    if not integrator.find_pathfixer():
+        print("Pathfixer not found. Skipping path checks.")
+        return
+    
+    # Scan tools
+    issues_found = 0
+    for tool in tools:
+        issues = integrator._scan_tool_for_path_issues(tool)
+        if issues:
+            issues_found += len(issues)
+            print(f"\n{tool.name}: {len(issues)} issues")
+            for issue in issues[:3]:  # Show first 3
+                print(f"  Line {issue['line']}: {issue['issue']}")
+                print(f"    {issue['content'][:80]}...")
+    
+    if issues_found == 0:
+        print("\nNo path issues found.")
+    else:
+        print(f"\nTotal issues found: {issues_found}")
+        
+        if args.fix:
+            print("\nApplying fixes...")
+            fixes = integrator.consolidate_paths(tools, manager.current_session)
+            print(f"Applied {len(fixes)} fixes")
+    
+    print(f"{'='*60}")
+
+def handle_session(args, manager: OnboardingManager):
+    """Handle session command."""
+    sessions_dir = manager.base_dir / ".onboarding_sessions"
+    
+    if args.list:
+        # List all sessions
+        sessions = []
+        for session_file in sessions_dir.glob("*.json"):
+            try:
+                with open(session_file, 'r') as f:
+                    session_data = json.load(f)
+                
+                sessions.append({
+                    "id": session_file.stem,
+                    "created": session_data.get('created_at', ''),
+                    "tools": len(session_data.get('onboarded_tools', [])),
+                    "consolidated": len(session_data.get('consolidated_tools', []))
+                })
+            except:
+                continue
+        
+        if not sessions:
+            print("No sessions found.")
+            return
+        
+        print(f"\n{'='*60}")
+        print("SESSIONS")
+        print(f"{'='*60}")
+        
+        for session in sorted(sessions, key=lambda x: x["created"], reverse=True):
+            print(f"\n{session['id']}")
+            print(f"  Created: {session['created']}")
+            print(f"  Tools: {session['tools']}")
+            print(f"  Consolidated: {session['consolidated']}")
+        
+        print(f"\n{'='*60}")
+    
+    elif args.info:
+        # Show session info
+        session = manager.load_session(args.info)
+        if not session:
+            print(f"Session not found: {args.info}")
+            return
+        
+        print(f"\n{'='*60}")
+        print(f"SESSION: {session.session_id}")
+        print(f"{'='*60}")
+        
+        print(f"Created: {session.created_at}")
+        print(f"Tools directory: {session.tools_dir}")
+        print(f"Tools discovered: {len(session.onboarded_tools)}")
+        print(f"Tools consolidated: {len(session.consolidated_tools)}")
+        print(f"Fixes applied: {len(session.fixes_applied)}")
+        print(f"Current step: {session.current_step}")
+        
+        if session.issues_found:
+            print(f"\nIssues found: {len(session.issues_found)}")
+            for issue in session.issues_found[:5]:
+                print(f"  - {issue.get('type', 'unknown')}: {issue.get('description', '')[:80]}...")
+        
+        print(f"\n{'='*60}")
+    
+    elif args.delete:
+        # Delete session
+        session_file = sessions_dir / f"{args.delete}.json"
+        if session_file.exists():
+            session_file.unlink()
+            print(f"Deleted session: {args.delete}")
+        else:
+            print(f"Session not found: {args.delete}")
+
+if __name__ == "__main__":
+    main()

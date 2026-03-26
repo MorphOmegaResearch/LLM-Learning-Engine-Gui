@@ -1,0 +1,22 @@
+# Farewells Regex Checklist
+
+- [x] `\b(bye|goodbye)\b`
+- [x] `\b(see you later|see you soon)\b`
+- [x] `\b(take care)\b`
+- [x] `\b(have a good one|have a nice day)\b`
+- [x] `\b(catch you later)\b`
+- [x] `\b(talk to you later)\b`
+- [x] `\b(I'm off|I am off)\b`
+- [x] `\b(so long)\b`
+- [x] `\b(cheers)\b`
+- [x] `\b(farewell)\b`
+- [x] `\b(until next time)\b`
+- [x] `\b(I've got to go|I have got to go)\b`
+- [x] `\b(I must be going)\b`
+- [x] `\b(see you around)\b`
+- [x] `\b(keep in touch)\b`
+- [x] `\b(all the best)\b`
+- [x] `\b(peace out)\b`
+- [x] `\b(I'm out of here)\b`
+- [x] `\b(smell you later)\b`
+- [x] `\b(adios)\b`

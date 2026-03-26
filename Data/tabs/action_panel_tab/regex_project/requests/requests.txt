@@ -1,0 +1,10 @@
+\b(can you|could you)\b
+\b(will you|would you)\b
+\b(please)\b
+\b(do you mind)\b
+\b(I'd like|I would like)\b
+\b(I need)\b
+\b(can I have|can I get)\b
+\b(give me)\b
+\b(let me know)\b
+\b(tell me)\b

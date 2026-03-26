@@ -1,0 +1,114 @@
+{
+  "version": "1.0",
+  "schema_type": "hierarchical_taxonomic_manifest",
+  "root_nodes": [
+    {
+      "id": "root_system",
+      "name": "System",
+      "description": "Root of the system taxonomy",
+      "children": [
+        "hardware",
+        "software",
+        "network",
+        "security",
+        "users"
+      ]
+    },
+    {
+      "id": "hardware",
+      "name": "Hardware",
+      "description": "Physical and virtual hardware components",
+      "children": [
+        "processors",
+        "memory",
+        "storage",
+        "network_hw",
+        "graphics",
+        "input_output",
+        "firmware"
+      ]
+    },
+    {
+      "id": "software",
+      "name": "Software",
+      "description": "Operating system, applications, and services",
+      "children": [
+        "os_kernel",
+        "os_system",
+        "applications",
+        "services",
+        "drivers",
+        "libraries",
+        "containers"
+      ]
+    },
+    {
+      "id": "network",
+      "name": "Network",
+      "description": "Network interfaces, connections, and configurations",
+      "children": [
+        "interfaces",
+        "connections",
+        "routing",
+        "firewall",
+        "dns",
+        "services"
+      ]
+    },
+    {
+      "id": "security",
+      "name": "Security",
+      "description": "Security configurations, policies, and events",
+      "children": [
+        "users",
+        "groups",
+        "permissions",
+        "policies",
+        "logs",
+        "alerts"
+      ]
+    },
+    {
+      "id": "users",
+      "name": "Users",
+      "description": "User accounts and sessions",
+      "children": [
+        "local_users",
+        "domain_users",
+        "sessions",
+        "privileges"
+      ]
+    }
+  ],
+  "classification_fields": [
+    "sixw1h_what",
+    "sixw1h_why",
+    "sixw1h_who",
+    "sixw1h_where",
+    "sixw1h_when",
+    "sixw1h_which",
+    "sixw1h_how",
+    "taxonomic_type",
+    "security_context",
+    "artifact_type",
+    "timestamps",
+    "hashes",
+    "size_bytes",
+    "owner",
+    "permissions",
+    "dependencies",
+    "relationships"
+  ],
+  "relationship_types": [
+    "parent_child",
+    "dependency",
+    "communication",
+    "ownership",
+    "access",
+    "modification",
+    "execution",
+    "network_connection",
+    "file_reference",
+    "configuration"
+  ]
+}

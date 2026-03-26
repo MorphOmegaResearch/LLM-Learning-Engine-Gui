@@ -1,0 +1,20 @@
+\b(I don't know|I do not know)\b
+\b(thank you|thanks)\b
+\b(you're welcome|you are welcome)\b
+\b(excuse me)\b
+\b(I'm sorry|I am sorry)\b
+\b(please)\b
+\b(what's new|what is new)\b
+\b(never mind)\b
+\b(see you)\b
+\b(just a moment)\b
+\b(what's done is done)\b
+\b(it is what it is)\b
+\b(for what it's worth)\b
+\b(if you know what I mean)\b
+\b(to make a long story short)\b
+\b(the more the merrier)\b
+\b(sooner or later)\b
+\b(get well soon)\b
+\b(break a leg)\b
+\b(it's not rocket science)\b

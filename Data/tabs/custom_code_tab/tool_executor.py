@@ -1,10 +1,10 @@
-# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Tool Executor - Executes OpenCode tools from model tool_calls
 Bridges Ollama function calling with OpenCode tool system
 """
 
 import asyncio
+import subprocess
 import sys
 from pathlib import Path
 from typing import Dict, Any, Optional
@@ -36,7 +36,15 @@ class ToolExecutor:
                 ResourceRequestTool
             )
             from opencode.config import ToolsConfig
+        except ImportError as e:
+            if "No module named 'rich'" in str(e):
+                log_message("TOOL_EXECUTOR ERROR: The 'rich' library is not installed. Please install it using 'pip install rich'")
+            else:
+                log_message(f"TOOL_EXECUTOR ERROR: Failed to import OpenCode tools: {e}")
+            self.tool_instances = {}
+            return
 
+        try:
             # Create config
             config = ToolsConfig()
 
@@ -66,8 +74,8 @@ class ToolExecutor:
 
             log_message(f"TOOL_EXECUTOR: Initialized {len(self.tool_instances)} tools")
 
-        except ImportError as e:
-            log_message(f"TOOL_EXECUTOR ERROR: Failed to import OpenCode tools: {e}")
+        except Exception as e:
+            log_message(f"TOOL_EXECUTOR ERROR: Failed to initialize OpenCode tools: {e}")
             self.tool_instances = {}
 
     async def execute_tool(self, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
@@ -115,6 +123,53 @@ class ToolExecutor:
                 'error': error_msg
             }
 
+    def _execute_ostk_tool(self, tool_name: str, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute Os_Toolkit subcommand as tool call."""
+        _ostk_path = Path(__file__).parent.parent / "action_panel_tab" / "Os_Toolkit.py"
+        if not _ostk_path.exists():
+            return {"success": False, "output": "", "error": f"Os_Toolkit.py not found at {_ostk_path}"}
+
+        _cmd_map = {
+            "ostk_todo_view": ["todo", "view"],
+            "ostk_assess":    ["assess"],
+            "ostk_query":     ["query"],
+            "ostk_explain":   ["explain"],
+            "ostk_latest":    ["latest"],
+        }
+        _cmd = [sys.executable, str(_ostk_path)] + _cmd_map.get(tool_name, [])
+
+        if args.get("file_path"):
+            _cmd.append(args["file_path"])
+        if args.get("graph"):
+            _cmd.append("--graph")
+        if args.get("since"):
+            _cmd.extend(["--since", args["since"]])
+
+        try:
+            result = subprocess.run(
+                _cmd, capture_output=True, text=True, timeout=15,
+                cwd=str(_ostk_path.parent)
+            )
+            # Strip Os_Toolkit noise lines
+            _out = '\n'.join(
+                l for l in result.stdout.splitlines()
+                if not l.startswith('BABEL_LOG:')
+                and not l.startswith('[+]')
+                and not l.startswith('[-]')
+                and not l.startswith('[*]')
+                and not l.startswith('[]')
+            )
+            log_message(f"TOOL_EXECUTOR: ostk_{tool_name} returned {len(_out)} chars")
+            return {
+                "success": result.returncode == 0,
+                "output": _out.strip()[:2000],
+                "error": result.stderr.strip()[:500] if result.returncode != 0 else None
+            }
+        except subprocess.TimeoutExpired:
+            return {"success": False, "output": "", "error": f"{tool_name} timed out (15s)"}
+        except Exception as e:
+            return {"success": False, "output": "", "error": str(e)}
+
     def execute_tool_sync(self, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """
         Synchronous wrapper for execute_tool.
@@ -126,6 +181,10 @@ class ToolExecutor:
         Returns:
             Tool execution result
         """
+        # Route Os_Toolkit tools to subprocess handler
+        if tool_name.startswith('ostk_'):
+            return self._execute_ostk_tool(tool_name, parameters)
+
         # Create new event loop for async execution
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)

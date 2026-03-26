@@ -1,0 +1,10 @@
+\b(first|second|third|finally)\b
+\b(to begin with|first of all)\b
+\b(in conclusion|to sum up|overall)\b
+\b(by the way|speaking of|incidentally)\b
+\b(however|on the other hand|nevertheless)\b
+\b(furthermore|moreover|in addition)\b
+\b(as I mentioned|as previously stated)\b
+\b(anyway|anyhow|moving on)\b
+\b(for example|for instance)\b
+\b(consequently|as a result|therefore)\b

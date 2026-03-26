@@ -1,0 +1,24 @@
+{
+  "metadata": {
+    "generated": "2026-02-10T03:39:20.795271",
+    "manifest_source": "babel_data/timeline/manifests/manifest_20260210_014747.json",
+    "adjustment_count": 0,
+    "schema_version": "1.0"
+  },
+  "weights": {
+    "backup_now": 0.85,
+    "run_security": 0.8,
+    "check_security": 0.8,
+    "audit_workflow": 0.75,
+    "sync_todos": 0.75,
+    "view_conflicts": 0.7,
+    "consolidate_plans": 0.6,
+    "debug_file": 0.6,
+    "fix_syntax": 0.7,
+    "add_mark": 0.5,
+    "update_memory": 0.6,
+    "view_todos": 0.5,
+    "classify_events": 0.5
+  },
+  "adjustment_history": []
+}

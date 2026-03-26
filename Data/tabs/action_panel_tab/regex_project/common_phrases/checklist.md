@@ -1,0 +1,22 @@
+# Common Phrases Regex Checklist
+
+- [x] `\b(I don't know|I do not know)\b`
+- [x] `\b(thank you|thanks)\b`
+- [x] `\b(you're welcome|you are welcome)\b`
+- [x] `\b(excuse me)\b`
+- [x] `\b(I'm sorry|I am sorry)\b`
+- [x] `\b(please)\b`
+- [x] `\b(what's new|what is new)\b`
+- [x] `\b(never mind)\b`
+- [x] `\b(see you)\b`
+- [x] `\b(just a moment)\b`
+- [x] `\b(what's done is done)\b`
+- [x] `\b(it is what it is)\b`
+- [x] `\b(for what it's worth)\b`
+- [x] `\b(if you know what I mean)\b`
+- [x] `\b(to make a long story short)\b`
+- [x] `\b(the more the merrier)\b`
+- [x] `\b(sooner or later)\b`
+- [x] `\b(get well soon)\b`
+- [x] `\b(break a leg)\b`
+- [x] `\b(it's not rocket science)\b`

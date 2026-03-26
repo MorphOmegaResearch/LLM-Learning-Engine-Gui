@@ -1,0 +1,22 @@
+# Negations Regex Checklist
+
+- [x] `\b(no|nope|nah)\b`
+- [x] `\b(not really)\b`
+- [x] `\b(I disagree)\b`
+- [x] `\b(I don't think so|I do not think so)\b`
+- [x] `\b(absolutely not)\b`
+- [x] `\b(of course not)\b`
+- [x] `\b(no way)\b`
+- [x] `\b(not at all)\b`
+- [x] `\b(I'm not sure|I am not sure)\b`
+- [x] `\b(I can't|I cannot)\b`
+- [x] `\b(I'd rather not)\b`
+- [x] `\b(I'm not convinced)\b`
+- [x] `\b(that's not it)\b`
+- [x] `\b(wrong)\b`
+- [x] `\b(I doubt it)\b`
+- [x] `\b(not likely)\b`
+- [x] `\b(over my dead body)\b`
+- [x] `\b(you must be joking)\b`
+- [x] `\b(not in a million years)\b`
+- [x] `\b(I don't agree)\b`

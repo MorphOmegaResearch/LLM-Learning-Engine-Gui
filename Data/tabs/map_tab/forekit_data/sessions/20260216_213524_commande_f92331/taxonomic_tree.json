@@ -1,0 +1,59 @@
+{
+  "system_root": {
+    "node_id": "system_root",
+    "name": "System: commander-HP-Laptop-14s-dk0xxx",
+    "taxonomy_type": "firmware",
+    "sixw1h": {
+      "what": "Computer System: commander-HP-Laptop-14s-dk0xxx",
+      "why": "Hardware and software platform",
+      "who": "System Manufacturer",
+      "where": "Location: commander-HP-Laptop-14s-dk0xxx",
+      "when": "Boot time: 2026-02-14T15:58:06",
+      "which": "OS: linux, Arch: x86_64",
+      "how": "Integrated hardware and software components"
+    },
+    "parent_id": null,
+    "children_ids": [
+      "hardware_branch",
+      "software_branch"
+    ],
+    "attributes": {},
+    "relationships": []
+  },
+  "hardware_branch": {
+    "node_id": "hardware_branch",
+    "name": "Hardware Components",
+    "taxonomy_type": "controller",
+    "sixw1h": {
+      "what": "Hardware subsystem",
+      "why": "Physical and virtual hardware resources",
+      "who": "Various manufacturers",
+      "where": "Internal system components",
+      "when": "System assembly time",
+      "which": "Processors, memory, storage, etc.",
+      "how": "Interconnected via buses and controllers"
+    },
+    "parent_id": "system_root",
+    "children_ids": [],
+    "attributes": {},
+    "relationships": []
+  },
+  "software_branch": {
+    "node_id": "software_branch",
+    "name": "Software Components",
+    "taxonomy_type": "os_system",
+    "sixw1h": {
+      "what": "Software subsystem",
+      "why": "Operating system, applications, services",
+      "who": "Various developers and vendors",
+      "where": "Installed on storage devices",
+      "when": "Installation and update times",
+      "which": "OS, apps, libraries, drivers, etc.",
+      "how": "Executed by processor, loaded into memory"
+    },
+    "parent_id": "system_root",
+    "children_ids": [],
+    "attributes": {},
+    "relationships": []
+  }
+}

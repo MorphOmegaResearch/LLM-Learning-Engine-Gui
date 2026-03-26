@@ -1,0 +1,77 @@
+{
+  "task_id": "GRACEFUL_FALLBACK_ACTIVITY_BRIDGE_20260126",
+  "mark": "#[MARK:{GRACEFUL_FALLBACK_ACTIVITY_BRIDGE_20260126}]",
+  "file": "activity_integration_bridge.py",
+  "backup": "activity_integration_bridge.py_backup_MARK_INTEGRATION_20260126_131550",
+  "description": "Add comprehensive graceful fallbacks for all dependencies",
+  "status": "pending",
+  "created_at": "2026-01-26T13:15:50",
+  "graceful_fallback_points": [
+    {
+      "component": "FiveWOneHClassifier",
+      "fallback_on_missing": ["baseline_5w1h_classification.json", "regex_pattern_library.json"],
+      "fallback_behavior": "Return minimal classification with confidence=0.0",
+      "fallback_return": {
+        "what": "unknown",
+        "where": "unknown",
+        "when": "unknown",
+        "why": "unknown",
+        "which": "unknown",
+        "how": "unknown",
+        "confidence": 0.0
+      }
+    },
+    {
+      "component": "CapabilityRegistry",
+      "fallback_on_missing": ["capability_registry.json", "no capabilities"],
+      "fallback_behavior": "Return empty list for get_relevant_capabilities()",
+      "fallback_return": []
+    },
+    {
+      "component": "ZenityQuestionQueue",
+      "fallback_on_missing": ["zenity command not found"],
+      "fallback_behavior": "Skip queue processing, log to stdout",
+      "fallback_return": []
+    },
+    {
+      "component": "ActivitySuggestionBridge",
+      "fallback_on_missing": ["no capabilities", "no workflow_manager"],
+      "fallback_behavior": "Return suggestion with relevant_capabilities=[]",
+      "fallback_return": {
+        "activity_type": "consolidation",
+        "reason": "No capabilities available",
+        "relevant_capabilities": [],
+        "suggested_action": "STANDARD_RESPONSE"
+      }
+    }
+  ],
+  "testing_scenarios": [
+    {
+      "scenario": "No JSON config files",
+      "expected": "Classifier returns unknown with 0% confidence",
+      "test_command": "rm *.json && python3 activity_integration_bridge.py"
+    },
+    {
+      "scenario": "No capability_registry.json",
+      "expected": "Registry initializes empty, no errors",
+      "test_command": "python3 -c 'from activity_integration_bridge import CapabilityRegistry; r = CapabilityRegistry(Path(\"nonexistent.json\"))'"
+    },
+    {
+      "scenario": "Zenity not installed",
+      "expected": "Queue processing skipped, returns empty list",
+      "test_command": "PATH=/usr/bin python3 test_epistemic_integration.py"
+    }
+  ],
+  "journal_marks_required": [
+    "#[MARK:{GRACEFUL_FALLBACK_ACTIVITY_BRIDGE_20260126}] - Fallback implementation complete",
+    "#[MARK:{FALLBACK_TEST_CLASSIFIER}] - Classifier fallback tested",
+    "#[MARK:{FALLBACK_TEST_REGISTRY}] - Registry fallback tested",
+    "#[MARK:{FALLBACK_TEST_ZENITY}] - Zenity fallback tested"
+  ],
+  "completion_criteria": {
+    "all_fallbacks_implemented": false,
+    "fallback_tests_passing": false,
+    "no_unhandled_exceptions": false,
+    "journal_marks_logged": false
+  }
+}

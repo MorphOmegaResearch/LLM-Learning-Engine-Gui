@@ -1,0 +1,10 @@
+\b(I|you|he|she|it|we|they)\s+(feel|feels|am|is|are)\s+(happy|sad|angry|tired|okay)\b
+\b\w+\s+(caused|makes|leads to)\s+\w+\b
+\b\w+\s+(is|are)\s+(inside|on|at|under|near)\s+\w+\b
+\b(who|what)\s+is\s+\w+\b
+\b(I|we)\s+(want|need|desire)\s+[\w\s]+\b
+\b\w+\s+(belongs to|is mine|is yours)\b
+\b(it|this)\s+(is|seems|looks)\s+(true|false|correct|wrong)\b
+\b\w+\s+happened\s+(at|on|during)\s+[\w\s]+\b
+\b(stop|start|continue)\s+\w+ing\b
+\b\w+\s+is\s+(better|worse|like|different from)\s+\w+\b

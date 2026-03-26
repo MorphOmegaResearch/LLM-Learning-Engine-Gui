@@ -1,0 +1,174 @@
+{
+  "classification_schema": {
+    "name": "5W1H CLI Tool Classification",
+    "version": "1.0.0",
+    "description": "Baseline classification schema for CLI tools using 5W1H framework",
+    "created": "2024-01-01",
+    "author": "Onboarder System"
+  },
+  
+  "dimensions": {
+    "what": {
+      "description": "What does the tool do? Primary function and output",
+      "regex_patterns": [
+        "^analyze(s|r|ing|ed)?",
+        "^organize(s|r|ing|ed)?",
+        "^fix(es|ing|ed)?",
+        "^scan(s|ning|ned)?",
+        "^convert(s|ing|ed)?",
+        "^extract(s|ing|ed)?",
+        "^validate(s|ing|ed)?",
+        "^generate(s|ing|ed)?",
+        "^transform(s|ing|ed)?",
+        "^clean(s|ing|ed)?"
+      ],
+      "lexical_markers": ["tool", "utility", "processor", "handler", "manager"]
+    },
+    
+    "where": {
+      "description": "Where does the tool operate? Context and environment",
+      "regex_patterns": [
+        "(in|on)_(files?|director(y|ies)|paths?)",
+        "(at|within)_(code|source|project)",
+        "(over|across)_(network|system)",
+        "(throughout|via)_(directory|repo)",
+        "(against|on)_(imports?|dependencies?)"
+      ],
+      "lexical_markers": ["local", "remote", "filesystem", "memory", "disk", "network"]
+    },
+    
+    "when": {
+      "description": "When is the tool used? Temporal context",
+      "regex_patterns": [
+        "pre[-_]?(process|check|verify)",
+        "post[-_]?(process|clean|fix)",
+        "during[-_]?(development|runtime)",
+        "before[-_]?(commit|deploy)",
+        "after[-_]?(change|modify)",
+        "continuous[-_]?(integration|deployment)",
+        "periodic[-_]?(check|scan)",
+        "real[-_]?time",
+        "batch[-_]?(process|run)"
+      ],
+      "lexical_markers": ["timing", "schedule", "interval", "trigger", "event"]
+    },
+    
+    "why": {
+      "description": "Why is the tool needed? Purpose and justification",
+      "regex_patterns": [
+        "to[-_]?(improve|enhance|optimize)",
+        "for[-_]?(maintenance|debugging|testing)",
+        "because[-_]?(of|needed)",
+        "due[-_]?to",
+        "aims?[-_]?to",
+        "purpose[-_]?(is|for)",
+        "goal[-_]?(is|to)",
+        "objective[-_]?(is|to)",
+        "solve(s|ing)?[-_]?(problem|issue)"
+      ],
+      "lexical_markers": ["reason", "benefit", "advantage", "solution", "fix"]
+    },
+    
+    "which": {
+      "description": "Which artifacts does it work with? Targets and scope",
+      "regex_patterns": [
+        "(python|py)[-_]?(files?|modules?)",
+        "json[-_]?(files?|data)",
+        "csv[-_]?(files?|data)",
+        "text[-_]?(files?|documents?)",
+        "image[s]?[-_]?(files?|data)",
+        "binary[-_]?(files?|data)",
+        "config(uration)?[-_]?(files?|data)",
+        "import[s]?[-_]?(statements|lines)",
+        "path[s]?[-_]?(strings?|references?)",
+        "url[s]?[-_]?(links?|addresses?)"
+      ],
+      "lexical_markers": ["target", "input", "output", "format", "type"]
+    },
+    
+    "how": {
+      "description": "How does it work? Mechanism and process",
+      "regex_patterns": [
+        "using[-_]?(regex|pattern)",
+        "via[-_]?(algorithm|method)",
+        "through[-_]?(parsing|scanning)",
+        "by[-_]?(analyzing|processing)",
+        "with[-_]?(ast|tokens|lexer)",
+        "employ(s|ing)?[-_]?(heuristic|rule)",
+        "appl(y|ies|ying)?[-_]?(transformation|operation)",
+        "execut(es|ing)?[-_]?(command|script)",
+        "invok(es|ing)?[-_]?(api|library)",
+        "call(s|ing)?[-_]?(function|method)"
+      ],
+      "lexical_markers": ["method", "approach", "technique", "process", "algorithm"]
+    }
+  },
+  
+  "tool_type_mappings": {
+    "analyzer": {
+      "what": "analyzes code or data",
+      "where": "within source files or data structures",
+      "when": "during development or review",
+      "why": "to identify issues or gather metrics",
+      "which": "source code, imports, dependencies",
+      "how": "using static analysis or pattern matching"
+    },
+    "organizer": {
+      "what": "organizes files or structures",
+      "where": "in directories or projects",
+      "when": "before commits or during cleanup",
+      "why": "to maintain order and standards",
+      "which": "files, directories, project layouts",
+      "how": "by moving, renaming, restructuring"
+    },
+    "pathfixer": {
+      "what": "fixes path references",
+      "where": "in source code and configuration",
+      "when": "after moving files or refactoring",
+      "why": "to ensure correct references",
+      "which": "file paths, import statements, URLs",
+      "how": "using regex replacement and path resolution"
+    },
+    "import_organizer": {
+      "what": "organizes import statements",
+      "where": "in source code files",
+      "when": "during code cleanup",
+      "why": "to improve readability and reduce conflicts",
+      "which": "Python import statements",
+      "how": "by sorting, grouping, and removing duplicates"
+    },
+    "utility": {
+      "what": "performs utility operations",
+      "where": "various contexts",
+      "when": "as needed for specific tasks",
+      "why": "to automate repetitive work",
+      "which": "various file types and data",
+      "how": "through specialized functions"
+    }
+  },
+  
+  "morphological_gaps": {
+    "detection_patterns": [
+      {
+        "gap_type": "lexical_missing",
+        "pattern": "\\b(\\w+)(er|or|ar)\\b",
+        "suggestion": "Check root form for classification"
+      },
+      {
+        "gap_type": "compound_missing",
+        "pattern": "\\b(\\w+)-(\\w+)\\b",
+        "suggestion": "Decompose compound words"
+      },
+      {
+        "gap_type": "abbreviation",
+        "pattern": "\\b[A-Z]{2,}\\b",
+        "suggestion": "Expand abbreviations"
+      },
+      {
+        "gap_type": "verb_noun_conflict",
+        "pattern": "\\b(\\w+ing)\\s+(\\w+)\\b",
+        "suggestion": "Prioritize gerund form for 'what' dimension"
+      }
+    ]
+  }
+}

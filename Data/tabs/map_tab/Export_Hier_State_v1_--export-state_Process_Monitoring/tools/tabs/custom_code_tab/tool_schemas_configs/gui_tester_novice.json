@@ -1,0 +1,13 @@
+{
+  "description": "Tool schema for GUI Tester novice",
+  "type": "gui_tester",
+  "class": "novice",
+  "enabled_tools": {
+    "browser_screenshot": true,
+    "browser_click": true,
+    "browser_type": true,
+    "element_detect": true,
+    "wait": true
+  },
+  "tools": []
+}

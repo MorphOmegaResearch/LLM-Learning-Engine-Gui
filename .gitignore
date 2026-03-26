@@ -111,3 +111,16 @@ archive/
 # OS-specific
 .Trash-*/
 .directory
+
+# ============================================================================
+# Large Reference / Seed Data (ag_forge_tab, action_panel_tab)
+# ============================================================================
+
+# Biological seed pack — files exceeding GitHub's 100MB hard limit
+Data/tabs/ag_forge_tab/modules/Imports/seed_pack/Distribution.tsv
+Data/tabs/ag_forge_tab/modules/Imports/seed_pack/reference.bib
+Data/tabs/ag_forge_tab/modules/Imports/seed_pack/reference.json
+Data/tabs/ag_forge_tab/modules/Imports/seed_pack/TypeMaterial.tsv
+
+# Onboarding session runtime data (>50MB sessions)
+Data/tabs/action_panel_tab/.onboarding_sessions/

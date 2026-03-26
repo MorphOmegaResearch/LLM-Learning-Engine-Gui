@@ -1,0 +1,207 @@
+{
+  "generated": "2026-03-07T22:39:52.305251",
+  "source": "latest_attribution_regex",
+  "count": 95,
+  "suggestions": [
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "task_2802_7",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "task_2802_14",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "aoe_#[Event:0007]_task_29_2",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "aoe_#[Event:0008]_task_29_2",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "aoe_#[Event:0009]_task_29_2",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "aoe_#[Event:0045]_task_29_2",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "aoe_#[Event:0012]_task_29_2",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "aoe_#[Event:0013]_task_29_2",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "aoe_#[Event:0014]_task_29_2",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "aoe_#[Event:0015]_task_29_2",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "aoe_#[Event:0016]_task_29_2",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "aoe_#[Event:0019]_task_29_2",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "task_27_1",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "task_27_3",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "task_29_4",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "task_27_6",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "task_29_5",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "task_27_2",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "task_29_2",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "task_27_4",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0046]",
+      "task_id": "task_29_1",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0056]",
+      "task_id": "task_2802_7",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0056]",
+      "task_id": "task_2802_14",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0056]",
+      "task_id": "aoe_#[Event:0007]_task_29_2",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    },
+    {
+      "type": "link_event",
+      "event_id": "#[Event:0056]",
+      "task_id": "aoe_#[Event:0008]_task_29_2",
+      "file": "Os_Toolkit.py",
+      "confidence": 0.85,
+      "reason": "Os_Toolkit.py matches wherein:Os_Toolkit.py"
+    }
+  ]
+}

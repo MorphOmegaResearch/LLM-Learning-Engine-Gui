@@ -1,0 +1,74 @@
+[22:08:50] #[Event:STATUS_UPDATE] VersionManager initialized
+[22:08:50] #[Event:STATUS_UPDATE] grep_flight traceback engine initialized
+[22:08:50] #[Event:PROFILE] [UI_MISSING] 📥 Loading Profile: Babel Core
+[22:08:50] #[Event:PROFILE] [UI_MISSING]    Tools: 6 custom actions
+[22:08:50] #[Event:ENGINE_LOG]    + Tool: Status -> python3 /home/commander/Desktop/System_Journal/Sys...
+[22:08:50] #[Event:ENGINE_LOG]    + Tool: Analyze -> python3 /home/commander/Desktop/System_Journal/Sys...
+[22:08:50] #[Event:ENGINE_LOG]    + Tool: Sync Todos -> python3 /home/commander/Desktop/System_Journal/Sys...
+[22:08:50] #[Event:ENGINE_LOG]    + Tool: Update Memory -> python3 /home/commander/Desktop/System_Journal/Sys...
+[22:08:50] #[Event:ENGINE_LOG]    + Tool: Security -> python3 /home/commander/Desktop/System_Journal/Sys...
+[22:08:50] #[Event:ENGINE_LOG]    + Tool: Project Report -> python3 /home/commander/Desktop/System_Journal/Sys...
+[22:08:50] #[Event:ENGINE_LOG] Removed existing IPC file: /run/user/1000/grep_flight_ipc_commander.fifo
+[22:08:50] #[Event:STATUS_UPDATE] ✓ IPC FIFO created: /run/user/1000/grep_flight_ipc_commander.fifo
+[22:08:50] #[Event:STATUS_UPDATE] ✓ IPC FIFO opened for reading (fd=4)
+[22:08:50] #[Event:IPC] [UI_MISSING] 📡 IPC READY
+   FIFO: /run/user/1000/grep_flight_ipc_commander.fifo
+   Listening for target.sh...
+[22:08:50] #[Event:INFO_IPC_SETUP] [INFO] ipc_setup | {'path': '/run/user/1000/grep_flight_ipc_commander.fifo'} → {'status': 'created'}
+[22:08:50] #[Event:STATUS_UPDATE] Refreshing task list from Babel todos
+[22:08:50] #[Event:TASK_REFRESH_TASK_LIST] [TASK] refresh_task_list | {'source': 'babel_todos', 'file': '/home/commander/Desktop/System_Journal/System_Journal/inventory/tools/scripts/Babel_v01a/plans/todos.json'} → {'count': 103, 'plan_linked': 0, 'system': 0, 'unknown': 103}
+[22:08:50] #[Event:UI_EVENT_CHAT_TAB_INIT_START] [UI_EVENT] chat_tab_init_START | {'method': '_create_chat_tab', 'file': 'grep_flight_babel.py', 'line': 2232, 'args': '()', 'kwargs': '{}'} → {'status': 'triggered'}
+[22:08:50] #[Event:WARNING] [UI_MISSING] ⚠️ No Morph profiles found. Drop profiles in: babel_data/providers/morph/morph_profiles/
+[22:08:50] #[Event:WARNING] Ollama CLI not found in PATH
+[22:08:50] #[Event:WARNING] [UI_MISSING] ⚠️ Ollama not installed - Download from https://ollama.ai
+[22:08:50] #[Event:ENGINE_LOG] [UI_MISSING] 📋 Loaded 2 models for Ollama
+[22:08:50] #[Event:STATUS_UPDATE] 📋 Loaded 2 models for Ollama
+[22:08:50] #[Event:SESSION_SESSION_PRIMED] [SESSION] session_primed | {'session_id': '20260209_220850', 'provider': 'Ollama', 'model': '⚠️ Ollama not available'} → {'status': 'primed', 'path': '/home/commander/Desktop/System_Journal/System_Journal/inventory/tools/scripts/Babel_v01a/babel_data/sessions/session_20260209_220850.jsonl', 'file_created': False}
+[22:08:50] #[Event:SESSION_PATH] /home/commander/Desktop/System_Journal/System_Journal/inventory/tools/scripts/Babel_v01a/babel_data/sessions/session_20260209_220850.jsonl
+[22:08:50] #[Event:UI_EVENT_CHAT_TAB_INIT_SUCCESS] [UI_EVENT] chat_tab_init_SUCCESS | {'method': '_create_chat_tab', 'file': 'grep_flight_babel.py', 'line': 2232, 'args': '()', 'kwargs': '{}'} → {'status': 'completed'}
+[22:08:50] #[Event:STATUS_UPDATE] [UI_MISSING] 📋 Loaded 12 provisions (local + unified)
+[22:08:50] #[Event:ENGINE_LOG] [UI_MISSING] 🏛️ Babel Catalog Refreshed: 4 categories, 146 items
+[22:08:50] #[Event:ENGINE_LOG] [UI_MISSING] 🏛️ Babel Catalog Refreshed: 4 categories, 146 items
+[22:08:50] #[Event:ENGINE_LOG] Binding keyboard shortcuts...
+[22:08:50] #[Event:ENGINE_LOG]   Ctrl+B bound (toggle expand)
+[22:08:50] #[Event:ENGINE_LOG]   Ctrl+T bound (browse target)
+[22:08:50] #[Event:ENGINE_LOG]   Ctrl+F bound (focus pattern)
+[22:08:50] #[Event:ENGINE_LOG]   Ctrl+G bound (execute grep)
+[22:08:50] #[Event:ENGINE_LOG]   Ctrl+P bound (show traceback)
+[22:08:50] #[Event:ENGINE_LOG]   Ctrl+D bound (show traceback - same as Ctrl+P)
+[22:08:50] #[Event:ENGINE_LOG]   Ctrl+Q bound (quit with confirmation)
+[22:08:50] #[Event:ENGINE_LOG]   Esc bound (smart escape handler)
+[22:08:50] #[Event:ENGINE_LOG] All keyboard shortcuts bound successfully
+
+============================================================
+🚀 GREP FLIGHT V2 - DEBUG MODE ENABLED
+============================================================
+Keyboard Shortcuts:
+  Ctrl+D  - Show/hide debug log window
+  Ctrl+P  - Show/hide traceback window
+  Ctrl+B  - Toggle panel expand/collapse
+  Ctrl+G  - Execute grep search
+  Ctrl+Q  - Quit application
+  Esc     - Smart close (popups → collapse panel)
+============================================================
+Debug logging to console AND debug window...
+============================================================
+
+[22:08:50] #[Event:ENGINE_LOG] ============================================================
+[22:08:50] #[Event:ENGINE_LOG] GREP FLIGHT V2 INITIALIZED
+[22:08:50] #[Event:ENGINE_LOG] ============================================================
+[22:08:50] #[Event:ENGINE_LOG] Screen size: 1920x1080
+[22:08:50] #[Event:ENGINE_LOG] Panel height: 36px
+[22:08:50] #[Event:ENGINE_LOG] Expanded height: 320px
+[22:08:50] #[Event:STATUS_UPDATE] Tab Changed: 🔍 Grep
+[22:08:50] #[Event:STATUS_UPDATE] Inventory Tab Changed: 📂 Files
+[22:08:51] #[Event:DEBUG_UI_PROFILE] [DEBUG] ui_profile | {'buttons': 34, 'labels': 5, 'entries': 2, 'frames': 11, 'listboxes': 0} → {'status': 'profiled'}
+[22:08:51] #[Event:DEBUG_UI_PROFILE] [DEBUG] ui_profile | {'buttons': 98, 'labels': 37, 'entries': 4, 'frames': 84, 'listboxes': 7} → {'status': 'profiled'}
+[22:08:58] #[Event:ENGINE_LOG] State set to 1, target height: 356
+[22:08:58] #[Event:ENGINE_LOG] Animation complete
+[22:08:59] #[Event:STATUS_UPDATE] Tab Changed: 📋 Tasks
+[22:08:59] #[Event:DEBUG_UI_PROFILE] [DEBUG] ui_profile | {'buttons': 12, 'labels': 9, 'entries': 1, 'frames': 20, 'listboxes': 2} → {'status': 'profiled'}
+[22:09:20] #[Event:ENGINE_LOG] State set to 2, target height: 636
+[22:09:21] #[Event:ENGINE_LOG] Animation complete
+[22:09:34] #[Event:ENGINE_LOG] State set to 1, target height: 356
+[22:09:34] #[Event:ENGINE_LOG] Animation complete

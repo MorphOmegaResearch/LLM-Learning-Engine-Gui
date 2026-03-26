@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-BASE_DIR="/home/commander/Desktop/BackupOpencode/versions/v1.2"
-ROOT_DIR="/home/commander/Desktop/BackupOpencode"
+BASE_DIR="/home/commander/Trainer/Data/tabs/custom_code_tab/"
+ROOT_DIR="/home/commander/Trainer/Data/tabs/custom_code_tab"
 VERS_DIR="$ROOT_DIR/versions"
 label="v1.2"
 

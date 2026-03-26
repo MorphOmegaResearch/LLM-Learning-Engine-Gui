@@ -1,0 +1,10 @@
+\b(honey|hon)\b
+\b(sweetheart|sweetie)\b
+\b(dear|darling)\b
+\b(love|luv)\b
+\b(babe|baby)\b
+\b(sugar)\b
+\b(sunshine)\b
+\b(my friend)\b
+\b(buddy|pal)\b
+\b(dude|man)\b

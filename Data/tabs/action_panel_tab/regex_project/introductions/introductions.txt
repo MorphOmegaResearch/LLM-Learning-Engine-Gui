@@ -1,0 +1,10 @@
+\b(I'm|I am)\b
+\b(my name is|my name's)\b
+\b(nice to meet you)\b
+\b(pleased to meet you)\b
+\b(let me introduce myself)\b
+\b(I don't think we've met)\b
+\b(have we met before)\b
+\b(this is)\b
+\b(I'd like you to meet)\b
+\b(it's a pleasure to meet you)\b

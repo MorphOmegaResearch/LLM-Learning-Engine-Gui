@@ -1,0 +1,22 @@
+# Questions Regex Checklist
+
+- [x] `\b(what are you doing|what're you doing)\b`
+- [x] `\b(how is your day|how's your day)\b`
+- [x] `\b(can you help me|can you help)\b`
+- [x] `\b(what is this|what's this)\b`
+- [x] `\b(where are you from|where're you from)\b`
+- [x] `\b(do you understand)\b`
+- [x] `\b(are you sure|'r you sure)\b`
+- [x] `\b(what time is it)\b`
+- [x] `\b(could you repeat that)\b`
+- [x] `\b(what do you mean)\b`
+- [x] `\b(what is your name|what's your name)\b`
+- [x] `\b(how old are you)\b`
+- [x] `\b(what is going on)\b`
+- [x] `\b(are you kidding me)\b`
+- [x] `\b(what's the matter)\b`
+- [x] `\b(is everything ok)\b`
+- [x] `\b(what's the weather like)\b`
+- [x] `\b(can I ask you something)\b`
+- [x] `\b(what are you talking about)\b`
+- [x] `\b(are you busy)\b`

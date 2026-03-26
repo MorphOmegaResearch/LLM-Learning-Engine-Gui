@@ -1,0 +1,8 @@
+{
+  "enabled_tools": [
+    "file_read", "file_write", "file_edit", "file_search", "grep_search",
+    "directory_list", "bash_execute", "change_directory",
+    "ostk_todo_view", "ostk_assess", "ostk_query", "ostk_explain", "ostk_latest"
+  ],
+  "description": "Developer + Os_Toolkit - File ops + project context tools"
+}

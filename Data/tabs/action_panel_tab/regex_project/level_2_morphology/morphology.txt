@@ -1,0 +1,10 @@
+\w+ing\b
+\w+ed\b
+\w+s\b
+\w+ly\b
+\bpre\w+
+\bun\w+
+\bnon\w+
+\w+ment\b
+\w+ness\b
+\w+'s\b

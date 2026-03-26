@@ -1,0 +1,201 @@
+{
+  "description": "Tool schema for Planner skilled",
+  "type": "planner",
+  "class": "skilled",
+  "enabled_tools": {
+    "file_read": true,
+    "file_write": true,
+    "web_fetch": true,
+    "read_plans": true,
+    "create_plan": true,
+    "link_plan_to_todo": true,
+    "estimate_duration": true
+  },
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "file_read",
+        "description": "Read the contents of a file. Returns the file content as text.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "file_path": {
+              "type": "string",
+              "description": "Path to the file to read (relative to working directory)"
+            },
+            "start_line": {
+              "type": "integer",
+              "description": "Starting line number (optional, 1-indexed)"
+            },
+            "end_line": {
+              "type": "integer",
+              "description": "Ending line number (optional, inclusive)"
+            }
+          },
+          "required": [
+            "file_path"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "file_write",
+        "description": "Write content to a file. Creates new file or overwrites existing file.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "file_path": {
+              "type": "string",
+              "description": "Path to the file to write"
+            },
+            "content": {
+              "type": "string",
+              "description": "Content to write to the file"
+            }
+          },
+          "required": [
+            "file_path",
+            "content"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "read_plans",
+        "description": "Read existing implementation plans from System_Audit/Plans/ directory. Returns list of available plans with summaries.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "search_term": {
+              "type": "string",
+              "description": "Optional search term to filter plans by name or content"
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "create_plan",
+        "description": "Generate a new implementation plan with TODO items. Creates plan file in System_Audit/Plans/ and returns plan ID.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "plan_name": {
+              "type": "string",
+              "description": "Name of the plan (e.g., 'User_Authentication_Plan')"
+            },
+            "description": {
+              "type": "string",
+              "description": "High-level description of what the plan accomplishes"
+            },
+            "tasks": {
+              "type": "array",
+              "description": "List of tasks/TODOs in the plan",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "title": {"type": "string"},
+                  "description": {"type": "string"},
+                  "estimated_hours": {"type": "number"},
+                  "assigned_role": {"type": "string", "enum": ["coder", "debugger", "researcher", "planner", "general"]},
+                  "dependencies": {"type": "array", "items": {"type": "string"}}
+                }
+              }
+            }
+          },
+          "required": ["plan_name", "description", "tasks"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "link_plan_to_todo",
+        "description": "Link an implementation plan to existing TODO items. Creates bidirectional references.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "plan_id": {
+              "type": "string",
+              "description": "ID of the plan to link"
+            },
+            "todo_path": {
+              "type": "string",
+              "description": "Path to the TODO file to link"
+            }
+          },
+          "required": ["plan_id", "todo_path"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "estimate_duration",
+        "description": "Estimate duration for a task based on complexity and similar past tasks.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "task_description": {
+              "type": "string",
+              "description": "Description of the task to estimate"
+            },
+            "complexity": {
+              "type": "string",
+              "enum": ["simple", "moderate", "complex", "very_complex"],
+              "description": "Estimated complexity level"
+            }
+          },
+          "required": ["task_description", "complexity"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "add_todo_to_plan",
+        "description": "Add a single TODO task to an existing plan. Can specify type (task/test/etc) and link to plan.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "plan_id": {
+              "type": "string",
+              "description": "ID of the plan to add task to"
+            },
+            "task_title": {
+              "type": "string",
+              "description": "Title of the TODO task"
+            },
+            "task_type": {
+              "type": "string",
+              "enum": ["task", "test", "bug", "feature", "doc"],
+              "description": "Type of TODO item"
+            },
+            "description": {
+              "type": "string",
+              "description": "Detailed description of the task"
+            },
+            "assigned_role": {
+              "type": "string",
+              "enum": ["coder", "debugger", "researcher", "planner", "general"],
+              "description": "Agent role to assign"
+            },
+            "estimated_hours": {
+              "type": "number",
+              "description": "Estimated hours to complete"
+            }
+          },
+          "required": ["plan_id", "task_title", "task_type"]
+        }
+      }
+    }
+  ]
+}

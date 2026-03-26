@@ -1,0 +1,2308 @@
+{
+  "system_root": {
+    "node_id": "system_root",
+    "name": "System: commander-HP-Laptop-14s-dk0xxx",
+    "taxonomy_type": "firmware",
+    "sixw1h": {
+      "what": "Computer System: commander-HP-Laptop-14s-dk0xxx",
+      "why": "Hardware and software platform",
+      "who": "System Manufacturer",
+      "where": "Location: commander-HP-Laptop-14s-dk0xxx",
+      "when": "Boot time: 2026-02-14T15:58:06",
+      "which": "OS: linux, Arch: x86_64",
+      "how": "Integrated hardware and software components"
+    },
+    "parent_id": null,
+    "children_ids": [
+      "hardware_branch",
+      "software_branch"
+    ],
+    "attributes": {},
+    "relationships": []
+  },
+  "hardware_branch": {
+    "node_id": "hardware_branch",
+    "name": "Hardware Components",
+    "taxonomy_type": "controller",
+    "sixw1h": {
+      "what": "Hardware subsystem",
+      "why": "Physical and virtual hardware resources",
+      "who": "Various manufacturers",
+      "where": "Internal system components",
+      "when": "System assembly time",
+      "which": "Processors, memory, storage, etc.",
+      "how": "Interconnected via buses and controllers"
+    },
+    "parent_id": "system_root",
+    "children_ids": [
+      "cpu_3",
+      "memory_system",
+      "storage_loop0",
+      "storage_loop1",
+      "storage_loop2",
+      "storage_loop3",
+      "storage_loop4",
+      "storage_loop5",
+      "storage_loop6",
+      "storage_loop7",
+      "storage_loop8",
+      "storage_loop9",
+      "storage_nvme0n1",
+      "net_hw_wlp3s0",
+      "net_hw_eno1",
+      "net_hw_lo",
+      "net_iface_lo",
+      "net_iface_eno1",
+      "net_iface_wlp3s0",
+      "storage_loop10"
+    ],
+    "attributes": {},
+    "relationships": []
+  },
+  "software_branch": {
+    "node_id": "software_branch",
+    "name": "Software Components",
+    "taxonomy_type": "os_system",
+    "sixw1h": {
+      "what": "Software subsystem",
+      "why": "Operating system, applications, services",
+      "who": "Various developers and vendors",
+      "where": "Installed on storage devices",
+      "when": "Installation and update times",
+      "which": "OS, apps, libraries, drivers, etc.",
+      "how": "Executed by processor, loaded into memory"
+    },
+    "parent_id": "system_root",
+    "children_ids": [
+      "package_0000",
+      "package_0001",
+      "package_0002",
+      "package_0003",
+      "package_0004",
+      "package_0005",
+      "package_0006",
+      "package_0007",
+      "package_0008",
+      "package_0009",
+      "package_0010",
+      "package_0011",
+      "package_0012",
+      "package_0013",
+      "package_0014",
+      "package_0015",
+      "package_0016",
+      "package_0017",
+      "package_0018",
+      "package_0019",
+      "package_0020",
+      "package_0021",
+      "package_0022",
+      "package_0023",
+      "package_0024",
+      "package_0025",
+      "package_0026",
+      "package_0027",
+      "package_0028",
+      "package_0029",
+      "package_0030",
+      "package_0031",
+      "package_0032",
+      "package_0033",
+      "package_0034",
+      "package_0035",
+      "package_0036",
+      "package_0037",
+      "package_0038",
+      "package_0039",
+      "package_0040",
+      "package_0041",
+      "package_0042",
+      "package_0043",
+      "package_0044",
+      "package_0045",
+      "package_0046",
+      "package_0047",
+      "package_0048",
+      "package_0049",
+      "user_root",
+      "user_daemon",
+      "user_bin",
+      "user_sys",
+      "user_sync",
+      "user_games",
+      "user_man",
+      "user_lp",
+      "user_mail",
+      "user_news",
+      "user_uucp",
+      "user_proxy",
+      "user_www-data",
+      "user_backup",
+      "user_list",
+      "user_irc",
+      "user_gnats",
+      "user_nobody",
+      "user_systemd-network",
+      "user_systemd-resolve"
+    ],
+    "attributes": {},
+    "relationships": []
+  },
+  "cpu_3": {
+    "node_id": "cpu_3",
+    "name": "AMD Ryzen 3 3200U with Radeon Vega Mobile Gfx",
+    "taxonomy_type": "processor",
+    "sixw1h": {
+      "what": "AMD Ryzen 3 3200U with Radeon Vega Mobile Gfx",
+      "why": "",
+      "who": "AuthenticAMD",
+      "where": "CPU socket on motherboard",
+      "when": "2026-02-28T21:24:30.673382",
+      "which": "Model: AMD Ryzen 3 3200U with Radeon Vega Mobile Gfx, Cores: 2",
+      "how": "Architecture: Unknown, Frequency: 1397.008 MHz"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "processor": "3",
+      "vendor_id": "AuthenticAMD",
+      "cpu family": "23",
+      "model": "24",
+      "model name": "AMD Ryzen 3 3200U with Radeon Vega Mobile Gfx",
+      "stepping": "1",
+      "microcode": "0x8108109",
+      "cpu MHz": "1397.008",
+      "cache size": "512 KB",
+      "physical id": "0",
+      "siblings": "4",
+      "core id": "1",
+      "cpu cores": "2",
+      "apicid": "3",
+      "initial apicid": "3",
+      "fpu": "yes",
+      "fpu_exception": "yes",
+      "cpuid level": "13",
+      "wp": "yes",
+      "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpb hw_pstate ssbd ibpb vmmcall fsgsbase bmi1 avx2 smep bmi2 rdseed adx smap clflushopt sha_ni xsaveopt xsavec xgetbv1 clzero irperf xsaveerptr arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif overflow_recov succor smca sev sev_es ibpb_exit_to_user",
+      "bugs": "sysret_ss_attrs null_seg spectre_v1 spectre_v2 spec_store_bypass retbleed smt_rsb srso div0 ibpb_no_ret vmscape",
+      "bogomips": "5190.26",
+      "TLB size": "2560 4K pages",
+      "clflush size": "64",
+      "cache_alignment": "64",
+      "address sizes": "43 bits physical, 48 bits virtual",
+      "power management": "ts ttp tm hwpstate eff_freq_ro [13] [14]"
+    },
+    "relationships": []
+  },
+  "memory_system": {
+    "node_id": "memory_system",
+    "name": "System Memory",
+    "taxonomy_type": "memory",
+    "sixw1h": {
+      "what": "System Memory (RAM)",
+      "why": "",
+      "who": "linux system",
+      "where": "Memory slots on motherboard",
+      "when": "2026-02-28T21:24:30.673531",
+      "which": "Total: 5973996 kB, Type: DRAM",
+      "how": "Connected via memory bus, accessed by memory controller"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "MemTotal": "5973996 kB",
+      "MemFree": "2200264 kB",
+      "MemAvailable": "4246432 kB",
+      "Buffers": "51668 kB",
+      "Cached": "2125976 kB",
+      "SwapCached": "52768 kB",
+      "Active": "818224 kB",
+      "Inactive": "2284012 kB",
+      "Active(anon)": "695188 kB",
+      "Inactive(anon)": "231944 kB",
+      "Active(file)": "123036 kB",
+      "Inactive(file)": "2052068 kB",
+      "Unevictable": "40 kB",
+      "Mlocked": "32 kB",
+      "SwapTotal": "2097148 kB",
+      "SwapFree": "1236388 kB",
+      "Zswap": "0 kB",
+      "Zswapped": "0 kB",
+      "Dirty": "12 kB",
+      "Writeback": "0 kB",
+      "AnonPages": "919120 kB",
+      "Mapped": "122192 kB",
+      "Shmem": "2532 kB",
+      "KReclaimable": "184164 kB",
+      "Slab": "348528 kB",
+      "SReclaimable": "184164 kB",
+      "SUnreclaim": "164364 kB",
+      "KernelStack": "6992 kB",
+      "PageTables": "21004 kB",
+      "SecPageTables": "0 kB",
+      "NFS_Unstable": "0 kB",
+      "Bounce": "0 kB",
+      "WritebackTmp": "0 kB",
+      "CommitLimit": "5084144 kB",
+      "Committed_AS": "3911500 kB",
+      "VmallocTotal": "34359738367 kB",
+      "VmallocUsed": "112268 kB",
+      "VmallocChunk": "0 kB",
+      "Percpu": "14016 kB",
+      "HardwareCorrupted": "0 kB",
+      "AnonHugePages": "0 kB",
+      "ShmemHugePages": "0 kB",
+      "ShmemPmdMapped": "0 kB",
+      "FileHugePages": "0 kB",
+      "FilePmdMapped": "0 kB",
+      "Unaccepted": "0 kB",
+      "HugePages_Total": "0",
+      "HugePages_Free": "0",
+      "HugePages_Rsvd": "0",
+      "HugePages_Surp": "0",
+      "Hugepagesize": "2048 kB",
+      "Hugetlb": "0 kB",
+      "DirectMap4k": "2206264 kB",
+      "DirectMap2M": "3997696 kB",
+      "DirectMap1G": "1048576 kB"
+    },
+    "relationships": []
+  },
+  "storage_loop0": {
+    "node_id": "storage_loop0",
+    "name": "Storage: loop0",
+    "taxonomy_type": "storage",
+    "sixw1h": {
+      "what": "Storage device: None",
+      "why": "",
+      "who": null,
+      "where": "Device: /dev/loop0",
+      "when": "2026-02-28T21:24:30.684135",
+      "which": "Type: loop, Size: 4K",
+      "how": "Connected via SATA/NVMe/USB interface"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "loop0",
+      "type": "loop",
+      "size": "4K",
+      "model": null,
+      "vendor": null
+    },
+    "relationships": []
+  },
+  "storage_loop1": {
+    "node_id": "storage_loop1",
+    "name": "Storage: loop1",
+    "taxonomy_type": "storage",
+    "sixw1h": {
+      "what": "Storage device: None",
+      "why": "",
+      "who": null,
+      "where": "Device: /dev/loop1",
+      "when": "2026-02-28T21:24:30.684199",
+      "which": "Type: loop, Size: 74.3M",
+      "how": "Connected via SATA/NVMe/USB interface"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "loop1",
+      "type": "loop",
+      "size": "74.3M",
+      "model": null,
+      "vendor": null
+    },
+    "relationships": []
+  },
+  "storage_loop2": {
+    "node_id": "storage_loop2",
+    "name": "Storage: loop2",
+    "taxonomy_type": "storage",
+    "sixw1h": {
+      "what": "Storage device: None",
+      "why": "",
+      "who": null,
+      "where": "Device: /dev/loop2",
+      "when": "2026-02-28T21:24:30.684238",
+      "which": "Type: loop, Size: 74M",
+      "how": "Connected via SATA/NVMe/USB interface"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "loop2",
+      "type": "loop",
+      "size": "74M",
+      "model": null,
+      "vendor": null
+    },
+    "relationships": []
+  },
+  "storage_loop3": {
+    "node_id": "storage_loop3",
+    "name": "Storage: loop3",
+    "taxonomy_type": "storage",
+    "sixw1h": {
+      "what": "Storage device: None",
+      "why": "",
+      "who": null,
+      "where": "Device: /dev/loop3",
+      "when": "2026-02-23T01:10:30.048010",
+      "which": "Type: loop, Size: 251.7M",
+      "how": "Connected via SATA/NVMe/USB interface"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "loop3",
+      "type": "loop",
+      "size": "251.7M",
+      "model": null,
+      "vendor": null
+    },
+    "relationships": []
+  },
+  "storage_loop4": {
+    "node_id": "storage_loop4",
+    "name": "Storage: loop4",
+    "taxonomy_type": "storage",
+    "sixw1h": {
+      "what": "Storage device: None",
+      "why": "",
+      "who": null,
+      "where": "Device: /dev/loop4",
+      "when": "2026-02-28T21:24:30.684275",
+      "which": "Type: loop, Size: 251.6M",
+      "how": "Connected via SATA/NVMe/USB interface"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "loop4",
+      "type": "loop",
+      "size": "251.6M",
+      "model": null,
+      "vendor": null
+    },
+    "relationships": []
+  },
+  "storage_loop5": {
+    "node_id": "storage_loop5",
+    "name": "Storage: loop5",
+    "taxonomy_type": "storage",
+    "sixw1h": {
+      "what": "Storage device: None",
+      "why": "",
+      "who": null,
+      "where": "Device: /dev/loop5",
+      "when": "2026-02-28T21:24:30.684311",
+      "which": "Type: loop, Size: 505.1M",
+      "how": "Connected via SATA/NVMe/USB interface"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "loop5",
+      "type": "loop",
+      "size": "505.1M",
+      "model": null,
+      "vendor": null
+    },
+    "relationships": []
+  },
+  "storage_loop6": {
+    "node_id": "storage_loop6",
+    "name": "Storage: loop6",
+    "taxonomy_type": "storage",
+    "sixw1h": {
+      "what": "Storage device: None",
+      "why": "",
+      "who": null,
+      "where": "Device: /dev/loop6",
+      "when": "2026-02-28T21:24:30.684345",
+      "which": "Type: loop, Size: 531.4M",
+      "how": "Connected via SATA/NVMe/USB interface"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "loop6",
+      "type": "loop",
+      "size": "531.4M",
+      "model": null,
+      "vendor": null
+    },
+    "relationships": []
+  },
+  "storage_loop7": {
+    "node_id": "storage_loop7",
+    "name": "Storage: loop7",
+    "taxonomy_type": "storage",
+    "sixw1h": {
+      "what": "Storage device: None",
+      "why": "",
+      "who": null,
+      "where": "Device: /dev/loop7",
+      "when": "2026-02-28T21:24:30.684379",
+      "which": "Type: loop, Size: 91.7M",
+      "how": "Connected via SATA/NVMe/USB interface"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "loop7",
+      "type": "loop",
+      "size": "91.7M",
+      "model": null,
+      "vendor": null
+    },
+    "relationships": []
+  },
+  "storage_loop8": {
+    "node_id": "storage_loop8",
+    "name": "Storage: loop8",
+    "taxonomy_type": "storage",
+    "sixw1h": {
+      "what": "Storage device: None",
+      "why": "",
+      "who": null,
+      "where": "Device: /dev/loop8",
+      "when": "2026-02-28T21:24:30.684413",
+      "which": "Type: loop, Size: 38.8M",
+      "how": "Connected via SATA/NVMe/USB interface"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "loop8",
+      "type": "loop",
+      "size": "38.8M",
+      "model": null,
+      "vendor": null
+    },
+    "relationships": []
+  },
+  "storage_loop9": {
+    "node_id": "storage_loop9",
+    "name": "Storage: loop9",
+    "taxonomy_type": "storage",
+    "sixw1h": {
+      "what": "Storage device: None",
+      "why": "",
+      "who": null,
+      "where": "Device: /dev/loop9",
+      "when": "2026-02-28T21:24:30.684447",
+      "which": "Type: loop, Size: 48.1M",
+      "how": "Connected via SATA/NVMe/USB interface"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "loop9",
+      "type": "loop",
+      "size": "48.1M",
+      "model": null,
+      "vendor": null
+    },
+    "relationships": []
+  },
+  "storage_nvme0n1": {
+    "node_id": "storage_nvme0n1",
+    "name": "Storage: nvme0n1",
+    "taxonomy_type": "storage",
+    "sixw1h": {
+      "what": "Storage device: SK hynix BC501 HFM256GDJTNG-8310A",
+      "why": "",
+      "who": null,
+      "where": "Device: /dev/nvme0n1",
+      "when": "2026-02-28T21:24:30.684516",
+      "which": "Type: disk, Size: 238.5G",
+      "how": "Connected via SATA/NVMe/USB interface"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "nvme0n1",
+      "type": "disk",
+      "size": "238.5G",
+      "model": "SK hynix BC501 HFM256GDJTNG-8310A",
+      "vendor": null,
+      "children": [
+        {
+          "name": "nvme0n1p1",
+          "type": "part",
+          "size": "512M",
+          "model": null,
+          "vendor": null
+        },
+        {
+          "name": "nvme0n1p2",
+          "type": "part",
+          "size": "238G",
+          "model": null,
+          "vendor": null
+        }
+      ]
+    },
+    "relationships": []
+  },
+  "net_hw_wlp3s0": {
+    "node_id": "net_hw_wlp3s0",
+    "name": "wlp3s0",
+    "taxonomy_type": "controller",
+    "sixw1h": {
+      "what": "Network Interface: wlp3s0",
+      "why": "Network communication hardware",
+      "who": "System Hardware",
+      "where": "/sys/class/net/wlp3s0",
+      "when": "Detected: 2026-02-28T21:24:30.684689",
+      "which": "MAC: 4c:eb:bd:80:78:51",
+      "how": "Handles data packets"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "mac": "4c:eb:bd:80:78:51"
+    },
+    "relationships": []
+  },
+  "net_hw_eno1": {
+    "node_id": "net_hw_eno1",
+    "name": "eno1",
+    "taxonomy_type": "controller",
+    "sixw1h": {
+      "what": "Network Interface: eno1",
+      "why": "Network communication hardware",
+      "who": "System Hardware",
+      "where": "/sys/class/net/eno1",
+      "when": "Detected: 2026-02-28T21:24:30.684787",
+      "which": "MAC: 38:22:e2:c8:03:19",
+      "how": "Handles data packets"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "mac": "38:22:e2:c8:03:19"
+    },
+    "relationships": []
+  },
+  "net_hw_lo": {
+    "node_id": "net_hw_lo",
+    "name": "lo",
+    "taxonomy_type": "controller",
+    "sixw1h": {
+      "what": "Network Interface: lo",
+      "why": "Network communication hardware",
+      "who": "System Hardware",
+      "where": "/sys/class/net/lo",
+      "when": "Detected: 2026-02-28T21:24:30.684874",
+      "which": "MAC: 00:00:00:00:00:00",
+      "how": "Handles data packets"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "mac": "00:00:00:00:00:00"
+    },
+    "relationships": []
+  },
+  "package_0000": {
+    "node_id": "package_0000",
+    "name": "accountsservice",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: accountsservice",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.727846",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "accountsservice",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0001": {
+    "node_id": "package_0001",
+    "name": "acl",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: acl",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.727905",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "acl",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0002": {
+    "node_id": "package_0002",
+    "name": "acpi-support",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: acpi-support",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.727937",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "acpi-support",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0003": {
+    "node_id": "package_0003",
+    "name": "acpid",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: acpid",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.727967",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "acpid",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0004": {
+    "node_id": "package_0004",
+    "name": "adduser",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: adduser",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728005",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "adduser",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0005": {
+    "node_id": "package_0005",
+    "name": "adwaita-icon-theme",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: adwaita-icon-theme",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728033",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "adwaita-icon-theme",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0006": {
+    "node_id": "package_0006",
+    "name": "adwaita-icon-theme-full",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: adwaita-icon-theme-full",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728061",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "adwaita-icon-theme-full",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0007": {
+    "node_id": "package_0007",
+    "name": "alsa-base",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: alsa-base",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728088",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "alsa-base",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0008": {
+    "node_id": "package_0008",
+    "name": "alsa-topology-conf",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: alsa-topology-conf",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728116",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "alsa-topology-conf",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0009": {
+    "node_id": "package_0009",
+    "name": "alsa-ucm-conf",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: alsa-ucm-conf",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728143",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "alsa-ucm-conf",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0010": {
+    "node_id": "package_0010",
+    "name": "alsa-utils",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: alsa-utils",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728171",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "alsa-utils",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0011": {
+    "node_id": "package_0011",
+    "name": "amd64-microcode",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: amd64-microcode",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728199",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "amd64-microcode",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0012": {
+    "node_id": "package_0012",
+    "name": "anacron",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: anacron",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728226",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "anacron",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0013": {
+    "node_id": "package_0013",
+    "name": "apparmor",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: apparmor",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728253",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "apparmor",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0014": {
+    "node_id": "package_0014",
+    "name": "apport",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: apport",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728281",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "apport",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0015": {
+    "node_id": "package_0015",
+    "name": "apport-gtk",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: apport-gtk",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728308",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "apport-gtk",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0016": {
+    "node_id": "package_0016",
+    "name": "apport-symptoms",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: apport-symptoms",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728336",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "apport-symptoms",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0017": {
+    "node_id": "package_0017",
+    "name": "appstream",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: appstream",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728363",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "appstream",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0018": {
+    "node_id": "package_0018",
+    "name": "apt",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: apt",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728390",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "apt",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0019": {
+    "node_id": "package_0019",
+    "name": "apt-config-icons",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: apt-config-icons",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728417",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "apt-config-icons",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0020": {
+    "node_id": "package_0020",
+    "name": "apt-transport-https",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: apt-transport-https",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728444",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "apt-transport-https",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0021": {
+    "node_id": "package_0021",
+    "name": "apt-utils",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: apt-utils",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728471",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "apt-utils",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0022": {
+    "node_id": "package_0022",
+    "name": "aptdaemon",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: aptdaemon",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728515",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "aptdaemon",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0023": {
+    "node_id": "package_0023",
+    "name": "aptdaemon-data",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: aptdaemon-data",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728542",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "aptdaemon-data",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0024": {
+    "node_id": "package_0024",
+    "name": "apturl",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: apturl",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728570",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "apturl",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0025": {
+    "node_id": "package_0025",
+    "name": "apturl-common",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: apturl-common",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728597",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "apturl-common",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0026": {
+    "node_id": "package_0026",
+    "name": "aspell",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: aspell",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728625",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "aspell",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0027": {
+    "node_id": "package_0027",
+    "name": "aspell-en",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: aspell-en",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728652",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "aspell-en",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0028": {
+    "node_id": "package_0028",
+    "name": "at-spi2-core",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: at-spi2-core",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728679",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "at-spi2-core",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0029": {
+    "node_id": "package_0029",
+    "name": "atril",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: atril",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728707",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "atril",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0030": {
+    "node_id": "package_0030",
+    "name": "atril-common",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: atril-common",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728734",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "atril-common",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0031": {
+    "node_id": "package_0031",
+    "name": "audispd-plugins",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: audispd-plugins",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728761",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "audispd-plugins",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0032": {
+    "node_id": "package_0032",
+    "name": "auditd",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: auditd",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728789",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "auditd",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0033": {
+    "node_id": "package_0033",
+    "name": "avahi-autoipd",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: avahi-autoipd",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728816",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "avahi-autoipd",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0034": {
+    "node_id": "package_0034",
+    "name": "avahi-daemon",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: avahi-daemon",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728844",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "avahi-daemon",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0035": {
+    "node_id": "package_0035",
+    "name": "avahi-utils",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: avahi-utils",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728871",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "avahi-utils",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0036": {
+    "node_id": "package_0036",
+    "name": "ayatana-indicator-application",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: ayatana-indicator-application",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728899",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "ayatana-indicator-application",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0037": {
+    "node_id": "package_0037",
+    "name": "ayatana-indicator-common",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: ayatana-indicator-common",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728927",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "ayatana-indicator-common",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0038": {
+    "node_id": "package_0038",
+    "name": "baobab",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: baobab",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728954",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "baobab",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0039": {
+    "node_id": "package_0039",
+    "name": "base-files",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: base-files",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.728987",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "base-files",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0040": {
+    "node_id": "package_0040",
+    "name": "base-passwd",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: base-passwd",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.729016",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "base-passwd",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0041": {
+    "node_id": "package_0041",
+    "name": "bash",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: bash",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.729044",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "bash",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0042": {
+    "node_id": "package_0042",
+    "name": "bash-completion",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: bash-completion",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.729073",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "bash-completion",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0043": {
+    "node_id": "package_0043",
+    "name": "bc",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: bc",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.729100",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "bc",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0044": {
+    "node_id": "package_0044",
+    "name": "bind9-dnsutils",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: bind9-dnsutils",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.729129",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "bind9-dnsutils",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0045": {
+    "node_id": "package_0045",
+    "name": "bind9-host",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: bind9-host",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.729157",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "bind9-host",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0046": {
+    "node_id": "package_0046",
+    "name": "bind9-libs:amd64",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: bind9-libs:amd64",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.729185",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "bind9-libs:amd64",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0047": {
+    "node_id": "package_0047",
+    "name": "binutils",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: binutils",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.729213",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "binutils",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0048": {
+    "node_id": "package_0048",
+    "name": "binutils-common:amd64",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: binutils-common:amd64",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.729241",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "binutils-common:amd64",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "package_0049": {
+    "node_id": "package_0049",
+    "name": "binutils-x86-64-linux-gnu",
+    "taxonomy_type": "application",
+    "sixw1h": {
+      "what": "Package: binutils-x86-64-linux-gnu",
+      "why": "",
+      "who": "Package maintainer",
+      "where": "Installed via dpkg",
+      "when": "2026-02-28T21:24:30.729279",
+      "which": "Type: deb, Manager: dpkg",
+      "how": "Installed via package manager, files in system directories"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "binutils-x86-64-linux-gnu",
+      "type": "deb",
+      "manager": "dpkg"
+    },
+    "relationships": []
+  },
+  "net_iface_lo": {
+    "node_id": "net_iface_lo",
+    "name": "Interface: lo",
+    "taxonomy_type": "network",
+    "sixw1h": {
+      "what": "Network Interface: lo",
+      "why": "",
+      "who": "linux system",
+      "where": "System network interface #1",
+      "when": "2026-02-28T21:24:30.738226",
+      "which": "MAC: ",
+      "how": "IPs: 127.0.0.1/8"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "index": "1",
+      "name": "lo",
+      "mac": "",
+      "ips": [
+        "127.0.0.1/8"
+      ]
+    },
+    "relationships": []
+  },
+  "net_iface_eno1": {
+    "node_id": "net_iface_eno1",
+    "name": "Interface: eno1",
+    "taxonomy_type": "network",
+    "sixw1h": {
+      "what": "Network Interface: eno1",
+      "why": "",
+      "who": "linux system",
+      "where": "System network interface #2",
+      "when": "2026-02-28T21:24:30.738285",
+      "which": "MAC: 38:22:e2:c8:03:19",
+      "how": "IPs: "
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "index": "2",
+      "name": "eno1",
+      "mac": "38:22:e2:c8:03:19",
+      "ips": []
+    },
+    "relationships": []
+  },
+  "net_iface_wlp3s0": {
+    "node_id": "net_iface_wlp3s0",
+    "name": "Interface: wlp3s0",
+    "taxonomy_type": "network",
+    "sixw1h": {
+      "what": "Network Interface: wlp3s0",
+      "why": "",
+      "who": "linux system",
+      "where": "System network interface #3",
+      "when": "2026-02-28T21:24:30.738351",
+      "which": "MAC: 4c:eb:bd:80:78:51",
+      "how": "IPs: 192.168.4.190/22"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "index": "3",
+      "name": "wlp3s0",
+      "mac": "4c:eb:bd:80:78:51",
+      "ips": [
+        "192.168.4.190/22"
+      ]
+    },
+    "relationships": []
+  },
+  "user_root": {
+    "node_id": "user_root",
+    "name": "root",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: root",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 0, GID: 0",
+      "when": "2026-02-28T21:24:30.738569",
+      "which": "Home: /root, Shell: /bin/bash",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "root",
+      "uid": "0",
+      "gid": "0",
+      "gecos": "root",
+      "home": "/root",
+      "shell": "/bin/bash"
+    },
+    "relationships": []
+  },
+  "user_daemon": {
+    "node_id": "user_daemon",
+    "name": "daemon",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: daemon",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 1, GID: 1",
+      "when": "2026-02-28T21:24:30.738608",
+      "which": "Home: /usr/sbin, Shell: /usr/sbin/nologin",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "daemon",
+      "uid": "1",
+      "gid": "1",
+      "gecos": "daemon",
+      "home": "/usr/sbin",
+      "shell": "/usr/sbin/nologin"
+    },
+    "relationships": []
+  },
+  "user_bin": {
+    "node_id": "user_bin",
+    "name": "bin",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: bin",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 2, GID: 2",
+      "when": "2026-02-28T21:24:30.738641",
+      "which": "Home: /bin, Shell: /usr/sbin/nologin",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "bin",
+      "uid": "2",
+      "gid": "2",
+      "gecos": "bin",
+      "home": "/bin",
+      "shell": "/usr/sbin/nologin"
+    },
+    "relationships": []
+  },
+  "user_sys": {
+    "node_id": "user_sys",
+    "name": "sys",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: sys",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 3, GID: 3",
+      "when": "2026-02-28T21:24:30.738673",
+      "which": "Home: /dev, Shell: /usr/sbin/nologin",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "sys",
+      "uid": "3",
+      "gid": "3",
+      "gecos": "sys",
+      "home": "/dev",
+      "shell": "/usr/sbin/nologin"
+    },
+    "relationships": []
+  },
+  "user_sync": {
+    "node_id": "user_sync",
+    "name": "sync",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: sync",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 4, GID: 65534",
+      "when": "2026-02-28T21:24:30.738706",
+      "which": "Home: /bin, Shell: /bin/sync",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "sync",
+      "uid": "4",
+      "gid": "65534",
+      "gecos": "sync",
+      "home": "/bin",
+      "shell": "/bin/sync"
+    },
+    "relationships": []
+  },
+  "user_games": {
+    "node_id": "user_games",
+    "name": "games",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: games",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 5, GID: 60",
+      "when": "2026-02-28T21:24:30.738738",
+      "which": "Home: /usr/games, Shell: /usr/sbin/nologin",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "games",
+      "uid": "5",
+      "gid": "60",
+      "gecos": "games",
+      "home": "/usr/games",
+      "shell": "/usr/sbin/nologin"
+    },
+    "relationships": []
+  },
+  "user_man": {
+    "node_id": "user_man",
+    "name": "man",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: man",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 6, GID: 12",
+      "when": "2026-02-28T21:24:30.738769",
+      "which": "Home: /var/cache/man, Shell: /usr/sbin/nologin",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "man",
+      "uid": "6",
+      "gid": "12",
+      "gecos": "man",
+      "home": "/var/cache/man",
+      "shell": "/usr/sbin/nologin"
+    },
+    "relationships": []
+  },
+  "user_lp": {
+    "node_id": "user_lp",
+    "name": "lp",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: lp",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 7, GID: 7",
+      "when": "2026-02-28T21:24:30.738800",
+      "which": "Home: /var/spool/lpd, Shell: /usr/sbin/nologin",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "lp",
+      "uid": "7",
+      "gid": "7",
+      "gecos": "lp",
+      "home": "/var/spool/lpd",
+      "shell": "/usr/sbin/nologin"
+    },
+    "relationships": []
+  },
+  "user_mail": {
+    "node_id": "user_mail",
+    "name": "mail",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: mail",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 8, GID: 8",
+      "when": "2026-02-28T21:24:30.738830",
+      "which": "Home: /var/mail, Shell: /usr/sbin/nologin",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "mail",
+      "uid": "8",
+      "gid": "8",
+      "gecos": "mail",
+      "home": "/var/mail",
+      "shell": "/usr/sbin/nologin"
+    },
+    "relationships": []
+  },
+  "user_news": {
+    "node_id": "user_news",
+    "name": "news",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: news",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 9, GID: 9",
+      "when": "2026-02-28T21:24:30.738861",
+      "which": "Home: /var/spool/news, Shell: /usr/sbin/nologin",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "news",
+      "uid": "9",
+      "gid": "9",
+      "gecos": "news",
+      "home": "/var/spool/news",
+      "shell": "/usr/sbin/nologin"
+    },
+    "relationships": []
+  },
+  "user_uucp": {
+    "node_id": "user_uucp",
+    "name": "uucp",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: uucp",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 10, GID: 10",
+      "when": "2026-02-28T21:24:30.738891",
+      "which": "Home: /var/spool/uucp, Shell: /usr/sbin/nologin",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "uucp",
+      "uid": "10",
+      "gid": "10",
+      "gecos": "uucp",
+      "home": "/var/spool/uucp",
+      "shell": "/usr/sbin/nologin"
+    },
+    "relationships": []
+  },
+  "user_proxy": {
+    "node_id": "user_proxy",
+    "name": "proxy",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: proxy",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 13, GID: 13",
+      "when": "2026-02-28T21:24:30.738921",
+      "which": "Home: /bin, Shell: /usr/sbin/nologin",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "proxy",
+      "uid": "13",
+      "gid": "13",
+      "gecos": "proxy",
+      "home": "/bin",
+      "shell": "/usr/sbin/nologin"
+    },
+    "relationships": []
+  },
+  "user_www-data": {
+    "node_id": "user_www-data",
+    "name": "www-data",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: www-data",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 33, GID: 33",
+      "when": "2026-02-28T21:24:30.738952",
+      "which": "Home: /var/www, Shell: /usr/sbin/nologin",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "www-data",
+      "uid": "33",
+      "gid": "33",
+      "gecos": "www-data",
+      "home": "/var/www",
+      "shell": "/usr/sbin/nologin"
+    },
+    "relationships": []
+  },
+  "user_backup": {
+    "node_id": "user_backup",
+    "name": "backup",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: backup",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 34, GID: 34",
+      "when": "2026-02-28T21:24:30.738994",
+      "which": "Home: /var/backups, Shell: /usr/sbin/nologin",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "backup",
+      "uid": "34",
+      "gid": "34",
+      "gecos": "backup",
+      "home": "/var/backups",
+      "shell": "/usr/sbin/nologin"
+    },
+    "relationships": []
+  },
+  "user_list": {
+    "node_id": "user_list",
+    "name": "list",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: list",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 38, GID: 38",
+      "when": "2026-02-28T21:24:30.739026",
+      "which": "Home: /var/list, Shell: /usr/sbin/nologin",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "list",
+      "uid": "38",
+      "gid": "38",
+      "gecos": "Mailing List Manager",
+      "home": "/var/list",
+      "shell": "/usr/sbin/nologin"
+    },
+    "relationships": []
+  },
+  "user_irc": {
+    "node_id": "user_irc",
+    "name": "irc",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: irc",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 39, GID: 39",
+      "when": "2026-02-28T21:24:30.739057",
+      "which": "Home: /run/ircd, Shell: /usr/sbin/nologin",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "irc",
+      "uid": "39",
+      "gid": "39",
+      "gecos": "ircd",
+      "home": "/run/ircd",
+      "shell": "/usr/sbin/nologin"
+    },
+    "relationships": []
+  },
+  "user_gnats": {
+    "node_id": "user_gnats",
+    "name": "gnats",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: gnats",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 41, GID: 41",
+      "when": "2026-02-28T21:24:30.739088",
+      "which": "Home: /var/lib/gnats, Shell: /usr/sbin/nologin",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "gnats",
+      "uid": "41",
+      "gid": "41",
+      "gecos": "Gnats Bug-Reporting System (admin)",
+      "home": "/var/lib/gnats",
+      "shell": "/usr/sbin/nologin"
+    },
+    "relationships": []
+  },
+  "user_nobody": {
+    "node_id": "user_nobody",
+    "name": "nobody",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: nobody",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 65534, GID: 65534",
+      "when": "2026-02-28T21:24:30.739118",
+      "which": "Home: /nonexistent, Shell: /usr/sbin/nologin",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "nobody",
+      "uid": "65534",
+      "gid": "65534",
+      "gecos": "nobody",
+      "home": "/nonexistent",
+      "shell": "/usr/sbin/nologin"
+    },
+    "relationships": []
+  },
+  "user_systemd-network": {
+    "node_id": "user_systemd-network",
+    "name": "systemd-network",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: systemd-network",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 100, GID: 102",
+      "when": "2026-02-28T21:24:30.739149",
+      "which": "Home: /run/systemd, Shell: /usr/sbin/nologin",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "systemd-network",
+      "uid": "100",
+      "gid": "102",
+      "gecos": "systemd Network Management,,,",
+      "home": "/run/systemd",
+      "shell": "/usr/sbin/nologin"
+    },
+    "relationships": []
+  },
+  "user_systemd-resolve": {
+    "node_id": "user_systemd-resolve",
+    "name": "systemd-resolve",
+    "taxonomy_type": "security",
+    "sixw1h": {
+      "what": "User account: systemd-resolve",
+      "why": "",
+      "who": "System administrator",
+      "where": "UID: 101, GID: 103",
+      "when": "2026-02-28T21:24:30.739179",
+      "which": "Home: /run/systemd, Shell: /usr/sbin/nologin",
+      "how": "Authenticated via PAM, permissions via UID/GID"
+    },
+    "parent_id": "software_branch",
+    "children_ids": [],
+    "attributes": {
+      "username": "systemd-resolve",
+      "uid": "101",
+      "gid": "103",
+      "gecos": "systemd Resolver,,,",
+      "home": "/run/systemd",
+      "shell": "/usr/sbin/nologin"
+    },
+    "relationships": []
+  },
+  "storage_loop10": {
+    "node_id": "storage_loop10",
+    "name": "Storage: loop10",
+    "taxonomy_type": "storage",
+    "sixw1h": {
+      "what": "Storage device: None",
+      "why": "",
+      "who": null,
+      "where": "Device: /dev/loop10",
+      "when": "2026-02-28T21:24:30.684481",
+      "which": "Type: loop, Size: 254.6M",
+      "how": "Connected via SATA/NVMe/USB interface"
+    },
+    "parent_id": "hardware_branch",
+    "children_ids": [],
+    "attributes": {
+      "name": "loop10",
+      "type": "loop",
+      "size": "254.6M",
+      "model": null,
+      "vendor": null
+    },
+    "relationships": []
+  }
+}

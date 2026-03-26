@@ -1,0 +1,10 @@
+\b(wow|whoa)\b
+\b(amazing|awesome)\b
+\b(fantastic|fabulous)\b
+\b(incredible|unbelievable)\b
+\b(bravo|hooray)\b
+\b(oh my god|omg)\b
+\b(no way!)\b
+\b(yikes|uh oh)\b
+\b(ouch|ow)\b
+\b(bingo|eureka)\b

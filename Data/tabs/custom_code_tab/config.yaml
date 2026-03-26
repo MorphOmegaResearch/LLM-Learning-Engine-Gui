@@ -24,7 +24,7 @@ mcp:
 model:
   base_url: http://localhost:11434
   max_tokens: 3072
-  name: hf.co/bartowski/Qwen2.5-Coder-1.5B-Instruct-GGUF:Q6_K_L
+  name: WORKING_MorphAlpha_v51_survivor_g0_2_20260301_014202__morph_native
   temperature: 0.7
 optimization:
   adaptive_timeouts: true

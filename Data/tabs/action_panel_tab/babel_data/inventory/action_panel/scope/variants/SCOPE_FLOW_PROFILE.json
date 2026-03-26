@@ -1,0 +1,201 @@
+{
+  "profile_name": "Scope + Flow Variants",
+  "description": "Complete scope toolset: widget inspection + code analysis workflows",
+  "version": "1.0",
+  "workflow_actions": [
+    {
+      "name": "🔍 Scope Analyzer",
+      "type": "debug_suite",
+      "source": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/scope.py",
+      "target_mode": "auto",
+      "output_to": "traceback",
+      "expectations": "scope_inspect",
+      "command": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/scope.py",
+      "args": "--scope",
+      "description": "Interactive widget inspector with grep_flight integration"
+    },
+    {
+      "name": "👁️ Scope Monitor",
+      "type": "debug_suite",
+      "source": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/scope.py",
+      "target_mode": "auto",
+      "output_to": "traceback",
+      "expectations": "scope_monitor",
+      "command": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/scope.py",
+      "args": "--monitor",
+      "description": "Real-time hover inspector for tkinter widgets"
+    },
+    {
+      "name": "🔬 Progressive Analysis",
+      "type": "workflow_suite",
+      "source": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/variants/scope_flow.py",
+      "target_mode": "file_required",
+      "output_to": "results",
+      "expectations": "analysis_report",
+      "command": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/variants/scope_flow.py",
+      "args": "--analyze --file={target} --depth=4",
+      "arg_template": {
+        "target": {
+          "type": "file_path",
+          "required": true,
+          "description": "Python file to analyze"
+        },
+        "depth": {
+          "type": "int",
+          "default": 4,
+          "range": [1, 4],
+          "description": "Analysis depth (1-4)"
+        }
+      },
+      "description": "Multi-depth progressive analysis with pattern detection"
+    },
+    {
+      "name": "⚡ Quick Fix",
+      "type": "workflow_suite",
+      "source": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/variants/scope_flow.py",
+      "target_mode": "file_required",
+      "output_to": "results",
+      "expectations": "auto_fix",
+      "command": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/variants/scope_flow.py",
+      "args": "--workflow=quick_fix --file={target} --auto",
+      "arg_template": {
+        "target": {
+          "type": "file_path",
+          "required": true,
+          "description": "Python file to fix"
+        }
+      },
+      "description": "Fast 3-step workflow: imports + style + format"
+    },
+    {
+      "name": "🎯 Full Analysis",
+      "type": "workflow_suite",
+      "source": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/variants/scope_flow.py",
+      "target_mode": "file_required",
+      "output_to": "results",
+      "expectations": "comprehensive_report",
+      "command": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/variants/scope_flow.py",
+      "args": "--workflow=full_analysis --file={target} --auto",
+      "arg_template": {
+        "target": {
+          "type": "file_path",
+          "required": true,
+          "description": "Python file to analyze"
+        },
+        "auto": {
+          "type": "bool",
+          "default": true,
+          "description": "Run without confirmation"
+        }
+      },
+      "description": "Complete 15-step analysis: scan + fix + verify"
+    },
+    {
+      "name": "🎨 Tkinter Analysis",
+      "type": "workflow_suite",
+      "source": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/variants/scope_flow.py",
+      "target_mode": "file_required",
+      "output_to": "results",
+      "expectations": "gui_analysis",
+      "command": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/variants/scope_flow.py",
+      "args": "--workflow=tkinter_only --file={target}",
+      "arg_template": {
+        "target": {
+          "type": "file_path",
+          "required": true,
+          "description": "Tkinter GUI file to analyze"
+        }
+      },
+      "description": "Tkinter-specific pattern analysis and suggestions"
+    },
+    {
+      "name": "📋 Diff Review GUI",
+      "type": "workflow_suite",
+      "source": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/variants/scope_flow.py",
+      "target_mode": "file_required",
+      "output_to": "diff_queue",
+      "expectations": "interactive_review",
+      "command": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/variants/scope_flow.py",
+      "args": "--gui-review --file={target}",
+      "arg_template": {
+        "target": {
+          "type": "file_path",
+          "required": true,
+          "description": "File to review changes"
+        },
+        "modified": {
+          "type": "file_path",
+          "required": false,
+          "description": "Modified version (optional)"
+        }
+      },
+      "description": "Interactive side-by-side diff with accept/reject"
+    },
+    {
+      "name": "🔧 Auto-Fix",
+      "type": "workflow_suite",
+      "source": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/variants/scope_flow.py",
+      "target_mode": "file_required",
+      "output_to": "results",
+      "expectations": "auto_fix",
+      "command": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/variants/scope_flow.py",
+      "args": "--auto-fix --file={target} --backup",
+      "arg_template": {
+        "target": {
+          "type": "file_path",
+          "required": true,
+          "description": "Python file to auto-fix"
+        },
+        "backup": {
+          "type": "bool",
+          "default": true,
+          "description": "Create backup before fixing"
+        }
+      },
+      "description": "Automatic fix with backup (all available tools)"
+    },
+    {
+      "name": "📊 Project Schema",
+      "type": "workflow_suite",
+      "source": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/variants/scope_flow.py",
+      "target_mode": "dir_required",
+      "output_to": "results",
+      "expectations": "organization_report",
+      "command": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/variants/scope_flow.py",
+      "args": "--organization --dir={target}",
+      "arg_template": {
+        "target": {
+          "type": "dir_path",
+          "required": true,
+          "description": "Project directory to analyze"
+        }
+      },
+      "description": "Full project analysis: dependencies, structure, recommendations"
+    }
+  ],
+  "tool_locations": {
+    "scope.py": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/scope.py",
+    "scope_flow.py": "/home/commander/3_Inventory/Warrior_Flow/versions/Warrior_Flow_v0_9w_Monkey_Buisness_v1/Modules/action_panel/scope/variants/scope_flow.py"
+  },
+  "integration_notes": {
+    "grep_flight": "scope.py has click-to-target via GrepFlightIntegration class",
+    "claude_code": "scope_flow.py --gui-review can receive proposed changes for approval",
+    "variants_dir": "Additional variants can be added in scope/variants/ directory"
+  },
+  "auto_onboarding": {
+    "status": "manual",
+    "help_parsing": {
+      "command": "python3 scope_flow.py --help",
+      "extract_args": true,
+      "generate_buttons": true,
+      "arg_patterns": {
+        "--analyze": "Progressive Analysis",
+        "--workflow": "Workflow Type Selection",
+        "--gui-review": "Diff Review GUI",
+        "--organization": "Project Schema",
+        "--auto-fix": "Auto-Fix with Backup"
+      }
+    },
+    "future": "System can parse --help output to auto-generate UI buttons"
+  }
+}

@@ -1,32 +1,80 @@
-# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Tools Tab - Tool management and configuration
-Manages which OpenCode tools are enabled for chat interactions
-Uses unified Tool Profile system for persistence.
+Manages which tools are enabled for chat interactions
 """
 
 import tkinter as tk
-from tkinter import ttk, scrolledtext, messagebox
+from tkinter import ttk, scrolledtext
 from pathlib import Path
 import sys
 import json
-from datetime import datetime
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 from tabs.base_tab import BaseTab
 from logger_util import log_message
-from config import (
-    list_tool_profiles,
-    load_tool_profile,
-    save_tool_profile,
-    get_unified_tool_profile,
-    TOOL_PROFILES_DIR
-)
 
 
 class ToolsTab(BaseTab):
     """Tools configuration and management tab"""
+
+    # Context Providers: pre-prompt context injectors (NOT model-callable tools)
+    # Toggling these enables/disables Omega context sources in chat_interface_tab
+    CONTEXT_PROVIDERS = {
+        "omega_ground": {
+            "label": "Omega Grounding",
+            "desc":  "OsToolkitGroundingBridge → gap_severity, probe_failures, hot_spots",
+            "source": "OsToolkitGroundingBridge",
+        },
+        "task_context": {
+            "label": "Active Task Context",
+            "desc":  "Reads task_context_{tid}.json for the active task from planner board",
+            "source": "task_context_json",
+        },
+        "temporal_narrative": {
+            "label": "Temporal Narrative",
+            "desc":  "TemporalNarrativeEngine.explain('last 24h') → dominant_domain + hot files",
+            "source": "TemporalNarrativeEngine",
+        },
+        "biosphere_snapshot": {
+            "label": "Biosphere Snapshot",
+            "desc":  "biosphere_manifest.json entity catalog → ecosystem context",
+            "source": "biosphere_manifest_json",
+        },
+        "latest_diffs": {
+            "label": "Latest Diffs",
+            "desc":  "Last 5 enriched_changes: verb / risk / context_class / risk_reasons",
+            "source": "version_manifest.enriched_changes",
+        },
+    }
+
+    # Os_Toolkit subcommands as context injectors (cached per task, not per message)
+    OS_TOOLKIT_CONTEXT_TOOLS = {
+        "ostk_assess": {
+            "label": "assess <wherein>",
+            "desc":  "Pre-change impact: blast radius + risk warnings for active task file",
+            "arg":   ["assess"],
+            "needs_wherein": True,
+        },
+        "ostk_todo": {
+            "label": "todo view",
+            "desc":  "Active task inbox + priority queue from todos.json",
+            "arg":   ["todo", "view"],
+            "needs_wherein": False,
+        },
+        "ostk_query": {
+            "label": "query <wherein>",
+            "desc":  "Call graph + change history for active task file",
+            "arg":   ["query", "--graph"],
+            "needs_wherein": True,
+        },
+        "ostk_explain": {
+            "label": "explain 24h",
+            "desc":  "Natural language summary of what was worked on in last 24h",
+            "arg":   ["explain", "--last", "24h"],
+            "needs_wherein": False,
+        },
+    }
 
     # Available OpenCode tools from tools.py
     AVAILABLE_TOOLS = {
@@ -54,34 +102,34 @@ class ToolsTab(BaseTab):
             "change_directory": {"name": "Change Directory", "desc": "Change working directory", "risk": "LOW"},
             "resource_request": {"name": "Resource Request", "desc": "Request system resources", "risk": "LOW"},
             "think_time": {"name": "Think Time", "desc": "Pause execution to think or plan", "risk": "MEDIUM"}
+        },
+        "Os_Toolkit": {
+            "ostk_todo_view": {"name": "Todo View", "desc": "View project tasks and todos", "risk": "SAFE"},
+            "ostk_assess": {"name": "Assess File", "desc": "Assess file change impact + blast radius", "risk": "SAFE"},
+            "ostk_query": {"name": "Query File", "desc": "Query file context + call graph", "risk": "SAFE"},
+            "ostk_explain": {"name": "Explain Recent", "desc": "Explain recent activity narrative", "risk": "SAFE"},
+            "ostk_latest": {"name": "Latest Report", "desc": "Get latest project report", "risk": "SAFE"},
         }
     }
 
     def __init__(self, parent, root, style, parent_tab):
         super().__init__(parent, root, style)
         self.parent_tab = parent_tab
-
-        # Unified Tool Profile integration
-        self.current_profile_name = tk.StringVar(value="Default")
-        self.profile = self.load_profile()
-        self.tool_vars = {}  # {tool_key: BooleanVar}
-        self.load_tool_settings_from_profile()
+        self.tool_vars = {}          # {tool_key: BooleanVar}
+        self.context_provider_vars = {}  # {provider_key: BooleanVar}
+        self.ostk_tool_vars = {}         # {ostk_key: BooleanVar}
+        self.load_tool_settings()
 
     def create_ui(self):
         """Create the tools configuration UI"""
         log_message("TOOLS_TAB: Creating UI...")
 
         self.parent.columnconfigure(0, weight=1)
-        self.parent.rowconfigure(0, weight=0)  # Profile picker
-        self.parent.rowconfigure(1, weight=0)  # Header
-        self.parent.rowconfigure(2, weight=1)  # Tools list
-
-        # Profile Picker
-        self.create_profile_picker(row=0)
+        self.parent.rowconfigure(1, weight=1)
 
         # Header
         header_frame = ttk.Frame(self.parent, style='Category.TFrame')
-        header_frame.grid(row=1, column=0, sticky=tk.EW, padx=10, pady=10)
+        header_frame.grid(row=0, column=0, sticky=tk.EW, padx=10, pady=10)
 
         ttk.Label(
             header_frame,
@@ -89,14 +137,6 @@ class ToolsTab(BaseTab):
             font=("Arial", 12, "bold"),
             style='CategoryPanel.TLabel'
         ).pack(side=tk.LEFT, padx=(0, 10))
-
-        self.profile_status_label = ttk.Label(
-            header_frame,
-            text=f"Profile: {self.current_profile_name.get()}",
-            style='Config.TLabel',
-            font=("Arial", 8)
-        )
-        self.profile_status_label.pack(side=tk.LEFT, padx=10)
 
         ttk.Button(
             header_frame,
@@ -112,9 +152,19 @@ class ToolsTab(BaseTab):
             style='Select.TButton'
         ).pack(side=tk.RIGHT)
 
-        # Tools list frame with scrollbar
-        list_container = ttk.Frame(self.parent, style='Category.TFrame')
-        list_container.grid(row=2, column=0, sticky=tk.NSEW, padx=10, pady=(0, 10))
+        # Main notebook: Page 1 = Tool Config, Page 2 = Consolidated Tools
+        self.main_notebook = ttk.Notebook(self.parent)
+        self.main_notebook.grid(row=1, column=0, sticky=tk.NSEW, padx=10, pady=(0, 10))
+        self.bind_sub_notebook(self.main_notebook, label='Tools')
+
+        # ── Page 1: Tool Config ────────────────────────────────────────────────
+        page1 = ttk.Frame(self.main_notebook, style='Category.TFrame')
+        self.main_notebook.add(page1, text="🔧 Tool Config")
+        page1.columnconfigure(0, weight=1)
+        page1.rowconfigure(0, weight=1)
+
+        list_container = ttk.Frame(page1, style='Category.TFrame')
+        list_container.grid(row=0, column=0, sticky=tk.NSEW)
         list_container.columnconfigure(0, weight=1)
         list_container.rowconfigure(0, weight=1)
 
@@ -151,67 +201,24 @@ class ToolsTab(BaseTab):
         self.tools_canvas.grid(row=0, column=0, sticky=tk.NSEW)
         self.tools_scrollbar.grid(row=0, column=1, sticky=tk.NS)
 
-        # Create tool categories
+        # Create tool categories (model-callable)
         self.create_tool_categories()
 
+        # Context Provider section (pre-prompt injectors for Omega Gate)
+        self.create_context_provider_section()
+
+        # Os_Toolkit context tools section
+        self.create_os_toolkit_context_section()
+
+        # AoE Vector transparency panel
+        self.create_aoe_vector_section()
+
+        # ── Page 2: Consolidated Tools ────────────────────────────────────────
+        page2 = ttk.Frame(self.main_notebook, style='Category.TFrame')
+        self.main_notebook.add(page2, text="📦 Consolidated Tools")
+        self.create_consolidated_tools_page(page2)
+
         log_message("TOOLS_TAB: UI created successfully")
-
-    def create_profile_picker(self, row=0):
-        """Create profile picker UI at the top (same as settings_tab)"""
-        picker_frame = ttk.LabelFrame(
-            self.parent,
-            text="📋 Tool Profile",
-            style='TLabelframe'
-        )
-        picker_frame.grid(row=row, column=0, sticky=tk.EW, padx=10, pady=10)
-        picker_frame.columnconfigure(1, weight=1)
-
-        # Profile dropdown
-        ttk.Label(
-            picker_frame,
-            text="Active Profile:",
-            style='Config.TLabel',
-            font=("Arial", 9, "bold")
-        ).grid(row=0, column=0, sticky=tk.W, padx=10, pady=10)
-
-        self.profile_combo = ttk.Combobox(
-            picker_frame,
-            textvariable=self.current_profile_name,
-            values=list_tool_profiles(),
-            state='readonly',
-            font=("Arial", 9),
-            width=25
-        )
-        self.profile_combo.grid(row=0, column=1, sticky=tk.W, padx=(0, 5), pady=10)
-        self.profile_combo.bind('<<ComboboxSelected>>', self.on_profile_changed)
-
-        # Profile management buttons
-        btn_frame = ttk.Frame(picker_frame, style='Category.TFrame')
-        btn_frame.grid(row=0, column=2, sticky=tk.E, padx=10, pady=10)
-
-        ttk.Button(
-            btn_frame,
-            text="➕ New",
-            command=self.create_profile,
-            style='Action.TButton',
-            width=8
-        ).pack(side=tk.LEFT, padx=2)
-
-        ttk.Button(
-            btn_frame,
-            text="✏️ Rename",
-            command=self.rename_profile,
-            style='Select.TButton',
-            width=8
-        ).pack(side=tk.LEFT, padx=2)
-
-        ttk.Button(
-            btn_frame,
-            text="🗑️ Delete",
-            command=self.delete_profile,
-            style='Action.TButton',
-            width=8
-        ).pack(side=tk.LEFT, padx=2)
 
     def create_tool_categories(self):
         """Create tool category sections with checkboxes"""
@@ -268,83 +275,427 @@ class ToolsTab(BaseTab):
                 )
                 risk_label.pack(side=tk.RIGHT, padx=5)
 
-    def load_profile(self):
-        """Load Tool Profile from unified system"""
+    def create_context_provider_section(self):
+        """Create Context Providers section (Omega Gate toggles — NOT model-callable tools)."""
+        section_frame = ttk.LabelFrame(
+            self.tools_scroll_frame,
+            text="⚡ Context Providers  (feeds ⚡ Task Watcher in chat tab)",
+            style='TLabelframe'
+        )
+        section_frame.pack(fill=tk.X, padx=5, pady=10)
+
+        ttk.Label(
+            section_frame,
+            text="Enable context sources to inject Omega grounding into the system prompt when Task Watcher is ON.",
+            font=("Arial", 8),
+            style='Config.TLabel',
+            wraplength=500,
+        ).pack(anchor=tk.W, padx=10, pady=(5, 3))
+
+        for provider_key, provider_info in self.CONTEXT_PROVIDERS.items():
+            row = ttk.Frame(section_frame, style='Category.TFrame')
+            row.pack(fill=tk.X, padx=10, pady=2)
+
+            var = self.context_provider_vars.get(provider_key, tk.BooleanVar(value=False))
+            self.context_provider_vars[provider_key] = var
+
+            ttk.Checkbutton(
+                row,
+                text=provider_info['label'],
+                variable=var,
+                command=self.save_tool_settings,
+                style='Category.TCheckbutton'
+            ).pack(side=tk.LEFT, padx=(0, 10))
+
+            ttk.Label(
+                row,
+                text=provider_info['desc'],
+                font=("Arial", 9),
+                style='Config.TLabel'
+            ).pack(side=tk.LEFT, padx=(0, 10))
+
+            tk.Label(
+                row,
+                text=f"src:{provider_info['source']}",
+                font=("Arial", 7),
+                bg='#2b2b2b',
+                fg='#555577'
+            ).pack(side=tk.RIGHT, padx=5)
+
+    def create_os_toolkit_context_section(self):
+        """Os_Toolkit subcommands as cached context injectors (run once per task, not per message)."""
+        section_frame = ttk.LabelFrame(
+            self.tools_scroll_frame,
+            text="🔧 Os_Toolkit Context Tools  (cached per task — runs on Task Watcher ON or task switch)",
+            style='TLabelframe'
+        )
+        section_frame.pack(fill=tk.X, padx=5, pady=(0, 10))
+
+        ttk.Label(
+            section_frame,
+            text="Enable Os_Toolkit subcommands to inject grounding context (assess, todo, query, explain). Results cached until active task changes.",
+            font=("Arial", 8),
+            style='Config.TLabel',
+            wraplength=500,
+        ).pack(anchor=tk.W, padx=10, pady=(5, 3))
+
+        for tool_key, tool_info in self.OS_TOOLKIT_CONTEXT_TOOLS.items():
+            row = ttk.Frame(section_frame, style='Category.TFrame')
+            row.pack(fill=tk.X, padx=10, pady=2)
+
+            var = self.ostk_tool_vars.get(tool_key, tk.BooleanVar(value=False))
+            self.ostk_tool_vars[tool_key] = var
+
+            ttk.Checkbutton(
+                row,
+                text=tool_info['label'],
+                variable=var,
+                command=self.save_tool_settings,
+                style='Category.TCheckbutton'
+            ).pack(side=tk.LEFT, padx=(0, 10))
+
+            ttk.Label(
+                row,
+                text=tool_info['desc'],
+                font=("Arial", 9),
+                style='Config.TLabel'
+            ).pack(side=tk.LEFT)
+
+    # AoE layer → source system callgraph (static, reflects actual data flow)
+    LAYER_SOURCES = {
+        "attribution":     {"source": "version_manifest.json → enriched_changes",  "feeder": "recovery_util.register_event() → logger_util.log_change_attribution()", "path": "Data/backup/version_manifest.json",      "wired": True},
+        "version_health":  {"source": "version_manifest.json → versions[]",          "feeder": "recovery_util.mark_version_stable/unstable()",                            "path": "Data/backup/version_manifest.json",      "wired": True},
+        "ux_baseline":     {"source": "UX_EVENT_LOG",                                "feeder": "base_tab.safe_command() → ux_event_log.json",                             "path": "Data/backup/ux_event_log.json",          "wired": True},
+        "code_profile":    {"source": "py_manifest.json",                            "feeder": "py_manifest_augmented.py → AST scan",                                     "path": "babel_data/py_manifest.json",            "wired": True},
+        "query_weights":   {"source": "task_context_{tid}.json → query_weights_data","feeder": "planner_tab._do_sync() + GapAnalyzer",                                     "path": "Data/plans/Tasks/task_context_{tid}.json","wired": True},
+        "morph_opinion":   {"source": "task_context_{tid}.json → morph_opinion_data","feeder": "activity_integration_bridge.py → morph_opinion_data",                     "path": "Data/plans/Tasks/task_context_{tid}.json","wired": True},
+        "temporal_aoe":    {"source": "history_temporal_manifest.json",              "feeder": "filesync_temporal + debug_log scan",                                       "path": "babel_data/timeline/manifests/",          "wired": True},
+        "weight_engine":   {"source": "CDALS_v3 (unwired)",                          "feeder": "—",                                                                        "path": "—",                                       "wired": False},
+        "morphological":   {"source": "universal_taxonomy (unwired)",                "feeder": "—",                                                                        "path": "—",                                       "wired": False},
+        "business_domain": {"source": "brain.py (unwired)",                          "feeder": "—",                                                                        "path": "—",                                       "wired": False},
+        "graph_topology":  {"source": "biosphere + py_manifest (unwired)",           "feeder": "—",                                                                        "path": "—",                                       "wired": False},
+    }
+
+    def create_aoe_vector_section(self):
+        """Collapsible AoE Vector transparency panel — shows 11 layers + 92 vectors with source callgraph."""
+        # Collapsible wrapper
+        self._aoe_collapsed = True
+        outer = ttk.LabelFrame(
+            self.tools_scroll_frame,
+            text="📊 AoE Context Vectors  (click ▶ to expand — 11 layers, 92 vectors, read-only)",
+            style='TLabelframe'
+        )
+        outer.pack(fill=tk.X, padx=5, pady=(0, 10))
+
+        toggle_btn = ttk.Button(
+            outer,
+            text="▶ Show AoE Vector Callgraph",
+            command=lambda: self._toggle_aoe_panel(toggle_btn, aoe_body),
+            style='Select.TButton'
+        )
+        toggle_btn.pack(anchor=tk.W, padx=10, pady=5)
+
+        aoe_body = ttk.Frame(outer, style='Category.TFrame')
+        # Start collapsed — body not packed
+
+        # Load aoe_vector_config.json
+        _cfg_path = Path(__file__).parents[4] / "Data" / "plans" / "aoe_vector_config.json"
         try:
-            profile_name = self.current_profile_name.get()
-            profile = get_unified_tool_profile(profile_name, migrate=True)
-            log_message(f"TOOLS_TAB: Loaded profile '{profile_name}'")
-            return profile
-        except Exception as e:
-            log_message(f"TOOLS_TAB ERROR: Failed to load profile: {e}")
-            # Return minimal default profile
-            return {
-                "profile_name": "Default",
-                "version": "1.0",
-                "tools": {"enabled_tools": {}},
-                "execution": {},
-                "chat": {},
-                "orchestrator": {},
-                "notes": ""
-            }
+            _cfg = json.loads(_cfg_path.read_text(encoding="utf-8")) if _cfg_path.exists() else {}
+        except Exception:
+            _cfg = {}
+        _layers = _cfg.get("layers", {})
 
-    def load_tool_settings_from_profile(self):
-        """Load tool settings from unified profile"""
-        try:
-            enabled_tools = self.profile.get("tools", {}).get("enabled_tools", {})
+        # Status label (shown when row selected)
+        self._aoe_status_var = tk.StringVar(value="Click a layer to see feeder path")
+        ttk.Label(
+            outer,
+            textvariable=self._aoe_status_var,
+            font=("Courier", 8),
+            style='Config.TLabel',
+            foreground='#6699cc'
+        ).pack(anchor=tk.W, padx=10, pady=(0, 5))
 
-            # Initialize all tools with profile values or defaults
-            for category, tools in self.AVAILABLE_TOOLS.items():
-                for tool_key, tool_info in tools.items():
-                    if tool_key in enabled_tools:
-                        # Use value from profile
-                        self.tool_vars[tool_key] = tk.BooleanVar(value=enabled_tools[tool_key])
-                    else:
-                        # Default: all tools enabled except critical ones
-                        default_enabled = tool_info['risk'] != 'CRITICAL'
-                        self.tool_vars[tool_key] = tk.BooleanVar(value=default_enabled)
+        # Treeview inside body (deferred to expand)
+        self._aoe_cfg = _cfg
+        self._aoe_body = aoe_body
+        self._aoe_outer = outer
 
-            log_message(f"TOOLS_TAB: Loaded {len(self.tool_vars)} tool settings from profile")
+    def _toggle_aoe_panel(self, btn, body):
+        """Toggle show/hide of AoE body; build tree on first expand."""
+        if self._aoe_collapsed:
+            self._aoe_collapsed = False
+            btn.config(text="▼ Hide AoE Vector Callgraph")
+            body.pack(fill=tk.X, padx=5, pady=(0, 5))
+            if not body.winfo_children():
+                self._build_aoe_tree(body)
+        else:
+            self._aoe_collapsed = True
+            btn.config(text="▶ Show AoE Vector Callgraph")
+            body.pack_forget()
 
-        except Exception as e:
-            log_message(f"TOOLS_TAB ERROR: Failed to load tool settings: {e}")
-            # Fallback to defaults
+    def _build_aoe_tree(self, parent_frame):
+        """Build TreeView of layers + vectors from aoe_vector_config.json."""
+        cols = ("display", "field", "phase", "wired", "source")
+        tv = ttk.Treeview(parent_frame, columns=cols, show="tree headings", height=12)
+        tv.heading("#0",       text="Layer / Vector")
+        tv.heading("display",  text="Display")
+        tv.heading("field",    text="Field")
+        tv.heading("phase",    text="Ph")
+        tv.heading("wired",    text="Wired")
+        tv.heading("source",   text="Source System")
+        tv.column("#0",       width=200, stretch=False)
+        tv.column("display",  width=100, stretch=False)
+        tv.column("field",    width=100, stretch=False)
+        tv.column("phase",    width=35,  stretch=False)
+        tv.column("wired",    width=50,  stretch=False)
+        tv.column("source",   width=280, stretch=True)
+
+        _cfg  = self._aoe_cfg
+        _vecs = _cfg.get("vectors", [])  # flat list
+
+        for layer_key, layer_info in self.LAYER_SOURCES.items():
+            _wired_str = "✅" if layer_info["wired"] else "⬜"
+            layer_node = tv.insert("", "end", text=f"{layer_key}",
+                                   values=("", "", "", _wired_str, layer_info["source"]),
+                                   open=False)
+            # Find vectors belonging to this layer (field prefix or layer attribute)
+            _layer_vecs = [v for v in _vecs if v.get("layer", "").lower() == layer_key.lower()]
+            if not _layer_vecs:
+                # Fallback: match by id prefix (e.g. ec_ → attribution, vh_ → version_health)
+                _prefix_map = {
+                    "attribution": "ec_", "version_health": "vh_", "ux_baseline": "ux_",
+                    "code_profile": "cp_", "query_weights": "qw_", "morph_opinion": "mo_",
+                    "temporal_aoe": "ta_", "weight_engine": "we_", "morphological": "ml_",
+                    "business_domain": "bd_", "graph_topology": "gt_",
+                }
+                _pfx = _prefix_map.get(layer_key, "")
+                _layer_vecs = [v for v in _vecs if str(v.get("id", "")).startswith(_pfx)]
+            for vec in _layer_vecs:
+                _v_wired = "✅" if vec.get("wired") else "⬜"
+                tv.insert(layer_node, "end",
+                          text=f"  {vec.get('id', '?')}",
+                          values=(
+                              vec.get("display", ""),
+                              vec.get("field", ""),
+                              vec.get("phase", ""),
+                              _v_wired,
+                              layer_info["source"],
+                          ))
+
+        def _on_select(evt):
+            sel = tv.selection()
+            if sel:
+                item = tv.item(sel[0])
+                layer_text = item["text"].strip()
+                # Lookup in LAYER_SOURCES
+                for lk, li in self.LAYER_SOURCES.items():
+                    if lk in layer_text or layer_text.startswith(lk[:6]):
+                        self._aoe_status_var.set(f"feeder: {li['feeder']}  |  path: {li['path']}")
+                        break
+
+        tv.bind("<<TreeviewSelect>>", _on_select)
+
+        sb = ttk.Scrollbar(parent_frame, orient="vertical", command=tv.yview)
+        tv.configure(yscrollcommand=sb.set)
+        tv.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        sb.pack(side=tk.RIGHT, fill=tk.Y)
+
+    def create_consolidated_tools_page(self, page_frame):
+        """Page 2: Consolidated Tools from consolidated_menu.json (161 tools)."""
+        page_frame.columnconfigure(0, weight=1)
+        page_frame.rowconfigure(1, weight=1)
+
+        # Top bar
+        top = ttk.Frame(page_frame, style='Category.TFrame')
+        top.grid(row=0, column=0, sticky=tk.EW, padx=5, pady=5)
+        ttk.Label(top, text="📦 Consolidated Tool Catalog",
+                  font=("Arial", 11, "bold"), style='CategoryPanel.TLabel').pack(side=tk.LEFT)
+        ttk.Label(top, text="(right-click a tool → Query in Os_Toolkit)",
+                  font=("Arial", 8), style='Config.TLabel', foreground='#888888').pack(side=tk.LEFT, padx=10)
+
+        # Split: left=tree, right=query result
+        split = ttk.Frame(page_frame, style='Category.TFrame')
+        split.grid(row=1, column=0, sticky=tk.NSEW, padx=5, pady=(0, 5))
+        split.columnconfigure(0, weight=3)
+        split.columnconfigure(1, weight=2)
+        split.rowconfigure(0, weight=1)
+
+        # TreeView
+        cols = ("category", "command", "args", "enabled")
+        tv = ttk.Treeview(split, columns=cols, show="tree headings")
+        tv.heading("#0",       text="Name")
+        tv.heading("category", text="Category")
+        tv.heading("command",  text="Command")
+        tv.heading("args",     text="Args")
+        tv.heading("enabled",  text="On")
+        tv.column("#0",       width=180, stretch=False)
+        tv.column("category", width=130, stretch=False)
+        tv.column("command",  width=130, stretch=False)
+        tv.column("args",     width=80,  stretch=False)
+        tv.column("enabled",  width=35,  stretch=False)
+
+        # Load consolidated_menu.json
+        _menu_path = (Path(__file__).parents[2]
+                      / "action_panel_tab" / "babel_data" / "inventory" / "consolidated_menu.json")
+        self._consolidated_tools = []
+        if _menu_path.exists():
+            try:
+                _menu = json.loads(_menu_path.read_text(encoding="utf-8"))
+                # May be a list or a dict with 'tools' key
+                _tool_list = _menu if isinstance(_menu, list) else _menu.get("tools", [])
+                self._consolidated_tools = _tool_list
+            except Exception:
+                pass
+
+        # Group by category
+        _by_cat = {}
+        for tool in self._consolidated_tools:
+            _cat = tool.get("category", "Uncategorized")
+            _by_cat.setdefault(_cat, []).append(tool)
+
+        _cat_nodes = {}
+        for cat_name in sorted(_by_cat.keys()):
+            node = tv.insert("", "end", text=cat_name,
+                             values=(cat_name, "", "", ""), open=False)
+            _cat_nodes[cat_name] = node
+            for tool in _by_cat[cat_name]:
+                _en = "✅" if tool.get("enabled", True) else "⬜"
+                _args = str(tool.get("arguments", []))[:30]
+                tv.insert(node, "end",
+                          text=tool.get("display_name", tool.get("name", "?")),
+                          values=(cat_name, tool.get("command", ""), _args, _en))
+
+        sb_tv = ttk.Scrollbar(split, orient="vertical", command=tv.yview)
+        tv.configure(yscrollcommand=sb_tv.set)
+        tv.grid(row=0, column=0, sticky=tk.NSEW)
+        sb_tv.grid(row=0, column=0, sticky=tk.NS, padx=(0, 1))
+
+        # Right panel: query result
+        right = ttk.Frame(split, style='Category.TFrame')
+        right.grid(row=0, column=1, sticky=tk.NSEW, padx=(5, 0))
+        right.rowconfigure(1, weight=1)
+        right.columnconfigure(0, weight=1)
+        ttk.Label(right, text="🔬 Os_Toolkit Query Result",
+                  font=("Arial", 9, "bold"), style='Config.TLabel').grid(row=0, column=0, sticky=tk.W, pady=(0, 3))
+        self._ctab_query_text = scrolledtext.ScrolledText(
+            right, wrap=tk.WORD, font=("Courier", 8),
+            bg='#1e1e1e', fg='#cccccc', height=20
+        )
+        self._ctab_query_text.grid(row=1, column=0, sticky=tk.NSEW)
+
+        # Right-click menu on tree
+        ctx_menu = tk.Menu(page_frame, tearoff=0)
+        ctx_menu.add_command(label="🔬 Query in Os_Toolkit",
+                             command=lambda: self._ctab_query_selected(tv))
+
+        def _on_right_click(evt):
+            tv.selection_set(tv.identify_row(evt.y))
+            try:
+                ctx_menu.tk_popup(evt.x_root, evt.y_root)
+            finally:
+                ctx_menu.grab_release()
+
+        tv.bind("<Button-3>", _on_right_click)
+        tv.bind("<Double-1>",  lambda e: self._ctab_query_selected(tv))
+
+    def _ctab_query_selected(self, tv):
+        """Run Os_Toolkit query on the selected consolidated tool's command."""
+        sel = tv.selection()
+        if not sel:
+            return
+        item = tv.item(sel[0])
+        cmd = item["values"][1] if len(item["values"]) > 1 else ""
+        if not cmd:
+            return
+        self._ctab_query_text.delete("1.0", tk.END)
+        self._ctab_query_text.insert(tk.END, f"Querying: {cmd}...\n")
+
+        import threading, subprocess as _sp, sys as _sys
+        _tk_path = str(Path(__file__).parents[2] / "action_panel_tab" / "Os_Toolkit.py")
+
+        def _run():
+            try:
+                _res = _sp.run(
+                    [_sys.executable, _tk_path, "query", cmd],
+                    capture_output=True, text=True, timeout=15,
+                    cwd=str(Path(__file__).parents[2] / "action_panel_tab")
+                )
+                _out = _res.stdout or _res.stderr or "(no output)"
+            except Exception as _e:
+                _out = f"(error: {_e})"
+            self.root.after(0, lambda o=_out: (
+                self._ctab_query_text.delete("1.0", tk.END),
+                self._ctab_query_text.insert(tk.END, o)
+            ))
+
+        threading.Thread(target=_run, daemon=True).start()
+
+    def load_tool_settings(self):
+        """Load tool settings from file"""
+        settings_file = Path(__file__).parent.parent / "tool_settings.json"
+
+        if settings_file.exists():
+            try:
+                with open(settings_file, 'r') as f:
+                    settings = json.load(f)
+
+                for tool_key, enabled in settings.get('enabled_tools', {}).items():
+                    self.tool_vars[tool_key] = tk.BooleanVar(value=enabled)
+
+                # Load context provider settings
+                for pk, enabled in settings.get('context_providers', {}).items():
+                    self.context_provider_vars[pk] = tk.BooleanVar(value=enabled)
+
+                # Load Os_Toolkit context tool settings
+                for ok, enabled in settings.get('os_toolkit_tools', {}).items():
+                    self.ostk_tool_vars[ok] = tk.BooleanVar(value=enabled)
+
+                log_message("TOOLS_TAB: Settings loaded successfully")
+            except Exception as e:
+                log_message(f"TOOLS_TAB ERROR: Failed to load settings: {e}")
+        else:
+            # Default: all tools enabled except critical ones
             for category, tools in self.AVAILABLE_TOOLS.items():
                 for tool_key, tool_info in tools.items():
                     default_enabled = tool_info['risk'] != 'CRITICAL'
                     self.tool_vars[tool_key] = tk.BooleanVar(value=default_enabled)
 
     def save_tool_settings(self):
-        """Save tool settings to unified Tool Profile"""
-        try:
-            profile_name = self.current_profile_name.get()
+        """Save tool settings to file"""
+        settings_file = Path(__file__).parent.parent / "tool_settings.json"
 
-            # Update tools.enabled_tools section
-            self.profile.setdefault("tools", {})
-            self.profile["tools"]["enabled_tools"] = {
-                key: var.get() for key, var in self.tool_vars.items()
+        try:
+            settings = {
+                'enabled_tools': {
+                    key: var.get() for key, var in self.tool_vars.items()
+                },
+                'context_providers': {
+                    key: var.get() for key, var in self.context_provider_vars.items()
+                },
+                'os_toolkit_tools': {
+                    key: var.get() for key, var in self.ostk_tool_vars.items()
+                },
             }
 
-            # Update metadata
-            self.profile["profile_name"] = profile_name
-            self.profile["updated_at"] = datetime.utcnow().isoformat() + "Z"
+            with open(settings_file, 'w') as f:
+                json.dump(settings, f, indent=2)
 
-            # Save via unified API (atomic write + backup)
-            save_tool_profile(profile_name, self.profile)
+            log_message("TOOLS_TAB: Settings saved successfully")
 
-            log_message(f"TOOLS_TAB: Profile '{profile_name}' saved successfully")
-            messagebox.showinfo("Profile Saved", f"Tool Profile '{profile_name}' has been saved successfully!")
-
-            # Update status label
-            self.profile_status_label.config(text=f"Profile: {profile_name} (saved)")
+            # Show success message
+            from tkinter import messagebox
+            messagebox.showinfo("Settings Saved", "Tool settings have been saved successfully!")
 
         except Exception as e:
-            error_msg = f"Failed to save profile: {str(e)}"
-            log_message(f"TOOLS_TAB ERROR: {error_msg}")
-            messagebox.showerror("Save Error", error_msg)
+            log_message(f"TOOLS_TAB ERROR: Failed to save settings: {e}")
+            from tkinter import messagebox
+            messagebox.showerror("Save Error", f"Failed to save settings: {e}")
 
     def reset_to_defaults(self):
         """Reset all tools to default settings"""
+        from tkinter import messagebox
+
         if messagebox.askyesno("Reset to Defaults", "Reset all tool settings to defaults?"):
             # Reset: enable all except critical
             for category, tools in self.AVAILABLE_TOOLS.items():
@@ -355,187 +706,19 @@ class ToolsTab(BaseTab):
 
             log_message("TOOLS_TAB: Reset to defaults")
 
-    def on_profile_changed(self, event=None):
-        """Handle profile selection change"""
-        new_profile = self.current_profile_name.get()
-        log_message(f"TOOLS_TAB: Switching to profile '{new_profile}'")
-
-        # Reload from new profile
-        self.profile = self.load_profile()
-        self.load_tool_settings_from_profile()
-
-        # Update UI - need to refresh checkboxes
-        for tool_key, var in self.tool_vars.items():
-            enabled_tools = self.profile.get("tools", {}).get("enabled_tools", {})
-            if tool_key in enabled_tools:
-                var.set(enabled_tools[tool_key])
-
-        # Update status label
-        self.profile_status_label.config(text=f"Profile: {new_profile}")
-
-    def create_profile(self):
-        """Create a new profile by cloning current"""
-        dialog = tk.Toplevel(self.root)
-        dialog.title("Create New Profile")
-        dialog.geometry("400x150")
-        dialog.transient(self.root)
-        dialog.grab_set()
-
-        ttk.Label(dialog, text="New Profile Name:", font=("Arial", 10)).pack(pady=(20, 5))
-
-        name_var = tk.StringVar()
-        name_entry = ttk.Entry(dialog, textvariable=name_var, font=("Arial", 10), width=30)
-        name_entry.pack(pady=5)
-        name_entry.focus()
-
-        def do_create():
-            new_name = name_var.get().strip()
-            if not new_name:
-                messagebox.showwarning("Invalid Name", "Profile name cannot be empty")
-                return
-
-            if new_name in list_tool_profiles():
-                messagebox.showerror("Name Exists", f"Profile '{new_name}' already exists")
-                return
-
-            try:
-                # Clone current profile with new name
-                import copy
-                new_profile = copy.deepcopy(self.profile)
-                new_profile["profile_name"] = new_name
-                new_profile["created_at"] = datetime.utcnow().isoformat() + "Z"
-                new_profile["updated_at"] = datetime.utcnow().isoformat() + "Z"
-
-                save_tool_profile(new_name, new_profile)
-
-                # Update combo and switch to new profile
-                self.profile_combo['values'] = list_tool_profiles()
-                self.current_profile_name.set(new_name)
-                self.on_profile_changed()
-
-                log_message(f"TOOLS_TAB: Created new profile '{new_name}'")
-                messagebox.showinfo("Profile Created", f"New profile '{new_name}' created successfully!")
-                dialog.destroy()
-
-            except Exception as e:
-                messagebox.showerror("Create Error", f"Failed to create profile: {e}")
-
-        btn_frame = ttk.Frame(dialog)
-        btn_frame.pack(pady=20)
-        ttk.Button(btn_frame, text="Create", command=do_create, width=12).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Cancel", command=dialog.destroy, width=12).pack(side=tk.LEFT, padx=5)
-
-        name_entry.bind('<Return>', lambda e: do_create())
-
-    def rename_profile(self):
-        """Rename the current profile"""
-        current_name = self.current_profile_name.get()
-        if current_name == "Default":
-            messagebox.showwarning("Cannot Rename", "The 'Default' profile cannot be renamed")
-            return
-
-        dialog = tk.Toplevel(self.root)
-        dialog.title("Rename Profile")
-        dialog.geometry("400x150")
-        dialog.transient(self.root)
-        dialog.grab_set()
-
-        ttk.Label(dialog, text=f"Rename '{current_name}' to:", font=("Arial", 10)).pack(pady=(20, 5))
-
-        name_var = tk.StringVar(value=current_name)
-        name_entry = ttk.Entry(dialog, textvariable=name_var, font=("Arial", 10), width=30)
-        name_entry.pack(pady=5)
-        name_entry.focus()
-        name_entry.select_range(0, tk.END)
-
-        def do_rename():
-            new_name = name_var.get().strip()
-            if not new_name:
-                messagebox.showwarning("Invalid Name", "Profile name cannot be empty")
-                return
-
-            if new_name == current_name:
-                dialog.destroy()
-                return
-
-            if new_name in list_tool_profiles():
-                messagebox.showerror("Name Exists", f"Profile '{new_name}' already exists")
-                return
-
-            try:
-                # Rename by saving with new name and removing old
-                old_path = TOOL_PROFILES_DIR / f"{current_name}.json"
-                self.profile["profile_name"] = new_name
-                self.profile["updated_at"] = datetime.utcnow().isoformat() + "Z"
-                save_tool_profile(new_name, self.profile)
-
-                # Move old to backup
-                if old_path.exists():
-                    backup_path = old_path.with_suffix(f".json.bak-{int(datetime.utcnow().timestamp())}")
-                    old_path.rename(backup_path)
-
-                # Update combo and switch
-                self.profile_combo['values'] = list_tool_profiles()
-                self.current_profile_name.set(new_name)
-                self.profile_status_label.config(text=f"Profile: {new_name}")
-
-                log_message(f"TOOLS_TAB: Renamed profile '{current_name}' → '{new_name}'")
-                messagebox.showinfo("Profile Renamed", f"Profile renamed to '{new_name}' successfully!")
-                dialog.destroy()
-
-            except Exception as e:
-                messagebox.showerror("Rename Error", f"Failed to rename profile: {e}")
-
-        btn_frame = ttk.Frame(dialog)
-        btn_frame.pack(pady=20)
-        ttk.Button(btn_frame, text="Rename", command=do_rename, width=12).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Cancel", command=dialog.destroy, width=12).pack(side=tk.LEFT, padx=5)
-
-        name_entry.bind('<Return>', lambda e: do_rename())
-
-    def delete_profile(self):
-        """Delete the current profile (with safety backup)"""
-        current_name = self.current_profile_name.get()
-        if current_name == "Default":
-            messagebox.showwarning("Cannot Delete", "The 'Default' profile cannot be deleted")
-            return
-
-        if not messagebox.askyesno(
-            "Delete Profile",
-            f"Are you sure you want to delete profile '{current_name}'?\n\nA backup will be kept."
-        ):
-            return
-
-        try:
-            profile_path = TOOL_PROFILES_DIR / f"{current_name}.json"
-            if profile_path.exists():
-                # Move to timestamped backup instead of deleting
-                backup_path = profile_path.with_suffix(f".json.bak-{int(datetime.utcnow().timestamp())}")
-                profile_path.rename(backup_path)
-
-                # Switch to Default
-                self.current_profile_name.set("Default")
-                self.profile_combo['values'] = list_tool_profiles()
-                self.on_profile_changed()
-
-                log_message(f"TOOLS_TAB: Deleted profile '{current_name}' (backed up to {backup_path.name})")
-                messagebox.showinfo("Profile Deleted", f"Profile '{current_name}' deleted (backup: {backup_path.name})")
-
-        except Exception as e:
-            messagebox.showerror("Delete Error", f"Failed to delete profile: {e}")
-
     def get_enabled_tools(self):
         """Get list of currently enabled tools"""
         return [key for key, var in self.tool_vars.items() if var.get()]
 
+    def get_enabled_context_providers(self):
+        """Get list of currently enabled Omega context providers."""
+        return [key for key, var in self.context_provider_vars.items() if var.get()]
+
+    def get_enabled_ostk_tools(self):
+        """Get list of enabled Os_Toolkit context tool keys."""
+        return [key for key, var in self.ostk_tool_vars.items() if var.get()]
+
     def refresh(self):
         """Refresh the tools tab"""
         log_message("TOOLS_TAB: Refreshing...")
-        self.profile = self.load_profile()
-        self.load_tool_settings_from_profile()
-
-        # Update UI checkboxes
-        for tool_key, var in self.tool_vars.items():
-            enabled_tools = self.profile.get("tools", {}).get("enabled_tools", {})
-            if tool_key in enabled_tools:
-                var.set(enabled_tools[tool_key])
+        self.load_tool_settings()

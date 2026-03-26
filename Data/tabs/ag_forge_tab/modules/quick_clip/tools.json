@@ -1,0 +1,22 @@
+[
+    {
+        "name": "Generate Document",
+        "command": "python /home/commander/Desktop/quick_clip/invoke_doc.py",
+        "description": "Runs a CLI script to generate a document with Ollama."
+    },
+    {
+        "name": "Ag Migration: Taxonomy",
+        "command": "python3 ../ag_migration.py --species \"{content}\"",
+        "description": "Fetch official taxonomical data for the selected species using AI search."
+    },
+    {
+        "name": "Draft Ag Entity",
+        "command": "python3 ../bridge_staging.py --content \"{content}\" --json \"{json}\"",
+        "description": "Push extracted entity data to Ag Forge Staging area for review."
+    },
+    {
+        "name": "Open Chat Dock",
+        "command": "python3 ../chat_dock.py",
+        "description": "Launches the Agri-Dock daily assistant."
+    }
+]

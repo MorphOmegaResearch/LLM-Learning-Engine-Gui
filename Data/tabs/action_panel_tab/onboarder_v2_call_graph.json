@@ -1,0 +1,69 @@
+{
+  "file": "/home/commander/Desktop/System_Journal/System_Journal/inventory/tools/scripts/Babel_v01a/onboarder_v2.py",
+  "index": [
+    "1. SETUP & CONSTANTS ..... Logging, Babel Paths, Enums",
+    "2. DATA STRUCTURES ....... ToolMetadata, OnboardingSession, Menu Items",
+    "3. DISCOVERY ............. ToolDiscoverer (Scanner, AST Parser)",
+    "4. CONSOLIDATION ......... ToolConsolidator (Menu Builder, Launcher Gen)",
+    "5. INTEGRATION ........... PathFixerIntegrator (Path normalization)",
+    "6. MANAGER ............... OnboardingManager (Session, Catalog Flow)",
+    "7. GUI ................... OnboarderGUI (Tkinter Interface)",
+    "8. CLI ................... Main Entry Point, ArgParsing",
+    "2. Extract Events and Functions",
+    "Check for Event Marker",
+    "Parse event",
+    "Associate with function definition if pending",
+    "Associate with class definition",
+    "Associate with main block",
+    "Build Graph",
+    "Output",
+    "Discover tools",
+    "Group by category",
+    "Consolidate if requested",
+    "Filter by category if specified",
+    "Simple list",
+    "Find tool",
+    "Build command",
+    "Check for pathfixer",
+    "Scan tools",
+    "List all sessions",
+    "Show session info",
+    "Delete session"
+  ],
+  "events": [
+    {
+      "event": "Discovery",
+      "description": "Scanning filesystem for tools",
+      "line": 212,
+      "context": "function: _looks_like_tool"
+    },
+    {
+      "event": "Consolidation",
+      "description": "Building unified menu",
+      "line": 616,
+      "context": "function: _create_menu_item"
+    },
+    {
+      "event": "Main",
+      "description": "CLI Entry Point",
+      "line": 943,
+      "context": "class: PathFixerIntegrator"
+    },
+    {
+      "event": "Catalog",
+      "description": "Orchestrating system catalog",
+      "line": 1240,
+      "context": "function: _enrich_menu_with_context"
+    },
+    {
+      "event": "\")[1",
+      "description": "No description",
+      "line": 1883,
+      "context": "entry_point"
+    }
+  ],
+  "metadata": {
+    "generated_at": "2026-02-05T23:54:30.469176",
+    "line_count": 2345
+  }
+}

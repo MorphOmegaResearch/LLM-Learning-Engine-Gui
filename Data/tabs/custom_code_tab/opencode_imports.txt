@@ -1,0 +1,2549 @@
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/adaptive_workflow_engine.py ===
+"""
+Enhanced Multi-Model Workflow Engine with Observer Pattern and Dynamic Resource Management
+Implements 1-80% dynamic range with agent delegation and intelligent observer review cycles
+"""
+
+import time
+import asyncio
+import threading
+from typing import Dict, List, Optional, Tuple, Any, Union
+from dataclasses import dataclass, asdict
+from enum import Enum
+from collections import defaultdict, deque
+import json
+
+class ResourceMode(Enum):
+    """Enhanced resource allocation modes"""
+    FAST = "fast"           # 1-30% VRAM, minimal agents, quick results
+    AUTO = "auto"           # 1-80% dynamic, observer pattern with agents
+    THINK = "think"         # 20-80% VRAM, maximum reasoning depth
+
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/router.py ===
+"""
+Intelligent Routing System for OpenCode LLM Orchestration
+Reference: blueprint.txt "Routing (Detectors → Lanes → Budgets)"
+Implementation of advanced LLM orchestration concepts
+"""
+
+import re
+import asyncio
+import logging
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Tuple, Any
+from enum import Enum
+from .config import Config
+from .context_scorer import AdaptiveContextScorer
+
+from .config import Config
+
+logger = logging.getLogger(__name__)
+
+class IntentType(Enum):
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/agentic_project_system.py ===
+"""
+Agentic Project System - Manual → Auto Transition
+Project-based testing environment for agentic tool use with confirmers and capability validation
+"""
+
+import asyncio
+import json
+import time
+import os
+import shutil
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Any, Callable
+from dataclasses import dataclass, asdict
+from enum import Enum
+
+class ProjectPhase(Enum):
+    """Project execution phases"""
+    MANUAL_SETUP = "manual_setup"           # Human-guided setup and refinement
+    MANUAL_VALIDATION = "manual_validation" # Validate manual approach works
+    HANDOFF_PREPARATION = "handoff_prep"    # Prepare for auto transition
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/base.py ===
+"Base classes and utilities for LangChain tools."
+
+from __future__ import annotations
+
+import functools
+import inspect
+import json
+import typing
+import warnings
+from abc import ABC, abstractmethod
+from inspect import signature
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Any,
+    Callable,
+    Literal,
+    Optional,
+    TypeVar,
+    Union,
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/function_calling.py ===
+"""Methods for creating function specs in the style of OpenAI Functions."""
+
+from __future__ import annotations
+
+import collections
+import inspect
+import logging
+import types
+import typing
+import uuid
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Any,
+    Callable,
+    Literal,
+    Optional,
+    Union,
+    cast,
+)
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/pydantic.py ===
+from langchain_core.output_parsers import PydanticOutputParser
+
+__all__ = ["PydanticOutputParser"]
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/pandas_dataframe.py ===
+import re
+from typing import Any, Union
+
+from langchain_core.exceptions import OutputParserException
+from langchain_core.output_parsers.base import BaseOutputParser
+from pydantic import field_validator
+
+from langchain.output_parsers.format_instructions import (
+    PANDAS_DATAFRAME_FORMAT_INSTRUCTIONS,
+)
+
+
+class PandasDataFrameOutputParser(BaseOutputParser[dict[str, Any]]):
+    """Parse an output using Pandas DataFrame format."""
+
+    """The Pandas DataFrame to parse."""
+    dataframe: Any
+
+    @field_validator("dataframe")
+    @classmethod
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/regex.py ===
+from __future__ import annotations
+
+import re
+from typing import Optional
+
+from langchain_core.output_parsers import BaseOutputParser
+
+
+class RegexParser(BaseOutputParser[dict[str, str]]):
+    """Parse the output of an LLM call using a regex."""
+
+    @classmethod
+    def is_lc_serializable(cls) -> bool:
+        return True
+
+    regex: str
+    """The regex to use to parse the output."""
+    output_keys: list[str]
+    """The keys to use for the output."""
+    default_output_key: Optional[str] = None
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/json.py ===
+from langchain_core.output_parsers.json import (
+    SimpleJsonOutputParser,
+)
+from langchain_core.utils.json import (
+    parse_and_check_json_markdown,
+    parse_json_markdown,
+    parse_partial_json,
+)
+
+__all__ = [
+    "SimpleJsonOutputParser",
+    "parse_and_check_json_markdown",
+    "parse_json_markdown",
+    "parse_partial_json",
+]
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/retry.py ===
+from __future__ import annotations
+
+from typing import Annotated, Any, TypeVar, Union
+
+from langchain_core.exceptions import OutputParserException
+from langchain_core.language_models import BaseLanguageModel
+from langchain_core.output_parsers import BaseOutputParser, StrOutputParser
+from langchain_core.prompt_values import PromptValue
+from langchain_core.prompts import BasePromptTemplate, PromptTemplate
+from langchain_core.runnables import RunnableSerializable
+from pydantic import SkipValidation
+from typing_extensions import TypedDict
+
+NAIVE_COMPLETION_RETRY = """Prompt:
+{prompt}
+Completion:
+{completion}
+
+Above, the Completion did not satisfy the constraints given in the Prompt.
+Please try again:"""
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/list.py ===
+from langchain_core.output_parsers.list import (
+    CommaSeparatedListOutputParser,
+    ListOutputParser,
+    MarkdownListOutputParser,
+    NumberedListOutputParser,
+)
+
+__all__ = [
+    "CommaSeparatedListOutputParser",
+    "ListOutputParser",
+    "MarkdownListOutputParser",
+    "NumberedListOutputParser",
+]
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/yaml.py ===
+import json
+import re
+from typing import TypeVar
+
+import yaml
+from langchain_core.exceptions import OutputParserException
+from langchain_core.output_parsers import BaseOutputParser
+from pydantic import BaseModel, ValidationError
+
+from langchain.output_parsers.format_instructions import YAML_FORMAT_INSTRUCTIONS
+
+T = TypeVar("T", bound=BaseModel)
+
+
+class YamlOutputParser(BaseOutputParser[T]):
+    """Parse YAML output using a pydantic model."""
+
+    pydantic_object: type[T]
+    """The pydantic model to parse."""
+    pattern: re.Pattern = re.compile(
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/xml.py ===
+from langchain_core.output_parsers.xml import XMLOutputParser
+
+__all__ = ["XMLOutputParser"]
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/ernie_functions.py ===
+from typing import TYPE_CHECKING, Any
+
+from langchain._api import create_importer
+
+if TYPE_CHECKING:
+    from langchain_community.output_parsers.ernie_functions import (
+        JsonKeyOutputFunctionsParser,
+        JsonOutputFunctionsParser,
+        OutputFunctionsParser,
+        PydanticAttrOutputFunctionsParser,
+        PydanticOutputFunctionsParser,
+    )
+
+# Create a way to dynamically look up deprecated imports.
+# Used to consolidate logic for raising deprecation warnings and
+# handling optional imports.
+DEPRECATED_LOOKUP = {
+    "JsonKeyOutputFunctionsParser": (
+        "langchain_community.output_parsers.ernie_functions"
+    ),
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/combining.py ===
+from __future__ import annotations
+
+from typing import Any
+
+from langchain_core.output_parsers import BaseOutputParser
+from langchain_core.utils import pre_init
+
+_MIN_PARSERS = 2
+
+
+class CombiningOutputParser(BaseOutputParser[dict[str, Any]]):
+    """Combine multiple output parsers into one."""
+
+    parsers: list[BaseOutputParser]
+
+    @classmethod
+    def is_lc_serializable(cls) -> bool:
+        return True
+
+    @pre_init
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/openai_tools.py ===
+from langchain_core.output_parsers.openai_tools import (
+    JsonOutputKeyToolsParser,
+    JsonOutputToolsParser,
+    PydanticToolsParser,
+)
+
+__all__ = ["JsonOutputKeyToolsParser", "JsonOutputToolsParser", "PydanticToolsParser"]
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/datetime.py ===
+from datetime import datetime, timedelta, timezone
+
+from langchain_core.exceptions import OutputParserException
+from langchain_core.output_parsers import BaseOutputParser
+from langchain_core.utils import comma_list
+
+
+class DatetimeOutputParser(BaseOutputParser[datetime]):
+    """Parse the output of an LLM call to a datetime."""
+
+    format: str = "%Y-%m-%dT%H:%M:%S.%fZ"
+    """The string value that is used as the datetime format.
+
+    Update this to match the desired datetime format for your application.
+    """
+
+    def get_format_instructions(self) -> str:
+        """Returns the format instructions for the given format."""
+        if self.format == "%Y-%m-%dT%H:%M:%S.%fZ":
+            examples = comma_list(
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/openai_functions.py ===
+from langchain_core.output_parsers.openai_functions import (
+    JsonKeyOutputFunctionsParser,
+    JsonOutputFunctionsParser,
+    PydanticAttrOutputFunctionsParser,
+    PydanticOutputFunctionsParser,
+)
+
+__all__ = [
+    "JsonKeyOutputFunctionsParser",
+    "JsonOutputFunctionsParser",
+    "PydanticAttrOutputFunctionsParser",
+    "PydanticOutputFunctionsParser",
+]
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/boolean.py ===
+import re
+
+from langchain_core.output_parsers import BaseOutputParser
+
+
+class BooleanOutputParser(BaseOutputParser[bool]):
+    """Parse the output of an LLM call to a boolean."""
+
+    true_val: str = "YES"
+    """The string value that should be parsed as True."""
+    false_val: str = "NO"
+    """The string value that should be parsed as False."""
+
+    def parse(self, text: str) -> bool:
+        """Parse the output of an LLM call to a boolean.
+
+        Args:
+            text: output of a language model
+
+        Returns:
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/rail_parser.py ===
+from typing import TYPE_CHECKING, Any
+
+from langchain._api import create_importer
+
+if TYPE_CHECKING:
+    from langchain_community.output_parsers.rail_parser import GuardrailsOutputParser
+
+# Create a way to dynamically look up deprecated imports.
+# Used to consolidate logic for raising deprecation warnings and
+# handling optional imports.
+DEPRECATED_LOOKUP = {
+    "GuardrailsOutputParser": "langchain_community.output_parsers.rail_parser",
+}
+
+_import_attribute = create_importer(__package__, deprecated_lookups=DEPRECATED_LOOKUP)
+
+
+def __getattr__(name: str) -> Any:
+    """Look up attributes dynamically."""
+    return _import_attribute(name)
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/enum.py ===
+from enum import Enum
+
+from langchain_core.exceptions import OutputParserException
+from langchain_core.output_parsers import BaseOutputParser
+from langchain_core.utils import pre_init
+
+
+class EnumOutputParser(BaseOutputParser[Enum]):
+    """Parse an output that is one of a set of values."""
+
+    enum: type[Enum]
+    """The enum to parse. Its values must be strings."""
+
+    @pre_init
+    def raise_deprecation(cls, values: dict) -> dict:
+        enum = values["enum"]
+        if not all(isinstance(e.value, str) for e in enum):
+            msg = "Enum values must be strings"
+            raise ValueError(msg)
+        return values
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/regex_dict.py ===
+from __future__ import annotations
+
+import re
+from typing import Optional
+
+from langchain_core.output_parsers import BaseOutputParser
+
+
+class RegexDictParser(BaseOutputParser[dict[str, str]]):
+    """Parse the output of an LLM call into a Dictionary using a regex."""
+
+    regex_pattern: str = r"{}:\s?([^.'\n']*)\.?"  # : :meta private:
+    """The regex pattern to use to parse the output."""
+    output_key_to_format: dict[str, str]
+    """The keys to use for the output."""
+    no_update_value: Optional[str] = None
+    """The default key to use for the output."""
+
+    @property
+    def _type(self) -> str:
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/__init__.py ===
+"""**OutputParser** classes parse the output of an LLM call.
+
+**Class hierarchy:**
+
+.. code-block::
+
+    BaseLLMOutputParser --> BaseOutputParser --> <name>OutputParser  # ListOutputParser, PydanticOutputParser
+
+**Main helpers:**
+
+.. code-block::
+
+    Serializable, Generation, PromptValue
+"""  # noqa: E501
+
+from typing import TYPE_CHECKING, Any
+
+from langchain_core.output_parsers import (
+    CommaSeparatedListOutputParser,
+    ListOutputParser,
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/loading.py ===
+from langchain.output_parsers.regex import RegexParser
+
+
+def load_output_parser(config: dict) -> dict:
+    """Load an output parser.
+
+    Args:
+        config: config dict
+
+    Returns:
+        config dict with output parser loaded
+    """
+    if "output_parsers" in config and config["output_parsers"] is not None:
+        _config = config["output_parsers"]
+        output_parser_type = _config["_type"]
+        if output_parser_type == "regex_parser":
+            output_parser = RegexParser(**_config)
+        else:
+            msg = f"Unsupported output parser {output_parser_type}"
+            raise ValueError(msg)
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/structured.py ===
+from __future__ import annotations
+
+from typing import Any
+
+from langchain_core.output_parsers import BaseOutputParser
+from langchain_core.output_parsers.json import parse_and_check_json_markdown
+from pydantic import BaseModel
+
+from langchain.output_parsers.format_instructions import (
+    STRUCTURED_FORMAT_INSTRUCTIONS,
+    STRUCTURED_FORMAT_SIMPLE_INSTRUCTIONS,
+)
+
+line_template = '\t"{name}": {type}  // {description}'
+
+
+class ResponseSchema(BaseModel):
+    """Schema for a response from a structured output parser."""
+
+    name: str
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/prompts.py ===
+from langchain_core.prompts.prompt import PromptTemplate
+
+NAIVE_FIX = """Instructions:
+--------------
+{instructions}
+--------------
+Completion:
+--------------
+{completion}
+--------------
+
+Above, the Completion did not satisfy the constraints given in the Instructions.
+Error:
+--------------
+{error}
+--------------
+
+Please try again. Please only respond with an answer that satisfies the constraints laid out in the Instructions:"""  # noqa: E501
+
+
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/fix.py ===
+from __future__ import annotations
+
+from typing import Annotated, Any, TypeVar, Union
+
+from langchain_core.exceptions import OutputParserException
+from langchain_core.output_parsers import BaseOutputParser, StrOutputParser
+from langchain_core.prompts import BasePromptTemplate
+from langchain_core.runnables import Runnable, RunnableSerializable
+from pydantic import SkipValidation
+from typing_extensions import TypedDict
+
+from langchain.output_parsers.prompts import NAIVE_FIX_PROMPT
+
+T = TypeVar("T")
+
+
+class OutputFixingParserRetryChainInput(TypedDict, total=False):
+    instructions: str
+    completion: str
+    error: str
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/parsers/format_instructions.py ===
+STRUCTURED_FORMAT_INSTRUCTIONS = """The output should be a markdown code snippet formatted in the following schema, including the leading and trailing "```json" and "```":
+
+```json
+{{
+{format}
+}}
+```"""  # noqa: E501
+
+STRUCTURED_FORMAT_SIMPLE_INSTRUCTIONS = """
+```json
+{{
+{format}
+}}
+```"""
+
+
+PYDANTIC_FORMAT_INSTRUCTIONS = """The output should be formatted as a JSON instance that conforms to the JSON schema below.
+
+As an example, for the schema {{"properties": {{"foo": {{"title": "Foo", "description": "a list of strings", "type": "array", "items": {{"type": "string"}}}}}}, "required": ["foo"]}}
+the object {{"foo": ["bar", "baz"]}} is a well-formatted instance of the schema. The object {{"properties": {{"foo": ["bar", "baz"]}}}} is not well-formatted.
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_tools/__init__.py ===
+"""LangChain tools integration for OpenCode.
+
+This module provides LangChain's battle-tested tool system for:
+- Automatic schema generation from Python functions
+- Robust tool call parsing and validation
+- Multi-format support (OpenAI, Anthropic, etc.)
+"""
+
+from .base import BaseTool, StructuredTool, Tool
+from .function_calling import convert_to_openai_function, convert_to_openai_tool
+
+__all__ = [
+    'BaseTool',
+    'StructuredTool',
+    'Tool',
+    'convert_to_openai_function',
+    'convert_to_openai_tool',
+]
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/runtime_profiles.py ===
+"""
+Runtime resource profiles for constraining hardware usage.
+Enables running larger models on smaller hardware through intelligent resource allocation.
+"""
+import os
+import psutil
+from dataclasses import dataclass
+from typing import Dict, Any, Optional
+from enum import Enum
+
+class ResourceLevel(Enum):
+    """Resource usage levels"""
+    MINIMAL = 25     # Ultra-conservative for very constrained hardware
+    BALANCED = 50    # Balanced approach for typical hardware
+    AGGRESSIVE = 75  # High utilization for capable hardware
+    MAXIMUM = 100    # Full resource utilization
+
+@dataclass
+class ResourceProfile:
+    """Resource constraints and parameters for a specific usage level"""
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/quant_manager.py ===
+import requests
+import subprocess
+import json
+import psutil
+from typing import Dict, List, Optional
+from dataclasses import dataclass
+
+@dataclass
+class QuantizationProfile:
+    model_name: str
+    quantization: str  # Q4_K_M, Q4_K_S, Q8_0, etc.
+    memory_usage: float  # Estimated GB
+    performance_score: float  # Relative performance (0-1)
+    supported_ops: List[str]  # Supported operations
+
+class DynamicQuantizationManager:
+    """
+    Hardware-aware quantization management for Ollama models
+    """
+
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/quality_integration.py ===
+"""
+Quality Integration Module
+Provides the integration point between the Master Quality System and OpenCode's interactive.py
+This module handles the transition from existing systems to enhanced quality recovery
+"""
+
+import asyncio
+import time
+from typing import Dict, List, Optional, Tuple, Any
+from rich.console import Console
+
+console = Console()
+
+try:
+    from .master_quality_system import MasterQualitySystem, SystemMode
+except ImportError:
+    from master_quality_system import MasterQualitySystem, SystemMode
+
+class QualityIntegrationManager:
+    """Manager for integrating quality system with existing OpenCode"""
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/auto_policy.py ===
+from dataclasses import dataclass
+from typing import Optional, Dict, Any
+
+
+@dataclass
+class PolicyInputs:
+    mode: str
+    lane: Any
+    requested_count: Optional[int]
+    complexity_score: float
+    resources_percent: int
+    model_temperature: float
+    model_max_tokens: int
+    interactive_self: Any = None
+    num_ctx: Optional[int] = None
+    num_thread: Optional[int] = None
+    # Optional richer signals (currently unused by BasicPolicyProvider)
+    context_score: Optional[float] = None
+    route_confidence: Optional[float] = None
+    time_budget_ms: Optional[int] = None
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/ollama_client.py ===
+import httpx
+import asyncio
+import json
+from typing import Dict, List, Optional, AsyncGenerator, Any
+
+from rich.console import Console
+
+console = Console()
+from .config import ModelConfig
+from .model_optimizer import ModelProfiler
+from .quant_manager import DynamicQuantizationManager
+
+class OllamaClient:
+    """Client for interacting with Ollama API"""
+
+    def _as_dict(self, obj, default=None):
+        """Defensive helper to ensure object behaves like a dict"""
+        if hasattr(obj, 'get') and callable(getattr(obj, 'get')):
+            return obj
+        return default or {}
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_adapter_simple.py ===
+"""Simplified LangChain-inspired adapter for OpenCode.
+
+This provides battle-tested tool parsing WITHOUT the full LangChain dependency tree.
+Uses the parsing logic we already copied (json_fixer.py) plus OpenCode's format_translator.
+"""
+
+from typing import Dict, Any, List, Optional
+import json
+import re
+
+from .tools import ToolManager
+from .format_translator import FormatTranslator
+
+
+class SimpleLangChainAdapter:
+    """Simplified adapter providing LangChain-style tool handling without dependencies.
+
+    Provides:
+    1. Robust JSON parsing (using json_fixer)
+    2. Multiple format support (using format_translator)
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/hardening_manager.py ===
+"""
+System Hardening Manager for OpenCode
+Centralized error handling, kill-switches, and recovery mechanisms
+Phase 8: System Hardening & Error Handling Implementation
+"""
+
+import time
+import threading
+import signal
+import os
+import sys
+import json
+from typing import Dict, List, Optional, Callable, Any
+from pathlib import Path
+from dataclasses import dataclass, asdict
+from datetime import datetime
+from collections import defaultdict
+
+from .config import Config, HardeningConfig
+
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/session_manager.py ===
+import json
+import asyncio
+import time
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Any
+from dataclasses import dataclass, asdict
+from datetime import datetime, timedelta
+from collections import defaultdict
+
+from .config import Config
+from .atomic_writer import AtomicWriter, atomic_session_write
+
+@dataclass
+class SessionAnalytics:
+    """Analytics data for a conversation session"""
+    session_id: str
+    model_name: str
+    start_time: str
+    end_time: Optional[str] = None
+    total_interactions: int = 0
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/interactivebackupprejson.py ===
+import asyncio
+import yaml
+import json
+import re
+import time
+import signal
+import atexit
+import sys
+import termios
+import tty
+import threading
+import select
+from pathlib import Path
+from typing import List, Dict, Optional
+from dataclasses import dataclass, asdict
+from datetime import datetime
+from .mcp_integration import MCPIntegration, integrate_mcp, MCPCommands
+
+from rich.console import Console
+from rich.markdown import Markdown
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/main.py ===
+#!/usr/bin/env python3
+"""
+OpenCode - Main entry point for the CLI tool
+"""
+
+import sys
+import os
+from pathlib import Path
+
+# Add the opencode directory to the Python path
+package_dir = Path(__file__).parent
+sys.path.insert(0, str(package_dir))
+
+from .cli import main
+
+if __name__ == "__main__":
+    main()=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/json_fixer.py ===
+"""
+JSON Parsing Utilities with Auto-Fixing
+Adapted from LangChain (MIT License) - https://github.com/langchain-ai/langchain
+"""
+
+import json
+import re
+from typing import Any, Optional
+
+
+def parse_partial_json(s: str) -> Optional[Any]:
+    """
+    Parse a JSON string that may be missing closing braces or have other issues.
+
+    This is extremely useful for LLM outputs that might be truncated or malformed.
+
+    Args:
+        s: The JSON string to parse (can be incomplete)
+
+    Returns:
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/instant_hook_engine.py ===
+"""
+Instant Hook Recognition Engine
+Builds on original simple hook-based system for instant context recognition
+Integrates with MVCO and optimization engines for learning-based hook expansion
+"""
+
+import re
+import json
+import time
+import asyncio
+from typing import Dict, List, Optional, Tuple, Any, Callable, Pattern
+from dataclasses import dataclass, asdict
+from enum import Enum
+from collections import defaultdict, deque
+import pickle
+from pathlib import Path
+
+class HookType(Enum):
+    """Types of instant recognition hooks"""
+    NUMERIC = "numeric"           # Math, calculations, numbers
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/langchain_adapter.py ===
+"""Adapter layer bridging LangChain's tool system to OpenCode's execution engine.
+
+This adapter provides:
+1. Wraps OpenCode tools as LangChain BaseTool instances
+2. Auto-generates OpenAI-style schemas for model prompting
+3. Robust parsing using LangChain's proven parsers
+4. Falls back to OpenCode's format_translator for quirky model outputs
+"""
+
+from typing import Dict, Any, List, Optional, Callable
+import json
+from pydantic import BaseModel, Field
+
+from .langchain_tools.base import BaseTool, StructuredTool
+from .langchain_tools.function_calling import convert_to_openai_function
+from .tools import ToolManager
+
+
+class LangChainToolAdapter:
+    """Adapts LangChain's tool system to OpenCode's execution engine.
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/mvco_engine.py ===
+import numpy as np
+import json
+import time
+from collections import defaultdict, deque
+from typing import Dict, List, Tuple, Optional, Any
+from dataclasses import dataclass, asdict
+import threading
+import queue
+
+@dataclass
+class ConversationState:
+    topic: str
+    complexity: float
+    user_intent: str
+    model_used: str
+    response_quality: float
+    timestamp: float
+
+class MarkovContextOrchestrator:
+    """
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/atomic_writer.py ===
+"""
+Atomic write operations for session integrity and data safety.
+Prevents data corruption from interrupted writes and provides rollback mechanisms.
+"""
+import json
+import os
+import shutil
+import tempfile
+import time
+from pathlib import Path
+from typing import Any, Dict, Optional, List
+from contextlib import contextmanager
+import logging
+
+logger = logging.getLogger(__name__)
+
+class AtomicWriteError(Exception):
+    """Raised when atomic write operations fail"""
+    pass
+
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/quality_recovery_engine.py ===
+"""
+Quality Recovery Engine for OpenCode
+Restores instant responses for simple inputs while preserving advanced features for complex workflows
+Implements three-tier response system: Instant -> Standard -> Observer
+"""
+
+import re
+import time
+import asyncio
+from typing import Dict, List, Optional, Tuple, Any, Union
+from dataclasses import dataclass, asdict
+from enum import Enum
+import json
+
+class ResponseTier(Enum):
+    """Response processing tiers"""
+    INSTANT = "instant"      # 0.1-0.5s - Simple inputs, direct model call
+    STANDARD = "standard"    # 1-3s - Medium complexity, current system
+    OBSERVER = "observer"    # 5-30s - Complex workflows, observer pattern
+
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/model_optimizer.py ===
+"""
+Model Performance Optimization for OpenCode LLM Orchestration
+Reference: Context Scoring Systempt2.txt "Qwen 2.5-7B... performance benchmarks"
+Implementation of research-based model optimization for 7B models
+"""
+
+import logging
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Tuple, Any
+from enum import Enum
+
+logger = logging.getLogger(__name__)
+
+class ModelSizeClass(Enum):
+    """Model size classifications for optimization"""
+    TINY = "tiny"      # 1B-1.1B parameters
+    SMALL = "small"    # 2B-3B parameters
+    MEDIUM = "medium"  # 7B-9B parameters
+    LARGE = "large"    # 13B-30B parameters
+    XLARGE = "xlarge"  # 70B+ parameters
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/project_store.py ===
+"""
+Project storage system for conversation logs and future RAG integration.
+Manages project-scoped conversation history and metadata.
+"""
+import json
+import time
+from pathlib import Path
+from datetime import datetime
+from typing import Dict, List, Optional, Any
+from dataclasses import dataclass, asdict
+import uuid
+from .atomic_writer import AtomicWriter
+
+@dataclass
+class ProjectInfo:
+    """Information about a project"""
+    id: str
+    name: str
+    description: str
+    created_at: str
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/pre_rag_optimizer.py ===
+import asyncio
+import re
+import json
+from typing import Dict, List, Optional, Tuple, Any
+from dataclasses import dataclass, asdict
+from enum import Enum
+from datetime import datetime
+import hashlib
+
+from .config import Config
+
+class OptimizationType(Enum):
+    """Types of pre-RAG optimizations"""
+    CONTEXT_COMPRESSION = "context_compression"
+    SEMANTIC_CHUNKING = "semantic_chunking"
+    QUERY_ENHANCEMENT = "query_enhancement"
+    RELEVANCE_FILTERING = "relevance_filtering"
+    PROMPT_OPTIMIZATION = "prompt_optimization"
+
+class ContentType(Enum):
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/__main__.py ===
+#!/usr/bin/env python3
+"""
+OpenCode CLI entry point when running as python -m opencode
+"""
+
+if __name__ == '__main__':
+    try:
+        from .cli import main
+        main()
+    except Exception as e:
+        import sys, traceback, os
+        err = f"[OpenCode] Fatal error: {e}\n"
+        sys.stderr.write("\n" + err)
+        traceback.print_exc()
+        # Write to crash log in project root
+        try:
+            with open(os.path.join(os.getcwd(), 'crash_log.txt'), 'a') as f:
+                f.write(err)
+                traceback.print_exc(file=f)
+        except Exception:
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/config.py ===
+import yaml
+import re
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional
+from pathlib import Path
+from urllib.parse import urlparse
+
+@dataclass
+class ModelConfig:
+    name: str = "gemma2:2b"
+    base_url: str = "http://localhost:11434"
+    temperature: float = 0.1
+    max_tokens: int = 4096
+
+@dataclass
+class BashConfig:
+    allowed_commands: List[str] = field(default_factory=lambda: [
+        "git", "npm", "pip", "python", "python3", "node", "cargo", "go", "make", "docker", "ls", "pwd", "whoami", "date", "cat", "head", "tail", "grep", "find", "mkdir", "touch", "cp", "mv", "rm"
+    ])
+    timeout: int = 30
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/rag_feedback_engine.py ===
+"""
+RAG Feedback Learning Engine
+Captures user feedback (thanks, confirms, denies, requests evidence) to optimize RAG accuracy and tool use
+Integrates with quality recovery and hook systems for continuous improvement
+"""
+
+import re
+import time
+import json
+from typing import Dict, List, Optional, Tuple, Any, Set
+from dataclasses import dataclass, asdict, field
+from enum import Enum
+from collections import defaultdict, deque
+# import numpy as np  # Use basic math instead for compatibility
+
+class FeedbackType(Enum):
+    """Types of user feedback for RAG learning"""
+    POSITIVE_CONFIRMATION = "positive_confirmation"    # "thanks", "correct", "exactly"
+    NEGATIVE_DENIAL = "negative_denial"               # "no", "wrong", "incorrect"
+    EVIDENCE_REQUEST = "evidence_request"             # "show evidence", "prove it", "source?"
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/llamacpp_client.py ===
+import asyncio
+import subprocess
+import json
+import os
+from pathlib import Path
+from typing import Dict, List, Optional, AsyncGenerator, Any
+from rich.console import Console
+
+console = Console()
+from .config import ModelConfig
+
+class LlamaCppClient:
+    """Client for interacting with llama.cpp directly via subprocess"""
+
+    def __init__(self, model_config: ModelConfig):
+        self.config = model_config
+        self.llama_cpp_path = "/home/commander/Desktop/llama.cpp/build/bin/llama-cli"
+        self.models_dir = "/home/commander/Desktop/BackupOpencode/models"
+        self.current_model_path = None
+        self.interactive_mode = False
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/mcp_server_wrapper.py ===
+"""
+MCP Server Wrapper for OpenCode ToolManager
+Exposes existing tools as MCP primitives for external model integration
+"""
+
+import asyncio
+from pathlib import Path
+from typing import Optional, Any
+
+from mcp.server import Server
+from mcp.server.stdio import stdio_server
+from mcp import types
+
+# Import your existing components
+from .tools import ToolManager, ToolResult
+from .config import ToolsConfig
+
+
+class OpenCodeMCPServer:
+    """
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/mcp_integration.py ===
+"""
+MCP Integration for OpenCode TUI
+Provides MCP client/server capabilities within the interactive mode
+"""
+
+import asyncio
+from contextlib import asynccontextmanager
+from typing import Optional, AsyncIterator
+from pathlib import Path
+
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+from rich.console import Console
+
+from .mcp_server_wrapper import OpenCodeMCPServer
+from .tools import ToolManager
+from .config import Config
+
+console = Console()
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/format_translator.py ===
+"""
+Format Translator Module
+Converts various tool calling formats to OpenCode's standard JSON format.
+Handles gorilla-style Python function calls, native tool formats, and more.
+"""
+
+import re
+import json
+from typing import Optional, Dict, Any, List
+from .json_fixer import smart_json_parse, parse_partial_json
+
+
+class FormatTranslator:
+    """Translates various tool calling formats to standard OpenCode JSON"""
+
+    def __init__(self):
+        # Pattern to match Python function calls: tool_name(arg1="value", arg2="value")
+        self.python_func_pattern = re.compile(
+            r'(\w+)\s*\(([^)]*)\)',
+            re.MULTILINE
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/workflow_optimizer.py ===
+"""
+Multi-Model Workflow Optimizer for OpenCode
+Intelligent routing using smaller models for specific tasks and combining results
+Based on model file sizes and resource optimization strategy
+"""
+
+import time
+import asyncio
+from typing import Dict, List, Optional, Tuple, Any
+from dataclasses import dataclass, asdict
+from enum import Enum
+from collections import defaultdict
+
+class ModelTier(Enum):
+    """Model performance tiers based on size and capability"""
+    ULTRA_LIGHT = "ultra_light"  # < 0.5GB - Quick verification, data parsing
+    LIGHT = "light"              # 0.5-1GB - Simple tasks, fast responses
+    MEDIUM = "medium"            # 1-3GB - Specialized workflows, coordination
+    HEAVY = "heavy"              # 3GB+ - Complex reasoning, final synthesis
+
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/complexity_analyzer.py ===
+"""
+Advanced Complexity Analysis and Resource Allocation System
+Analyzes input complexity and determines optimal resource allocation for processing
+"""
+import re
+import math
+from dataclasses import dataclass
+from typing import Dict, List, Any, Optional, Tuple
+from enum import Enum
+
+from .runtime_profiles import resource_manager, ResourceProfile
+
+class ComplexityType(Enum):
+    """Types of complexity detected in input"""
+    SIMPLE = "simple"
+    STRUCTURED = "structured"
+    ANALYTICAL = "analytical"
+    RESEARCH = "research"
+    TECHNICAL = "technical"
+    CREATIVE = "creative"
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/command_policy.py ===
+"""
+Secure command execution policy and validation.
+Prevents shell injection by enforcing argv-only execution.
+"""
+import asyncio
+import shlex
+import logging
+from typing import List, Optional, Dict, Any
+from pathlib import Path
+from dataclasses import dataclass
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
+
+@dataclass
+class CommandAuditEntry:
+    """Audit log entry for command execution"""
+    timestamp: datetime
+    command: List[str]
+    cwd: str
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/adaptive_workflow_engine.py ===
+"""
+Enhanced Multi-Model Workflow Engine with Observer Pattern and Dynamic Resource Management
+Implements 1-80% dynamic range with agent delegation and intelligent observer review cycles
+"""
+
+import time
+import asyncio
+import threading
+from typing import Dict, List, Optional, Tuple, Any, Union
+from dataclasses import dataclass, asdict
+from enum import Enum
+from collections import defaultdict, deque
+import json
+
+class ResourceMode(Enum):
+    """Enhanced resource allocation modes"""
+    FAST = "fast"           # 1-30% VRAM, minimal agents, quick results
+    AUTO = "auto"           # 1-80% dynamic, observer pattern with agents
+    THINK = "think"         # 20-80% VRAM, maximum reasoning depth
+
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/router.py ===
+"""
+Intelligent Routing System for OpenCode LLM Orchestration
+Reference: blueprint.txt "Routing (Detectors → Lanes → Budgets)"
+Implementation of advanced LLM orchestration concepts
+"""
+
+import re
+import asyncio
+import logging
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Tuple, Any
+from enum import Enum
+from .config import Config
+from .context_scorer import AdaptiveContextScorer
+
+from .config import Config
+
+logger = logging.getLogger(__name__)
+
+class IntentType(Enum):
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/agentic_project_system.py ===
+"""
+Agentic Project System - Manual → Auto Transition
+Project-based testing environment for agentic tool use with confirmers and capability validation
+"""
+
+import asyncio
+import json
+import time
+import os
+import shutil
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Any, Callable
+from dataclasses import dataclass, asdict
+from enum import Enum
+
+class ProjectPhase(Enum):
+    """Project execution phases"""
+    MANUAL_SETUP = "manual_setup"           # Human-guided setup and refinement
+    MANUAL_VALIDATION = "manual_validation" # Validate manual approach works
+    HANDOFF_PREPARATION = "handoff_prep"    # Prepare for auto transition
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/runtime_profiles.py ===
+"""
+Runtime resource profiles for constraining hardware usage.
+Enables running larger models on smaller hardware through intelligent resource allocation.
+"""
+import os
+import psutil
+from dataclasses import dataclass
+from typing import Dict, Any, Optional
+from enum import Enum
+
+class ResourceLevel(Enum):
+    """Resource usage levels"""
+    MINIMAL = 25     # Ultra-conservative for very constrained hardware
+    BALANCED = 50    # Balanced approach for typical hardware
+    AGGRESSIVE = 75  # High utilization for capable hardware
+    MAXIMUM = 100    # Full resource utilization
+
+@dataclass
+class ResourceProfile:
+    """Resource constraints and parameters for a specific usage level"""
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/quant_manager.py ===
+import requests
+import subprocess
+import json
+import psutil
+from typing import Dict, List, Optional
+from dataclasses import dataclass
+
+@dataclass
+class QuantizationProfile:
+    model_name: str
+    quantization: str  # Q4_K_M, Q4_K_S, Q8_0, etc.
+    memory_usage: float  # Estimated GB
+    performance_score: float  # Relative performance (0-1)
+    supported_ops: List[str]  # Supported operations
+
+class DynamicQuantizationManager:
+    """
+    Hardware-aware quantization management for Ollama models
+    """
+
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/quality_integration.py ===
+"""
+Quality Integration Module
+Provides the integration point between the Master Quality System and OpenCode's interactive.py
+This module handles the transition from existing systems to enhanced quality recovery
+"""
+
+import asyncio
+import time
+from typing import Dict, List, Optional, Tuple, Any
+from rich.console import Console
+
+console = Console()
+
+try:
+    from .master_quality_system import MasterQualitySystem, SystemMode
+except ImportError:
+    from master_quality_system import MasterQualitySystem, SystemMode
+
+class QualityIntegrationManager:
+    """Manager for integrating quality system with existing OpenCode"""
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/auto_policy.py ===
+from dataclasses import dataclass
+from typing import Optional, Dict, Any
+
+
+@dataclass
+class PolicyInputs:
+    mode: str
+    lane: Any
+    requested_count: Optional[int]
+    complexity_score: float
+    resources_percent: int
+    model_temperature: float
+    model_max_tokens: int
+    interactive_self: Any = None
+    num_ctx: Optional[int] = None
+    num_thread: Optional[int] = None
+    # Optional richer signals (currently unused by BasicPolicyProvider)
+    context_score: Optional[float] = None
+    route_confidence: Optional[float] = None
+    time_budget_ms: Optional[int] = None
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/ollama_client.py ===
+import httpx
+import asyncio
+import json
+from typing import Dict, List, Optional, AsyncGenerator, Any
+
+from rich.console import Console
+
+console = Console()
+from .config import ModelConfig
+from .model_optimizer import ModelProfiler
+from .quant_manager import DynamicQuantizationManager
+
+class OllamaClient:
+    """Client for interacting with Ollama API"""
+
+    def _as_dict(self, obj, default=None):
+        """Defensive helper to ensure object behaves like a dict"""
+        if hasattr(obj, 'get') and callable(getattr(obj, 'get')):
+            return obj
+        return default or {}
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/langchain_adapter_simple.py ===
+"""Simplified LangChain-inspired adapter for OpenCode.
+
+This provides battle-tested tool parsing WITHOUT the full LangChain dependency tree.
+Uses the parsing logic we already copied (json_fixer.py) plus OpenCode's format_translator.
+"""
+
+from typing import Dict, Any, List, Optional
+import json
+import re
+
+from .tools import ToolManager
+from .format_translator import FormatTranslator
+
+
+class SimpleLangChainAdapter:
+    """Simplified adapter providing LangChain-style tool handling without dependencies.
+
+    Provides:
+    1. Robust JSON parsing (using json_fixer)
+    2. Multiple format support (using format_translator)
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/hardening_manager.py ===
+"""
+System Hardening Manager for OpenCode
+Centralized error handling, kill-switches, and recovery mechanisms
+Phase 8: System Hardening & Error Handling Implementation
+"""
+
+import time
+import threading
+import signal
+import os
+import sys
+import json
+from typing import Dict, List, Optional, Callable, Any
+from pathlib import Path
+from dataclasses import dataclass, asdict
+from datetime import datetime
+from collections import defaultdict
+
+from .config import Config, HardeningConfig
+
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/session_manager.py ===
+import json
+import asyncio
+import time
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Any
+from dataclasses import dataclass, asdict
+from datetime import datetime, timedelta
+from collections import defaultdict
+
+from .config import Config
+from .atomic_writer import AtomicWriter, atomic_session_write
+
+@dataclass
+class SessionAnalytics:
+    """Analytics data for a conversation session"""
+    session_id: str
+    model_name: str
+    start_time: str
+    end_time: Optional[str] = None
+    total_interactions: int = 0
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/interactivebackupprejson.py ===
+import asyncio
+import yaml
+import json
+import re
+import time
+import signal
+import atexit
+import sys
+import termios
+import tty
+import threading
+import select
+from pathlib import Path
+from typing import List, Dict, Optional
+from dataclasses import dataclass, asdict
+from datetime import datetime
+from .mcp_integration import MCPIntegration, integrate_mcp, MCPCommands
+
+from rich.console import Console
+from rich.markdown import Markdown
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/main.py ===
+#!/usr/bin/env python3
+"""
+OpenCode - Main entry point for the CLI tool
+"""
+
+import sys
+import os
+from pathlib import Path
+
+# Add the opencode directory to the Python path
+package_dir = Path(__file__).parent
+sys.path.insert(0, str(package_dir))
+
+from .cli import main
+
+if __name__ == "__main__":
+    main()=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/json_fixer.py ===
+"""
+JSON Parsing Utilities with Auto-Fixing
+Adapted from LangChain (MIT License) - https://github.com/langchain-ai/langchain
+"""
+
+import json
+import re
+from typing import Any, Optional
+
+
+def parse_partial_json(s: str) -> Optional[Any]:
+    """
+    Parse a JSON string that may be missing closing braces or have other issues.
+
+    This is extremely useful for LLM outputs that might be truncated or malformed.
+
+    Args:
+        s: The JSON string to parse (can be incomplete)
+
+    Returns:
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/instant_hook_engine.py ===
+"""
+Instant Hook Recognition Engine
+Builds on original simple hook-based system for instant context recognition
+Integrates with MVCO and optimization engines for learning-based hook expansion
+"""
+
+import re
+import json
+import time
+import asyncio
+from typing import Dict, List, Optional, Tuple, Any, Callable, Pattern
+from dataclasses import dataclass, asdict
+from enum import Enum
+from collections import defaultdict, deque
+import pickle
+from pathlib import Path
+
+class HookType(Enum):
+    """Types of instant recognition hooks"""
+    NUMERIC = "numeric"           # Math, calculations, numbers
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/langchain_adapter.py ===
+"""Adapter layer bridging LangChain's tool system to OpenCode's execution engine.
+
+This adapter provides:
+1. Wraps OpenCode tools as LangChain BaseTool instances
+2. Auto-generates OpenAI-style schemas for model prompting
+3. Robust parsing using LangChain's proven parsers
+4. Falls back to OpenCode's format_translator for quirky model outputs
+"""
+
+from typing import Dict, Any, List, Optional, Callable
+import json
+from pydantic import BaseModel, Field
+
+from .langchain_tools.base import BaseTool, StructuredTool
+from .langchain_tools.function_calling import convert_to_openai_function
+from .tools import ToolManager
+
+
+class LangChainToolAdapter:
+    """Adapts LangChain's tool system to OpenCode's execution engine.
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/mvco_engine.py ===
+import numpy as np
+import json
+import time
+from collections import defaultdict, deque
+from typing import Dict, List, Tuple, Optional, Any
+from dataclasses import dataclass, asdict
+import threading
+import queue
+
+@dataclass
+class ConversationState:
+    topic: str
+    complexity: float
+    user_intent: str
+    model_used: str
+    response_quality: float
+    timestamp: float
+
+class MarkovContextOrchestrator:
+    """
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/atomic_writer.py ===
+"""
+Atomic write operations for session integrity and data safety.
+Prevents data corruption from interrupted writes and provides rollback mechanisms.
+"""
+import json
+import os
+import shutil
+import tempfile
+import time
+from pathlib import Path
+from typing import Any, Dict, Optional, List
+from contextlib import contextmanager
+import logging
+
+logger = logging.getLogger(__name__)
+
+class AtomicWriteError(Exception):
+    """Raised when atomic write operations fail"""
+    pass
+
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/quality_recovery_engine.py ===
+"""
+Quality Recovery Engine for OpenCode
+Restores instant responses for simple inputs while preserving advanced features for complex workflows
+Implements three-tier response system: Instant -> Standard -> Observer
+"""
+
+import re
+import time
+import asyncio
+from typing import Dict, List, Optional, Tuple, Any, Union
+from dataclasses import dataclass, asdict
+from enum import Enum
+import json
+
+class ResponseTier(Enum):
+    """Response processing tiers"""
+    INSTANT = "instant"      # 0.1-0.5s - Simple inputs, direct model call
+    STANDARD = "standard"    # 1-3s - Medium complexity, current system
+    OBSERVER = "observer"    # 5-30s - Complex workflows, observer pattern
+
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/model_optimizer.py ===
+"""
+Model Performance Optimization for OpenCode LLM Orchestration
+Reference: Context Scoring Systempt2.txt "Qwen 2.5-7B... performance benchmarks"
+Implementation of research-based model optimization for 7B models
+"""
+
+import logging
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Tuple, Any
+from enum import Enum
+
+logger = logging.getLogger(__name__)
+
+class ModelSizeClass(Enum):
+    """Model size classifications for optimization"""
+    TINY = "tiny"      # 1B-1.1B parameters
+    SMALL = "small"    # 2B-3B parameters
+    MEDIUM = "medium"  # 7B-9B parameters
+    LARGE = "large"    # 13B-30B parameters
+    XLARGE = "xlarge"  # 70B+ parameters
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/project_store.py ===
+"""
+Project storage system for conversation logs and future RAG integration.
+Manages project-scoped conversation history and metadata.
+"""
+import json
+import time
+from pathlib import Path
+from datetime import datetime
+from typing import Dict, List, Optional, Any
+from dataclasses import dataclass, asdict
+import uuid
+from .atomic_writer import AtomicWriter
+
+@dataclass
+class ProjectInfo:
+    """Information about a project"""
+    id: str
+    name: str
+    description: str
+    created_at: str
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/pre_rag_optimizer.py ===
+import asyncio
+import re
+import json
+from typing import Dict, List, Optional, Tuple, Any
+from dataclasses import dataclass, asdict
+from enum import Enum
+from datetime import datetime
+import hashlib
+
+from .config import Config
+
+class OptimizationType(Enum):
+    """Types of pre-RAG optimizations"""
+    CONTEXT_COMPRESSION = "context_compression"
+    SEMANTIC_CHUNKING = "semantic_chunking"
+    QUERY_ENHANCEMENT = "query_enhancement"
+    RELEVANCE_FILTERING = "relevance_filtering"
+    PROMPT_OPTIMIZATION = "prompt_optimization"
+
+class ContentType(Enum):
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/__main__.py ===
+#!/usr/bin/env python3
+"""
+OpenCode CLI entry point when running as python -m opencode
+"""
+
+if __name__ == '__main__':
+    try:
+        from .cli import main
+        main()
+    except Exception as e:
+        import sys, traceback, os
+        err = f"[OpenCode] Fatal error: {e}\n"
+        sys.stderr.write("\n" + err)
+        traceback.print_exc()
+        # Write to crash log in project root
+        try:
+            with open(os.path.join(os.getcwd(), 'crash_log.txt'), 'a') as f:
+                f.write(err)
+                traceback.print_exc(file=f)
+        except Exception:
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/config.py ===
+import yaml
+import re
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional
+from pathlib import Path
+from urllib.parse import urlparse
+
+@dataclass
+class ModelConfig:
+    name: str = "gemma2:2b"
+    base_url: str = "http://localhost:11434"
+    temperature: float = 0.1
+    max_tokens: int = 4096
+
+@dataclass
+class BashConfig:
+    allowed_commands: List[str] = field(default_factory=lambda: [
+        "git", "npm", "pip", "python", "python3", "node", "cargo", "go", "make", "docker", "ls", "pwd", "whoami", "date", "cat", "head", "tail", "grep", "find", "mkdir", "touch", "cp", "mv", "rm"
+    ])
+    timeout: int = 30
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/rag_feedback_engine.py ===
+"""
+RAG Feedback Learning Engine
+Captures user feedback (thanks, confirms, denies, requests evidence) to optimize RAG accuracy and tool use
+Integrates with quality recovery and hook systems for continuous improvement
+"""
+
+import re
+import time
+import json
+from typing import Dict, List, Optional, Tuple, Any, Set
+from dataclasses import dataclass, asdict, field
+from enum import Enum
+from collections import defaultdict, deque
+# import numpy as np  # Use basic math instead for compatibility
+
+class FeedbackType(Enum):
+    """Types of user feedback for RAG learning"""
+    POSITIVE_CONFIRMATION = "positive_confirmation"    # "thanks", "correct", "exactly"
+    NEGATIVE_DENIAL = "negative_denial"               # "no", "wrong", "incorrect"
+    EVIDENCE_REQUEST = "evidence_request"             # "show evidence", "prove it", "source?"
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/llamacpp_client.py ===
+import asyncio
+import subprocess
+import json
+import os
+from pathlib import Path
+from typing import Dict, List, Optional, AsyncGenerator, Any
+from rich.console import Console
+
+console = Console()
+from .config import ModelConfig
+
+class LlamaCppClient:
+    """Client for interacting with llama.cpp directly via subprocess"""
+
+    def __init__(self, model_config: ModelConfig):
+        self.config = model_config
+        self.llama_cpp_path = "/home/commander/Desktop/llama.cpp/build/bin/llama-cli"
+        self.models_dir = "/home/commander/Desktop/BackupOpencode/models"
+        self.current_model_path = None
+        self.interactive_mode = False
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/mcp_server_wrapper.py ===
+"""
+MCP Server Wrapper for OpenCode ToolManager
+Exposes existing tools as MCP primitives for external model integration
+"""
+
+import asyncio
+from pathlib import Path
+from typing import Optional, Any
+
+from mcp.server import Server
+from mcp.server.stdio import stdio_server
+from mcp import types
+
+# Import your existing components
+from .tools import ToolManager, ToolResult
+from .config import ToolsConfig
+
+
+class OpenCodeMCPServer:
+    """
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/mcp_integration.py ===
+"""
+MCP Integration for OpenCode TUI
+Provides MCP client/server capabilities within the interactive mode
+"""
+
+import asyncio
+from contextlib import asynccontextmanager
+from typing import Optional, AsyncIterator
+from pathlib import Path
+
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+from rich.console import Console
+
+from .mcp_server_wrapper import OpenCodeMCPServer
+from .tools import ToolManager
+from .config import Config
+
+console = Console()
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/format_translator.py ===
+"""
+Format Translator Module
+Converts various tool calling formats to OpenCode's standard JSON format.
+Handles gorilla-style Python function calls, native tool formats, and more.
+"""
+
+import re
+import json
+from typing import Optional, Dict, Any, List
+from .json_fixer import smart_json_parse, parse_partial_json
+
+
+class FormatTranslator:
+    """Translates various tool calling formats to standard OpenCode JSON"""
+
+    def __init__(self):
+        # Pattern to match Python function calls: tool_name(arg1="value", arg2="value")
+        self.python_func_pattern = re.compile(
+            r'(\w+)\s*\(([^)]*)\)',
+            re.MULTILINE
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/workflow_optimizer.py ===
+"""
+Multi-Model Workflow Optimizer for OpenCode
+Intelligent routing using smaller models for specific tasks and combining results
+Based on model file sizes and resource optimization strategy
+"""
+
+import time
+import asyncio
+from typing import Dict, List, Optional, Tuple, Any
+from dataclasses import dataclass, asdict
+from enum import Enum
+from collections import defaultdict
+
+class ModelTier(Enum):
+    """Model performance tiers based on size and capability"""
+    ULTRA_LIGHT = "ultra_light"  # < 0.5GB - Quick verification, data parsing
+    LIGHT = "light"              # 0.5-1GB - Simple tasks, fast responses
+    MEDIUM = "medium"            # 1-3GB - Specialized workflows, coordination
+    HEAVY = "heavy"              # 3GB+ - Complex reasoning, final synthesis
+
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/complexity_analyzer.py ===
+"""
+Advanced Complexity Analysis and Resource Allocation System
+Analyzes input complexity and determines optimal resource allocation for processing
+"""
+import re
+import math
+from dataclasses import dataclass
+from typing import Dict, List, Any, Optional, Tuple
+from enum import Enum
+
+from .runtime_profiles import resource_manager, ResourceProfile
+
+class ComplexityType(Enum):
+    """Types of complexity detected in input"""
+    SIMPLE = "simple"
+    STRUCTURED = "structured"
+    ANALYTICAL = "analytical"
+    RESEARCH = "research"
+    TECHNICAL = "technical"
+    CREATIVE = "creative"
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/command_policy.py ===
+"""
+Secure command execution policy and validation.
+Prevents shell injection by enforcing argv-only execution.
+"""
+import asyncio
+import shlex
+import logging
+from typing import List, Optional, Dict, Any
+from pathlib import Path
+from dataclasses import dataclass
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
+
+@dataclass
+class CommandAuditEntry:
+    """Audit log entry for command execution"""
+    timestamp: datetime
+    command: List[str]
+    cwd: str
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/time_slicer.py ===
+"""
+Time-sliced generation system for managing resource usage.
+Allows larger models to run on constrained hardware by breaking generation into smaller chunks.
+"""
+import asyncio
+import time
+import psutil
+from typing import Optional, Dict, Any, AsyncGenerator
+from dataclasses import dataclass
+from .runtime_profiles import ResourceProfile, resource_manager
+
+@dataclass
+class TimeBudget:
+    """Tracks time budget for generation tasks"""
+    total_seconds: float
+    started_at: float
+    warning_threshold: float = 0.8  # Warn at 80% of budget
+
+    @property
+    def elapsed(self) -> float:
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/cli.py ===
+import asyncio
+import click
+import sys
+from pathlib import Path
+import os
+
+# If running in a versioned environment, force the version's site-packages to the front.
+opencode_version = os.environ.get('OPENCODE_VERSION')
+if opencode_version:
+    try:
+        # Assumes this file is at /versions/vX.Y/site-packages/opencode/cli.py
+        version_dir = Path(__file__).parent.parent.parent
+        version_site_packages = version_dir / 'site-packages'
+        if version_site_packages.exists() and str(version_site_packages) not in sys.path:
+            sys.path.insert(0, str(version_site_packages))
+            print(f"--- [CLI RUNNER] Patched sys.path to prioritize version: {opencode_version} ---")
+    except Exception as e:
+        print(f"--- [CLI RUNNER] WARNING: Failed to patch sys.path: {e} ---")
+
+from rich.console import Console
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/__init__.py ===
+"""
+OpenCode - An open-source code assistant CLI tool powered by Ollama
+"""
+
+__version__ = "0.2.0-enhanced"
+__author__ = "OpenCode Contributors"
+__description__ = "An open-source code assistant CLI tool powered by Ollama"
+
+# Core Configuration
+from .config import Config, ModelConfig, ToolsConfig, RoutingConfig
+
+# Main Components
+from .cli import main
+from .interactive import InteractiveMode
+from .ollama_client import OllamaClient
+from .tools import ToolManager, ToolResult
+
+# Routing & Intelligence
+from .router import OpenCodeRouter, RouteResult, IntentType, Lane
+from .mvco_engine import MarkovContextOrchestrator, MVCO
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/tool_schema_validator.py ===
+"""
+Tool Schema Validator
+Validates tool calls against actual tool signatures to prevent hallucinated parameters.
+"""
+
+from typing import Dict, List, Any, Optional, Tuple
+
+
+class ToolSchemaValidator:
+    """
+    Validates tool calls against known tool schemas.
+    Prevents execution of calls with invalid/hallucinated parameters.
+    """
+
+    def __init__(self):
+        """Initialize with actual tool parameter schemas"""
+        # Define ACTUAL tool signatures (from tool_manager.py)
+        self.tool_schemas = {
+            'file_read': {
+                'required': ['file_path'],
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/tool_schema_validator_v2.py ===
+"""
+Tool Schema Validator V2 - Enhanced Safety
+Addresses issues:
+1. Dynamic schema loading from actual tool signatures
+2. Case-insensitive parameter matching
+3. Similarity-based suggestions for typos
+4. Safe fallback modes
+"""
+
+from typing import Dict, List, Any, Optional, Tuple
+import difflib
+
+
+class ToolSchemaValidatorV2:
+    """
+    Enhanced validator with safety mechanisms:
+    - Loads schemas dynamically from tool_manager
+    - Fuzzy matching for typos
+    - Whitelist mode (warn only, don't block)
+    - Case-insensitive matching
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/tools.py ===
+import asyncio
+import subprocess
+import os
+import json
+import re
+from pathlib import Path
+from typing import Dict, List, Optional, Any, Union
+from dataclasses import dataclass
+from .config import ToolsConfig
+from .command_policy import CommandPolicy
+from .confirmation_gates import confirmation_gate, OperationInfo, RiskLevel, confirm_operation
+from enum import Enum
+
+class ToolRiskLevel(Enum):
+    SAFE = "safe"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/interactive.py ===
+import asyncio
+import yaml
+import json
+import re
+import time
+import signal
+import atexit
+import sys
+import os
+import termios
+import tty
+import threading
+import select
+from pathlib import Path
+from typing import List, Dict, Optional, Any
+from dataclasses import dataclass, asdict
+from datetime import datetime
+from .mcp_integration import MCPIntegration, integrate_mcp, MCPCommands
+
+from rich.console import Console
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/conversation_state.py ===
+"""
+Conversation State Tracking for Gradual Resource Allocation
+
+Tracks conversation depth and ensures resources gradually increase,
+never decrease, as conversations progress and become more complex.
+"""
+
+from dataclasses import dataclass
+from typing import Optional
+
+
+@dataclass
+class ConversationState:
+    """
+    Tracks conversation progression and minimum resource requirements.
+
+    Ensures resources only increase as:
+    - Conversation turns accumulate
+    - Tools are used repeatedly
+    - Peak complexity increases
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/version_manager.py ===
+import os
+import json
+import shutil
+from pathlib import Path
+from typing import Optional, Dict, Any, List, Tuple
+import yaml
+import re
+
+
+class VersionManager:
+    """Manages non-destructive overlay versions for config-driven features.
+
+    - Overlays live under versions/<id>/overlay.yaml with meta.json
+    - Test mode applies overlay in-memory and can be dropped to restore baseline
+    - Promote merges overlay into stable config.yaml with backup
+    """
+
+    def __init__(self, base_dir: str = "versions"):
+        self.base_dir = Path(base_dir)
+        self.base_dir.mkdir(parents=True, exist_ok=True)
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/verification_engine.py ===
+"""
+Self-Verification Engine for Think Mode
+Provides research workflow verification and accuracy protection layers
+"""
+import re
+import asyncio
+from dataclasses import dataclass
+from typing import Dict, List, Any, Optional, Tuple
+from enum import Enum
+
+class VerificationLevel(Enum):
+    """Levels of verification rigor"""
+    BASIC = "basic"           # Simple consistency check
+    ENHANCED = "enhanced"     # Fact verification and logic check
+    RIGOROUS = "rigorous"     # Comprehensive verification with sources
+    CRITICAL = "critical"     # Maximum verification for sensitive topics
+
+class VerificationResult(Enum):
+    """Results of verification process"""
+    VERIFIED = "verified"           # Information is accurate and consistent
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/master_quality_system.py ===
+"""
+Master Quality Recovery System
+Integrates all quality enhancement components:
+- Instant Hook Recognition (94.7% coverage)
+- Three-Tier Response System (Instant/Standard/Observer)
+- RAG Feedback Learning
+- Observer Pattern for Complex Workflows
+- MVCO Learning Integration
+"""
+
+import time
+import asyncio
+from typing import Dict, List, Optional, Tuple, Any, Union, TYPE_CHECKING
+from dataclasses import dataclass, asdict
+from enum import Enum
+
+if TYPE_CHECKING:
+    from .config import Config
+
+# Import all quality components
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/confirmation_gates.py ===
+"""
+Confirmation gates for destructive operations.
+Provides safety mechanisms to prevent accidental data loss.
+"""
+import time
+from typing import Dict, List, Optional, Any, Callable
+import sys
+from dataclasses import dataclass
+from enum import Enum
+import asyncio
+from rich.console import Console
+from rich.prompt import Confirm, Prompt
+from rich.table import Table
+from rich.panel import Panel
+
+console = Console()
+
+class RiskLevel(Enum):
+    """Risk levels for operations"""
+    LOW = "LOW"
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/performance_benchmark_system.py ===
+"""
+Performance Benchmark System for Quality Recovery
+Tests all quality systems across 3 resource tiers with learning engine integration
+Includes time-aware session management and progress tracking for presentations
+"""
+
+import asyncio
+import time
+import json
+import subprocess
+import tempfile
+import os
+from typing import Dict, List, Optional, Tuple, Any, Callable
+from dataclasses import dataclass, asdict
+from enum import Enum
+from pathlib import Path
+
+try:
+    from .master_quality_system import MasterQualitySystem, SystemMode
+    from .quality_integration import QualityIntegrationManager
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/context_scorer.py ===
+# -*- coding: utf-8 -*-
+import numpy as np
+import subprocess
+import time
+import re
+import json
+import logging
+import os
+from collections import deque
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Tuple, Any
+from datetime import datetime
+
+# Safe psutil import with fallback
+try:
+    import psutil as _ps
+except ImportError:
+    _ps = None
+
+logger = logging.getLogger(__name__)
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/tool_orchestrator.py ===
+import asyncio
+import json
+from typing import Dict, List, Optional, Tuple, Any
+from dataclasses import dataclass, asdict
+from enum import Enum
+from datetime import datetime
+
+from rich.console import Console
+from rich.prompt import Confirm
+from rich.table import Table
+from rich.panel import Panel
+
+from .config import Config
+from .runtime_profiles import resource_manager, ResourceProfile
+from .time_slicer import TimeSlicedGenerator, TimeBudget
+import time
+
+console = Console()
+
+class ToolRiskLevel(Enum):
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/model_selector.py ===
+"""
+Model selection system for automatic and manual model choosing.
+Provides safe fallbacks and resource-aware model selection.
+"""
+import asyncio
+import logging
+from typing import Optional, List, Dict, Any
+from dataclasses import dataclass
+from .config import Config
+from .runtime_profiles import ResourceProfile, resource_manager
+
+logger = logging.getLogger(__name__)
+
+@dataclass
+class ModelInfo:
+    """Information about an available model"""
+    name: str
+    size_category: str  # "tiny", "small", "medium", "large", "xlarge"
+    estimated_ram_gb: float
+    context_length: int
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/broken_tools/lmstudio_client.py ===
+import httpx
+import json
+from pathlib import Path
+from typing import Dict, List, Optional, AsyncGenerator, Any
+from rich.console import Console
+
+console = Console()
+from .config import ModelConfig
+
+class LMStudioClient:
+    """Client for interacting with LM Studio's OpenAI-compatible API"""
+
+    def __init__(self, model_config: ModelConfig):
+        self.config = model_config
+        self.base_url = "http://localhost:1234/v1"
+        self.client = None
+        self.current_model = None
+        self.interactive_mode = False
+        self.history = None
+
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/copies/interactive (copy 1).py ===
+import asyncio
+import yaml
+import json
+import re
+import time
+import signal
+import atexit
+import sys
+import termios
+import tty
+import threading
+import select
+from pathlib import Path
+from typing import List, Dict, Optional, Any
+from dataclasses import dataclass, asdict
+from datetime import datetime
+from .mcp_integration import MCPIntegration, integrate_mcp, MCPCommands
+
+from rich.console import Console
+from rich.markdown import Markdown
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/time_slicer.py ===
+"""
+Time-sliced generation system for managing resource usage.
+Allows larger models to run on constrained hardware by breaking generation into smaller chunks.
+"""
+import asyncio
+import time
+import psutil
+from typing import Optional, Dict, Any, AsyncGenerator
+from dataclasses import dataclass
+from .runtime_profiles import ResourceProfile, resource_manager
+
+@dataclass
+class TimeBudget:
+    """Tracks time budget for generation tasks"""
+    total_seconds: float
+    started_at: float
+    warning_threshold: float = 0.8  # Warn at 80% of budget
+
+    @property
+    def elapsed(self) -> float:
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/cli.py ===
+import asyncio
+import click
+import sys
+from pathlib import Path
+import os
+
+# If running in a versioned environment, force the version's site-packages to the front.
+opencode_version = os.environ.get('OPENCODE_VERSION')
+if opencode_version:
+    try:
+        # Assumes this file is at /versions/vX.Y/site-packages/opencode/cli.py
+        version_dir = Path(__file__).parent.parent.parent
+        version_site_packages = version_dir / 'site-packages'
+        if version_site_packages.exists() and str(version_site_packages) not in sys.path:
+            sys.path.insert(0, str(version_site_packages))
+            print(f"--- [CLI RUNNER] Patched sys.path to prioritize version: {opencode_version} ---")
+    except Exception as e:
+        print(f"--- [CLI RUNNER] WARNING: Failed to patch sys.path: {e} ---")
+
+from rich.console import Console
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/__init__.py ===
+"""
+OpenCode - An open-source code assistant CLI tool powered by Ollama
+"""
+
+__version__ = "0.2.0-enhanced"
+__author__ = "OpenCode Contributors"
+__description__ = "An open-source code assistant CLI tool powered by Ollama"
+
+# Core Configuration
+from .config import Config, ModelConfig, ToolsConfig, RoutingConfig
+
+# Main Components
+from .cli import main
+from .interactive import InteractiveMode
+from .ollama_client import OllamaClient
+from .tools import ToolManager, ToolResult
+
+# Routing & Intelligence
+from .router import OpenCodeRouter, RouteResult, IntentType, Lane
+from .mvco_engine import MarkovContextOrchestrator, MVCO
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/tool_schema_validator.py ===
+"""
+Tool Schema Validator
+Validates tool calls against actual tool signatures to prevent hallucinated parameters.
+"""
+
+from typing import Dict, List, Any, Optional, Tuple
+
+
+class ToolSchemaValidator:
+    """
+    Validates tool calls against known tool schemas.
+    Prevents execution of calls with invalid/hallucinated parameters.
+    """
+
+    def __init__(self):
+        """Initialize with actual tool parameter schemas"""
+        # Define ACTUAL tool signatures (from tool_manager.py)
+        self.tool_schemas = {
+            'file_read': {
+                'required': ['file_path'],
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/tool_schema_validator_v2.py ===
+"""
+Tool Schema Validator V2 - Enhanced Safety
+Addresses issues:
+1. Dynamic schema loading from actual tool signatures
+2. Case-insensitive parameter matching
+3. Similarity-based suggestions for typos
+4. Safe fallback modes
+"""
+
+from typing import Dict, List, Any, Optional, Tuple
+import difflib
+
+
+class ToolSchemaValidatorV2:
+    """
+    Enhanced validator with safety mechanisms:
+    - Loads schemas dynamically from tool_manager
+    - Fuzzy matching for typos
+    - Whitelist mode (warn only, don't block)
+    - Case-insensitive matching
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/tools.py ===
+import asyncio
+import subprocess
+import os
+import json
+import re
+from pathlib import Path
+from typing import Dict, List, Optional, Any, Union
+from dataclasses import dataclass
+from .config import ToolsConfig
+from .command_policy import CommandPolicy
+from .confirmation_gates import confirmation_gate, OperationInfo, RiskLevel, confirm_operation
+from enum import Enum
+
+# Console support for debug output
+import sys
+def get_console():
+    """Safe console access that works everywhere"""
+    try:
+        from rich.console import Console
+        return Console()
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/interactive.py ===
+import asyncio
+import yaml
+import json
+import re
+import time
+import signal
+import atexit
+import sys
+import os
+import termios
+import tty
+import threading
+import select
+from pathlib import Path
+from typing import List, Dict, Optional, Any
+from dataclasses import dataclass, asdict
+from datetime import datetime
+from .mcp_integration import MCPIntegration, integrate_mcp, MCPCommands
+
+from rich.console import Console
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/conversation_state.py ===
+"""
+Conversation State Tracking for Gradual Resource Allocation
+
+Tracks conversation depth and ensures resources gradually increase,
+never decrease, as conversations progress and become more complex.
+"""
+
+from dataclasses import dataclass
+from typing import Optional
+
+
+@dataclass
+class ConversationState:
+    """
+    Tracks conversation progression and minimum resource requirements.
+
+    Ensures resources only increase as:
+    - Conversation turns accumulate
+    - Tools are used repeatedly
+    - Peak complexity increases
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/version_manager.py ===
+import os
+import json
+import shutil
+from pathlib import Path
+from typing import Optional, Dict, Any, List, Tuple
+import yaml
+import re
+
+
+class VersionManager:
+    """Manages non-destructive overlay versions for config-driven features.
+
+    - Overlays live under versions/<id>/overlay.yaml with meta.json
+    - Test mode applies overlay in-memory and can be dropped to restore baseline
+    - Promote merges overlay into stable config.yaml with backup
+    """
+
+    def __init__(self, base_dir: str = "versions"):
+        self.base_dir = Path(base_dir)
+        self.base_dir.mkdir(parents=True, exist_ok=True)
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/verification_engine.py ===
+"""
+Self-Verification Engine for Think Mode
+Provides research workflow verification and accuracy protection layers
+"""
+import re
+import asyncio
+from dataclasses import dataclass
+from typing import Dict, List, Any, Optional, Tuple
+from enum import Enum
+
+class VerificationLevel(Enum):
+    """Levels of verification rigor"""
+    BASIC = "basic"           # Simple consistency check
+    ENHANCED = "enhanced"     # Fact verification and logic check
+    RIGOROUS = "rigorous"     # Comprehensive verification with sources
+    CRITICAL = "critical"     # Maximum verification for sensitive topics
+
+class VerificationResult(Enum):
+    """Results of verification process"""
+    VERIFIED = "verified"           # Information is accurate and consistent
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/master_quality_system.py ===
+"""
+Master Quality Recovery System
+Integrates all quality enhancement components:
+- Instant Hook Recognition (94.7% coverage)
+- Three-Tier Response System (Instant/Standard/Observer)
+- RAG Feedback Learning
+- Observer Pattern for Complex Workflows
+- MVCO Learning Integration
+"""
+
+import time
+import asyncio
+from typing import Dict, List, Optional, Tuple, Any, Union, TYPE_CHECKING
+from dataclasses import dataclass, asdict
+from enum import Enum
+
+if TYPE_CHECKING:
+    from .config import Config
+
+# Import all quality components
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/confirmation_gates.py ===
+"""
+Confirmation gates for destructive operations.
+Provides safety mechanisms to prevent accidental data loss.
+"""
+import time
+from typing import Dict, List, Optional, Any, Callable
+import sys
+from dataclasses import dataclass
+from enum import Enum
+import asyncio
+from rich.console import Console
+from rich.prompt import Confirm, Prompt
+from rich.table import Table
+from rich.panel import Panel
+
+console = Console()
+
+class RiskLevel(Enum):
+    """Risk levels for operations"""
+    LOW = "LOW"
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/performance_benchmark_system.py ===
+"""
+Performance Benchmark System for Quality Recovery
+Tests all quality systems across 3 resource tiers with learning engine integration
+Includes time-aware session management and progress tracking for presentations
+"""
+
+import asyncio
+import time
+import json
+import subprocess
+import tempfile
+import os
+from typing import Dict, List, Optional, Tuple, Any, Callable
+from dataclasses import dataclass, asdict
+from enum import Enum
+from pathlib import Path
+
+try:
+    from .master_quality_system import MasterQualitySystem, SystemMode
+    from .quality_integration import QualityIntegrationManager
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/context_scorer.py ===
+# -*- coding: utf-8 -*-
+import numpy as np
+import subprocess
+import time
+import re
+import json
+import logging
+import os
+from collections import deque
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Tuple, Any
+from datetime import datetime
+
+# Safe psutil import with fallback
+try:
+    import psutil as _ps
+except ImportError:
+    _ps = None
+
+logger = logging.getLogger(__name__)
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/tool_orchestrator.py ===
+import asyncio
+import json
+from typing import Dict, List, Optional, Tuple, Any
+from dataclasses import dataclass, asdict
+from enum import Enum
+from datetime import datetime
+
+from rich.console import Console
+from rich.prompt import Confirm
+from rich.table import Table
+from rich.panel import Panel
+
+from .config import Config
+from .runtime_profiles import resource_manager, ResourceProfile
+from .time_slicer import TimeSlicedGenerator, TimeBudget
+import time
+
+console = Console()
+
+class ToolRiskLevel(Enum):
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/model_selector.py ===
+"""
+Model selection system for automatic and manual model choosing.
+Provides safe fallbacks and resource-aware model selection.
+"""
+import asyncio
+import logging
+from typing import Optional, List, Dict, Any
+from dataclasses import dataclass
+from .config import Config
+from .runtime_profiles import ResourceProfile, resource_manager
+
+logger = logging.getLogger(__name__)
+
+@dataclass
+class ModelInfo:
+    """Information about an available model"""
+    name: str
+    size_category: str  # "tiny", "small", "medium", "large", "xlarge"
+    estimated_ram_gb: float
+    context_length: int
+=== FILE: /home/commander/Trainer/Data/tabs/custom_code_tab/site-packages/opencode/lmstudio_client.py ===
+import httpx
+import json
+from pathlib import Path
+from typing import Dict, List, Optional, AsyncGenerator, Any
+from rich.console import Console
+
+console = Console()
+from .config import ModelConfig
+
+class LMStudioClient:
+    """Client for interacting with LM Studio's OpenAI-compatible API"""
+
+    def __init__(self, model_config: ModelConfig):
+        self.config = model_config
+        self.base_url = "http://localhost:1234/v1"
+        self.client = None
+        self.current_model = None
+        self.interactive_mode = False
+        self.history = None
+

@@ -1,0 +1,46 @@
+{
+  "task_id": "INTEGRATION_ORCHESTRATOR_20260126",
+  "mark": "#[MARK:{INTEGRATION_ORCHESTRATOR_20260126}]",
+  "file": "orchestrator.py",
+  "backup": "orchestrator.py_backup_MARK_INTEGRATION_20260126_131538",
+  "description": "Integrate ActivitySuggestionBridge into orchestrator main loop",
+  "status": "pending",
+  "created_at": "2026-01-26T13:15:38",
+  "integration_points": [
+    {
+      "location": "Line ~1276 (after epistemic loop)",
+      "action": "Add activity suggestion based on metastate",
+      "code_block": "_execute_single_interaction",
+      "dependencies": ["activity_integration_bridge", "gap_analysis", "metastate_weights"]
+    },
+    {
+      "location": "Line ~834 (__init__)",
+      "action": "Initialize ActivitySuggestionBridge with graceful fallback",
+      "code_block": "__init__",
+      "dependencies": ["CapabilityRegistry", "ZenityQuestionQueue"]
+    }
+  ],
+  "graceful_fallbacks": [
+    "If activity_integration_bridge import fails: skip activity suggestions",
+    "If no capabilities found: return empty list, continue without suggestions",
+    "If zenity unavailable: skip question queue processing",
+    "If journal unavailable: skip mark integration"
+  ],
+  "testing_criteria": [
+    "System runs without activity_integration_bridge installed",
+    "No errors when capability_registry.json doesn't exist",
+    "Activity suggestions gracefully skipped when disabled",
+    "Journal marks only added if journal system available"
+  ],
+  "journal_marks_required": [
+    "#[MARK:{INTEGRATION_ORCHESTRATOR_20260126}] - Integration completion",
+    "#[MARK:{ACTIVITY_SUGGESTION_INIT}] - First activity suggestion",
+    "#[MARK:{CAPABILITY_MATCHED}] - First capability match"
+  ],
+  "completion_criteria": {
+    "code_integrated": false,
+    "tests_passing": false,
+    "graceful_fallbacks_verified": false,
+    "journal_marks_logged": false
+  }
+}

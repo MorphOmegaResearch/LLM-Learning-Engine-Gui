@@ -1,0 +1,48 @@
+{
+  "language": "English",
+  "hierarchy_levels": [
+    {
+      "level": 1,
+      "name": "Phonology/Graphology",
+      "unit": "Phonemes / Characters",
+      "description": "The smallest distinctive units of sound or writing."
+    },
+    {
+      "level": 2,
+      "name": "Morphology",
+      "unit": "Morphemes",
+      "description": "Smallest units of meaning (e.g., roots, prefixes, suffixes)."
+    },
+    {
+      "level": 3,
+      "name": "Lexical",
+      "unit": "Words / Lexemes",
+      "description": "Individual vocabulary items and their parts of speech (POS)."
+    },
+    {
+      "level": 4,
+      "name": "Syntax",
+      "unit": "Phrases & Clauses",
+      "description": "The structural rules governing how words combine into grammatical sequences."
+    },
+    {
+      "level": 5,
+      "name": "Semantics",
+      "unit": "Sentences / Propositions",
+      "description": "The literal meaning of the constructed sequences."
+    },
+    {
+      "level": 6,
+      "name": "Pragmatics",
+      "unit": "Contextual Meaning",
+      "description": "How context and intent affect the interpretation of meaning."
+    },
+    {
+      "level": 7,
+      "name": "Discourse",
+      "unit": "Text / Conversation",
+      "description": "The largest unit, looking at how sentences relate to one another over a duration."
+    }
+  ],
+  "inference_flow": "Bottom-up (Feature Extraction) to Top-down (Contextual Understanding)"
+}

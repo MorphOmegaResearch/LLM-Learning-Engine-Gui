@@ -1,0 +1,10 @@
+\b(it is, isn't it\?)\b
+\b(it is, is it not\?)\b
+\b(you are, aren't you\?)\b
+\b(you will, won't you\?)\b
+\b(it was, wasn't it\?)\b
+\b(he is, isn't he\?)\b
+\b(she is, isn't she\?)\b
+\b(they are, aren't they\?)\b
+\b(you do, don't you\?)\b
+\b(you did, didn't you\?)\b

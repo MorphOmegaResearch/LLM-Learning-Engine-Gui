@@ -1,0 +1,89 @@
+/prompt - Shows current system prompt (from config.yaml)
+
+  /prompt <custom text> - Sets temporary prompt, REPLACES config prompt
+  - Does NOT automatically inject {available_tools}
+  - Model won't see tool schemas unless YOU manually include them in your
+  custom prompt
+
+  /prompt enable/disable - Toggles whether system prompt is used at all
+
+  Tool schema injection:
+
+  Tool schemas are controlled by /tools prompt enable/disable, which sets
+  tools_prompt_enabled flag.
+
+  If tools_prompt_enabled = True:
+  - System prompt gets {available_tools} replaced with JSON schemas
+  - Works with BOTH config.yaml prompt AND custom /prompt <text>
+
+  So if you want tools in a custom prompt:
+  /prompt You are a helpful assistant. Available tools: {available_tools}
+  The {available_tools} placeholder will be replaced with the JSON schemas
+  IF /tools prompt is enabled.
+
+  TL;DR: /prompt sets the template, /tools prompt controls whether schemas
+  get injected into that template.
+
+
+
+
+
+The Flow:
+
+  1. Add tool to config.yaml enabled list:
+  tools:
+    enabled:
+      - new_tool_name
+  2. Create the tool class in tools.py:
+  class NewToolTool(BaseTool):
+      async def execute(self, param1: str) -> ToolResult:
+          # implementation
+  3. Register in ToolManager (tools.py line ~1145):
+  self.tools = {
+      ...
+      "new_tool_name": NewToolTool(config),
+  }
+  4. Add schema definition in tool_definitions dict (tools.py line ~1238):
+  tool_definitions = {
+      ...
+      "new_tool_name": {
+          "type": "function",
+          "function": {
+              "name": "new_tool_name",
+              "description": "What the tool does",
+              "parameters": {
+                  "type": "object",
+                  "properties": {
+                      "param1": {"type": "string", "description": "..."}
+                  },
+                  "required": ["param1"]
+              }
+          }
+      }
+  }
+
+  Then /tools --verbose will automatically show it because:
+  - It calls lc_adapter.get_tool_schemas_for_model()
+  - Which calls tool_manager.get_tool_schemas()
+  - Which filters tool_definitions by get_available_tools()
+  - Which checks what's in config.enabled
+
+one more step:
+
+  Complete 5-Step Process for Adding a New Tool:
+
+  1. Create tool class in tools.py
+  2. Register in ToolManager.tools dict (tools.py ~line 1145)
+  3. Add to config.yaml enabled list
+  4. Add schema in tool_definitions dict (tools.py ~line 1238)
+  5. Add to tool_orchestrator risk profiles (tool_orchestrator.py ~line 100)
+  self.risk_profiles = {
+      ...
+      'new_tool_name': ToolRiskLevel.MEDIUM,  # or SAFE/LOW/HIGH/CRITICAL
+  }
+
+  Optional but recommended:
+  6. Add to system prompt example (config.yaml ~line 117) - so model knows
+  it exists
+  7. Update system prompt tool count (config.yaml line 111) - increment the
+  number

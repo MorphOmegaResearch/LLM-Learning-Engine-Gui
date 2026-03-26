@@ -1,0 +1,32 @@
+{
+  "taxonomy_name": "Universal Linguistic & Conversational Taxonomy",
+  "version": "1.0.0",
+  "description": "A standardized framework for mapping linguistic features across seven levels of analysis, extended by domain-specific and entity-based layers.",
+  "core_hierarchy": {
+    "level_1_graphology": "Smallest distinctive units of writing (punctuation, symbols, case, digital markers).",
+    "level_2_morphology": "Smallest units of meaning (roots, affixes, compound structures).",
+    "level_3_lexical": "Individual vocabulary items and parts of speech classes.",
+    "level_4_syntax": "Structural rules governing phrases, clauses, and sentence types.",
+    "level_5_semantics": "Literal meaning and core propositions (locative, causal, volitional).",
+    "level_6_pragmatics": "Contextual intent and social speech acts (greetings, affirmations, social acts).",
+    "level_7_discourse": "Sentence relationships and conversation flow (transitions, markers, hedging)."
+  },
+  "extension_domains": {
+    "academic": "Formal, scholarly, and methodological discourse.",
+    "technical": "Domain-specific terminology (IT, science, specialized fields).",
+    "informal_slang": "Casual, dialect-specific, and modern social expressions.",
+    "idiomatic": "Non-literal, culturally embedded expressions.",
+    "intents": "Granular communicative goals (Speech Act Theory: Informative, Directive, etc.)"
+  },
+  "extraction_entities": {
+    "temporal": "Time-based expressions (dates, durations, frequency).",
+    "numerical": "Quantitative data (currency, measurements, percentages).",
+    "spatial": "Geographic and directional markers.",
+    "system_signals": "Hardware and environmental telemetry (temp, load, paths, datetime)."
+  },
+  "contextual_layers": {
+    "sentiment": "Emotional tone and affect detection.",
+    "politeness": "Social distancing and face-saving markers (hedging, honorifics).",
+    "dialect": "Regional and social variations of linguistic units."
+  }
+}

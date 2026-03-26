@@ -1,0 +1,10 @@
+\b(furthermore|moreover|nevertheless|consequently|subsequently)\b
+\b(hypothesize|analyze|synthesize|evaluate|verify)\b
+\b(et al\.|ibid\.|cf\.|e\.g\.|i\.e\.)\b
+\(\w+,\s+\d{4}\)
+\b(significant|substantial|empirical|theoretical|methodological)\b
+\b(the data suggests|the evidence indicates|it is argued that)\b
+\b(nominalization|standardization|utilization|classification)\b
+\b(it is observed that|it has been noted that)\b
+\b(the results of|the analysis of|the study of)\b
+\b(with respect to|in terms of|as regards)\b

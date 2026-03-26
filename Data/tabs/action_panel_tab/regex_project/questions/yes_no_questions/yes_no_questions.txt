@@ -1,0 +1,8 @@
+\b(can you help me|can you help)\b
+\b(do you understand)\b
+\b(are you sure|'r you sure)\b
+\b(could you repeat that)\b
+\b(are you kidding me)\b
+\b(is everything ok)\b
+\b(can I ask you something)\b
+\b(are you busy)\b

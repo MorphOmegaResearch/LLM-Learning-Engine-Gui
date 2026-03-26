@@ -9,8 +9,20 @@
     "Token Caps (Standard)": "200",
     "Token Caps (Structured)": "150",
     "Quality Mode": "Standard",
-    "Description": "Standard settings for general use, without resource profiles."
+    "Description": "Standard settings for general use, without resource profiles.",
+    "standard": {
+      "Resource Usage": "Default",
+      "Max Context Tokens": "4096",
+      "Generation Step": "24 tokens",
+      "CPU Threads": "Default",
+      "Token Caps (Reasoning)": "300",
+      "Token Caps (Standard)": "200",
+      "Token Caps (Structured)": "150",
+      "Quality Mode": "Standard",
+      "Description": "Standard settings for general use, without resource profiles."
+    }
   },
   "think_time_min_seconds": 30,
-  "think_time_max_seconds": 300
+  "think_time_max_seconds": 300,
+  "bi_hemi_enabled": true
 }

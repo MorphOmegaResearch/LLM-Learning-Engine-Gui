@@ -1,0 +1,20 @@
+{
+  "my_tools": {
+    "display_name": "My Tools",
+    "icon": "",
+    "system": false,
+    "tools": {}
+  },
+  "Custom 1": {
+    "display_name": "Custom 1",
+    "icon": "",
+    "system": false,
+    "tools": {
+      "Os_Toolkit export": {
+        "command": "python3 /home/commander/Desktop/System_Journal/System_Journal/inventory/tools/scripts/Babel_v01a/Os_Toolkit.py export",
+        "args": [],
+        "source": "user"
+      }
+    }
+  }
+}

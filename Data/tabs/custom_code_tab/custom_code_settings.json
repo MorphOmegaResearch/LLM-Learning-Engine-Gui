@@ -1,5 +1,5 @@
 {
-  "working_directory": "/home/commander/Desktop/Trainer/The_SandBox",
+  "working_directory": "/home/commander/Trainer/The_SandBox",
   "auto_update_working_dir": false,
   "confirm_high_risk_tools": true,
   "confirm_critical_tools": true,
@@ -11,17 +11,9 @@
   "history_retention_days": 0,
   "max_message_length": 0,
   "temperature": 0.1,
-  "default_project_dir": "/home/commander/Projects",
+  "default_project_dir": "/home/commander/Trainer/Projects",
   "auto_load_last_project": false,
   "enable_debug_logging": false,
   "show_tool_call_details": true,
-  "enable_experimental": false,
-  "right_panel_locked": false,
-  "right_panel_width": 314,
-  "conv_locked": true,
-  "conv_width": 301,
-  "panel_rag_level_chat": 1,
-  "panel_rag_level_projects": 1,
-  "rag_debug": false,
-  "temp_mode": "manual"
+  "enable_experimental": false
 }

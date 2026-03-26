@@ -1,0 +1,680 @@
+{
+  "algorithm_id": "CDALS_20260223_051930_636198f2",
+  "version": 1,
+  "checksum": "ERROR",
+  "created": "2026-02-23T05:19:30.748354",
+  "last_updated": "2026-02-23T05:19:30.749851",
+  "domains": [
+    "botanical",
+    "zoological",
+    "mechanical",
+    "computational",
+    "chemical",
+    "mathematical",
+    "universal"
+  ],
+  "patterns": {},
+  "attribute_maps": {},
+  "domain_hierarchies": {
+    "botanical": {
+      "domain": "botanical",
+      "level": 1,
+      "parent": "biological",
+      "children": [
+        "zoological",
+        "ecological"
+      ],
+      "attributes": {
+        "photosynthesis": 0.9,
+        "cell_walls": 0.8,
+        "stationary": 0.7,
+        "chlorophyll": 0.6,
+        "autotrophic": 0.9,
+        "cellulose": 0.7,
+        "vascular_tissue": 0.6
+      },
+      "cross_domain_weights": {
+        "zoological": 0.7,
+        "chemical": 0.6,
+        "physical": 0.5,
+        "ecological": 0.8,
+        "geological": 0.4
+      },
+      "transition_matrix": null,
+      "entropy": 2.7892633923060544,
+      "centrality": 0.0,
+      "coherence": 1.0,
+      "validation_errors": [],
+      "recovery_count": 0
+    },
+    "zoological": {
+      "domain": "zoological",
+      "level": 1,
+      "parent": "biological",
+      "children": [
+        "botanical",
+        "ecological"
+      ],
+      "attributes": {
+        "motile": 0.9,
+        "heterotrophic": 0.8,
+        "nervous_system": 0.7,
+        "locomotion": 0.6,
+        "sensory_organs": 0.7,
+        "muscular_system": 0.6,
+        "digestive_system": 0.5
+      },
+      "cross_domain_weights": {
+        "botanical": 0.7,
+        "mechanical": 0.6,
+        "physical": 0.5,
+        "behavioral": 0.8,
+        "ecological": 0.9
+      },
+      "transition_matrix": null,
+      "entropy": 2.7836815756195326,
+      "centrality": 0.0,
+      "coherence": 1.0,
+      "validation_errors": [],
+      "recovery_count": 0
+    },
+    "mechanical": {
+      "domain": "mechanical",
+      "level": 2,
+      "parent": "physical",
+      "children": [
+        "computational",
+        "engineering"
+      ],
+      "attributes": {
+        "kinematic": 0.9,
+        "force_based": 0.8,
+        "material_dependent": 0.7,
+        "energy_transfer": 0.6,
+        "structural_integrity": 0.7,
+        "thermal_properties": 0.5,
+        "fluid_dynamics": 0.4
+      },
+      "cross_domain_weights": {
+        "computational": 0.8,
+        "physical": 0.9,
+        "mathematical": 0.7,
+        "engineering": 0.9,
+        "material_science": 0.6
+      },
+      "transition_matrix": null,
+      "entropy": 2.763742186479817,
+      "centrality": 0.0,
+      "coherence": 1.0,
+      "validation_errors": [],
+      "recovery_count": 0
+    },
+    "computational": {
+      "domain": "computational",
+      "level": 2,
+      "parent": "mathematical",
+      "children": [
+        "mechanical",
+        "linguistic"
+      ],
+      "attributes": {
+        "algorithmic": 0.9,
+        "discrete": 0.8,
+        "information_processing": 0.7,
+        "deterministic": 0.6,
+        "parallelizable": 0.5,
+        "recursive": 0.4,
+        "stateful": 0.7
+      },
+      "cross_domain_weights": {
+        "mechanical": 0.8,
+        "mathematical": 0.9,
+        "linguistic": 0.6,
+        "logical": 0.8,
+        "cognitive": 0.5
+      },
+      "transition_matrix": null,
+      "entropy": 2.7637421864798166,
+      "centrality": 0.0,
+      "coherence": 1.0,
+      "validation_errors": [],
+      "recovery_count": 0
+    },
+    "chemical": {
+      "domain": "chemical",
+      "level": 2,
+      "parent": "physical",
+      "children": [
+        "biological",
+        "material_science"
+      ],
+      "attributes": {
+        "molecular": 0.9,
+        "atomic_interactions": 0.8,
+        "energy_levels": 0.7,
+        "bonding": 0.6,
+        "reactive": 0.7,
+        "stoichiometric": 0.5,
+        "thermodynamic": 0.6
+      },
+      "cross_domain_weights": {
+        "biological": 0.8,
+        "physical": 0.9,
+        "material_science": 0.7,
+        "pharmaceutical": 0.6,
+        "environmental": 0.5
+      },
+      "transition_matrix": null,
+      "entropy": 2.7836815756195326,
+      "centrality": 0.0,
+      "coherence": 1.0,
+      "validation_errors": [],
+      "recovery_count": 0
+    },
+    "mathematical": {
+      "domain": "mathematical",
+      "level": 3,
+      "parent": "abstract",
+      "children": [
+        "computational",
+        "physical"
+      ],
+      "attributes": {
+        "quantitative": 0.9,
+        "abstract": 0.8,
+        "logical": 0.7,
+        "precise": 0.6,
+        "axiomatic": 0.5,
+        "proof_based": 0.4,
+        "symbolic": 0.7
+      },
+      "cross_domain_weights": {
+        "computational": 0.9,
+        "physical": 0.8,
+        "logical": 0.9,
+        "statistical": 0.7,
+        "economic": 0.5
+      },
+      "transition_matrix": null,
+      "entropy": 2.7637421864798166,
+      "centrality": 0.0,
+      "coherence": 1.0,
+      "validation_errors": [],
+      "recovery_count": 0
+    },
+    "universal": {
+      "domain": "universal",
+      "level": 0,
+      "parent": null,
+      "children": [
+        "abstract",
+        "concrete",
+        "composite"
+      ],
+      "attributes": {
+        "general": 0.9,
+        "fundamental": 0.8,
+        "cross-cutting": 0.7,
+        "foundational": 0.6
+      },
+      "cross_domain_weights": {
+        "abstract": 0.8,
+        "concrete": 0.8,
+        "composite": 0.9,
+        "interdisciplinary": 0.7
+      },
+      "transition_matrix": null,
+      "entropy": 1.9838711132181526,
+      "centrality": 0.0,
+      "coherence": 1.0,
+      "validation_errors": [],
+      "recovery_count": 0
+    }
+  },
+  "sessions": {},
+  "weight_history": [],
+  "transition_matrices": {},
+  "hyperparameters": {
+    "learning_rate": 0.1,
+    "weight_decay": 0.01,
+    "confidence_threshold": 0.7,
+    "diff_sensitivity": 0.05,
+    "exploration_rate": 0.1,
+    "regularization": 0.001,
+    "momentum": 0.9,
+    "batch_size": 32,
+    "epochs": 100,
+    "validation_split": 0.2,
+    "early_stopping_patience": 10,
+    "error_recovery_attempts": 3,
+    "memory_safety_margin": 0.8,
+    "backup_frequency": 100,
+    "auto_optimize_frequency": 50,
+    "cache_ttl": 3600,
+    "retry_delay": 1.0,
+    "max_retries": 5,
+    "timeout_seconds": 30,
+    "validation_strictness": 0.8
+  },
+  "performance_metrics": {
+    "accuracy": [],
+    "precision": [],
+    "recall": [],
+    "f1_score": [],
+    "loss": [],
+    "training_time": [],
+    "error_rate": [],
+    "recovery_success_rate": [],
+    "memory_usage": [],
+    "cpu_usage": []
+  },
+  "validation_errors": [
+    "Checksum update failed: '<' not supported between instances of 'DomainType' and 'DomainType'"
+  ],
+  "recovery_log": [],
+  "integrity_check_passed": true,
+  "last_integrity_check": "2026-02-23T05:19:30.748742",
+  "system_metrics": {
+    "pattern_library": {
+      "total_patterns": 214,
+      "by_domain": {
+        "universal": {
+          "count": 103,
+          "average_success_rate": 0.1941747572815534,
+          "average_confidence": 0.5019417475728155,
+          "average_weight": 1.070873786407767
+        },
+        "botanical": {
+          "count": 37,
+          "average_success_rate": 0.02702702702702703,
+          "average_confidence": 0.5002702702702703,
+          "average_weight": 0.8140540540540541
+        },
+        "mechanical": {
+          "count": 21,
+          "average_success_rate": 0.0,
+          "average_confidence": 0.5,
+          "average_weight": 1.0285714285714287
+        },
+        "zoological": {
+          "count": 26,
+          "average_success_rate": 0.038461538461538464,
+          "average_confidence": 0.5003846153846154,
+          "average_weight": 0.9276923076923077
+        },
+        "computational": {
+          "count": 21,
+          "average_success_rate": 0.0,
+          "average_confidence": 0.5,
+          "average_weight": 1.0476190476190477
+        },
+        "chemical": {
+          "count": 3,
+          "average_success_rate": 0.3333333333333333,
+          "average_confidence": 0.5033333333333333,
+          "average_weight": 1.34
+        },
+        "mathematical": {
+          "count": 3,
+          "average_success_rate": 0.0,
+          "average_confidence": 0.5,
+          "average_weight": 1.2333333333333334
+        }
+      },
+      "by_category": {
+        "intrinsic": {
+          "count": 90,
+          "average_success_rate": 0.2111111111111111,
+          "average_confidence": 0.5021111111111111,
+          "average_weight": 1.0931111111111111
+        },
+        "structural": {
+          "count": 30,
+          "average_success_rate": 0.1,
+          "average_confidence": 0.501,
+          "average_weight": 0.982
+        },
+        "spatial": {
+          "count": 3,
+          "average_success_rate": 0.0,
+          "average_confidence": 0.5,
+          "average_weight": 1.0666666666666667
+        },
+        "measurable": {
+          "count": 34,
+          "average_success_rate": 0.0,
+          "average_confidence": 0.5,
+          "average_weight": 1.0705882352941176
+        },
+        "functional": {
+          "count": 19,
+          "average_success_rate": 0.0,
+          "average_confidence": 0.5,
+          "average_weight": 0.9052631578947369
+        },
+        "behavioral": {
+          "count": 12,
+          "average_success_rate": 0.0,
+          "average_confidence": 0.5,
+          "average_weight": 0.7666666666666666
+        },
+        "temporal": {
+          "count": 8,
+          "average_success_rate": 0.0,
+          "average_confidence": 0.5,
+          "average_weight": 0.85
+        },
+        "contextual": {
+          "count": 4,
+          "average_success_rate": 0.0,
+          "average_confidence": 0.5,
+          "average_weight": 0.75
+        },
+        "relational": {
+          "count": 4,
+          "average_success_rate": 0.0,
+          "average_confidence": 0.5,
+          "average_weight": 0.925
+        },
+        "compositional": {
+          "count": 2,
+          "average_success_rate": 0.0,
+          "average_confidence": 0.5,
+          "average_weight": 0.9
+        },
+        "statistical": {
+          "count": 1,
+          "average_success_rate": 0.0,
+          "average_confidence": 0.5,
+          "average_weight": 1.0
+        },
+        "qualitative": {
+          "count": 7,
+          "average_success_rate": 0.14285714285714285,
+          "average_confidence": 0.5014285714285714,
+          "average_weight": 0.8171428571428572
+        }
+      },
+      "performance_metrics": {
+        "average_success_rate": 0.10747663551401869,
+        "average_confidence": 0.5010747663551401,
+        "average_weight": 1.0086915887850467,
+        "total_usage": 23
+      },
+      "library_metrics": {
+        "total_matches": 420,
+        "failed_matches": 0,
+        "cache_hits": 0,
+        "cache_misses": 1,
+        "compilation_errors": 0,
+        "recovery_attempts": 0
+      },
+      "compilation_errors": {
+        "total": 0,
+        "by_domain": {}
+      }
+    },
+    "markov_model": {
+      "domains_count": 34,
+      "total_transitions": 3.0,
+      "domain_entropies": {
+        "botanical": {
+          "entropy": 0.36489717228131,
+          "predictability": 0.9282752162192442
+        },
+        "zoological": {
+          "entropy": 0.36489717228131,
+          "predictability": 0.9282752162192442
+        },
+        "mechanical": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "computational": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "physical": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "chemical": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "mathematical": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "linguistic": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "temporal": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "spatial": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "universal": {
+          "entropy": 0.36489717228131,
+          "predictability": 0.9282752162192442
+        },
+        "composite": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "abstract": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "concrete": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "economic": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "social": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "biological": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "geological": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "astronomical": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "musical": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "artistic": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "philosophical": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "legal": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "medical": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "engineering": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "ecological": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "material_science": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "behavioral": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "logical": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "cognitive": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "pharmaceutical": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "environmental": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "statistical": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        },
+        "interdisciplinary": {
+          "entropy": 5.087462836345177,
+          "predictability": 9.641667464421744e-10
+        }
+      },
+      "initial_probabilities": {
+        "botanical": 0.01470588235294118,
+        "zoological": 0.01470588235294118,
+        "mechanical": 0.01470588235294118,
+        "computational": 0.01470588235294118,
+        "physical": 0.01470588235294118,
+        "chemical": 0.01470588235294118,
+        "mathematical": 0.01470588235294118,
+        "linguistic": 0.01470588235294118,
+        "temporal": 0.01470588235294118,
+        "spatial": 0.01470588235294118,
+        "universal": 0.5147058823529412,
+        "composite": 0.01470588235294118,
+        "abstract": 0.01470588235294118,
+        "concrete": 0.01470588235294118,
+        "economic": 0.01470588235294118,
+        "social": 0.01470588235294118,
+        "biological": 0.01470588235294118,
+        "geological": 0.01470588235294118,
+        "astronomical": 0.01470588235294118,
+        "musical": 0.01470588235294118,
+        "artistic": 0.01470588235294118,
+        "philosophical": 0.01470588235294118,
+        "legal": 0.01470588235294118,
+        "medical": 0.01470588235294118,
+        "engineering": 0.01470588235294118,
+        "ecological": 0.01470588235294118,
+        "material_science": 0.01470588235294118,
+        "behavioral": 0.01470588235294118,
+        "logical": 0.01470588235294118,
+        "cognitive": 0.01470588235294118,
+        "pharmaceutical": 0.01470588235294118,
+        "environmental": 0.01470588235294118,
+        "statistical": 0.01470588235294118,
+        "interdisciplinary": 0.01470588235294118
+      },
+      "metrics": {
+        "updates": 1,
+        "predictions": 0,
+        "sequence_probabilities": 0,
+        "entropy_calculations": 0,
+        "errors": 0
+      },
+      "sparsity": 0.9974048442906575
+    },
+    "learning_metrics": {
+      "parsing_time": [
+        0.030037879943847656
+      ],
+      "matching_accuracy": [],
+      "question_quality": [],
+      "learning_speed": [],
+      "memory_usage": [
+        635.234375
+      ],
+      "error_rate": []
+    },
+    "error_summary": {
+      "timestamp": "2026-02-23T05:19:30.987207",
+      "metrics": {
+        "total_errors": 0,
+        "recovered_errors": 0,
+        "fatal_errors": 0,
+        "last_error_time": null,
+        "error_rate": 0.0
+      },
+      "error_summary": {
+        "total": 0,
+        "unresolved": 0,
+        "by_severity": {
+          "DEBUG": 0,
+          "INFO": 0,
+          "WARNING": 0,
+          "ERROR": 0,
+          "CRITICAL": 0,
+          "FATAL": 0
+        },
+        "by_component": {},
+        "recovery_rate": 0
+      },
+      "recent_errors": [],
+      "system_info": {
+        "platform": "Linux-6.8.0-94-generic-x86_64-with-glibc2.35",
+        "python_version": "3.10.12 (main, Jan 26 2026, 14:55:28) [GCC 11.4.0]",
+        "process_id": 33921,
+        "thread_count": 1,
+        "memory_usage_mb": 636.8203125,
+        "cpu_percent": 0.0,
+        "open_files": 5,
+        "connections": 0,
+        "gc_stats": [
+          {
+            "collections": 757,
+            "collected": 6635,
+            "uncollectable": 0
+          },
+          {
+            "collections": 68,
+            "collected": 738,
+            "uncollectable": 0
+          },
+          {
+            "collections": 5,
+            "collected": 148,
+            "uncollectable": 0
+          }
+        ],
+        "load_average": [
+          0.8095703125,
+          0.876953125,
+          0.736328125
+        ]
+      }
+    }
+  },
+  "export_metadata": {
+    "export_timestamp": "2026-02-23T05:19:30.987861",
+    "cdals_version": "3.1.0",
+    "python_version": "3.10.12 (main, Jan 26 2026, 14:55:28) [GCC 11.4.0]",
+    "platform": "Linux-6.8.0-94-generic-x86_64-with-glibc2.35",
+    "includes_sessions": false
+  }
+}

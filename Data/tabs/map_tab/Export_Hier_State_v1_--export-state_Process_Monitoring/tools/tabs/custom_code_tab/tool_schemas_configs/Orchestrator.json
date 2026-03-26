@@ -1,0 +1,90 @@
+{
+  "description": "Tool schema for Orchestrator novice",
+  "type": "orchestrator",
+  "class": "novice",
+  "enabled_tools": {
+    "file_read": true,
+    "directory_list": true,
+    "agent_request": true
+  },
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "file_read",
+        "description": "Read the contents of a file. Returns the file content as text.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "file_path": {
+              "type": "string",
+              "description": "Path to the file to read (relative to working directory)"
+            },
+            "start_line": {
+              "type": "integer",
+              "description": "Starting line number (optional, 1-indexed)"
+            },
+            "end_line": {
+              "type": "integer",
+              "description": "Ending line number (optional, inclusive)"
+            }
+          },
+          "required": [
+            "file_path"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "directory_list",
+        "description": "List contents of a directory.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "dir_path": {
+              "type": "string",
+              "description": "Path to the directory to list"
+            },
+            "recursive": {
+              "type": "boolean",
+              "description": "List recursively"
+            }
+          },
+          "required": [
+            "dir_path"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "agent_request",
+        "description": "Request assistance from another mounted agent. Agent must have tool_route set to 'main' or 'both' to allow orchestrator calls. Use this to delegate tasks to specialized agents.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "agent_name": {
+              "type": "string",
+              "description": "Name of the agent to consult (must be mounted and have compatible routing)"
+            },
+            "task": {
+              "type": "string",
+              "description": "The specific task or question for the agent"
+            },
+            "context": {
+              "type": "string",
+              "description": "Optional additional context to help the agent understand the task"
+            }
+          },
+          "required": [
+            "agent_name",
+            "task"
+          ]
+        }
+      }
+    }
+  ]
+}

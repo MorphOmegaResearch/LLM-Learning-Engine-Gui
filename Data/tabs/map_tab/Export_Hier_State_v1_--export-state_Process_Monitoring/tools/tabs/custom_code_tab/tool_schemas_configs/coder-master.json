@@ -1,0 +1,100 @@
+{
+  "description": "Tool schema for Coder grand_master",
+  "type": "coder",
+  "class": "grand_master",
+  "enabled_tools": {
+    "file_write": true,
+    "file_read": true,
+    "web_fetch": true,
+    "glob": true,
+    "file_edit": true,
+    "run_bash_command": true,
+    "grep": true
+  },
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "file_write",
+        "description": "Write content to a file. Creates new file or overwrites existing file.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "file_path": {
+              "type": "string",
+              "description": "Path to the file to write"
+            },
+            "content": {
+              "type": "string",
+              "description": "Content to write to the file"
+            }
+          },
+          "required": [
+            "file_path",
+            "content"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "file_read",
+        "description": "Read the contents of a file. Returns the file content as text.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "file_path": {
+              "type": "string",
+              "description": "Path to the file to read (relative to working directory)"
+            },
+            "start_line": {
+              "type": "integer",
+              "description": "Starting line number (optional, 1-indexed)"
+            },
+            "end_line": {
+              "type": "integer",
+              "description": "Ending line number (optional, inclusive)"
+            }
+          },
+          "required": [
+            "file_path"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "file_edit",
+        "description": "Edit an existing file by replacing specific content.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "file_path": {
+              "type": "string",
+              "description": "Path to the file to edit"
+            },
+            "old_content": {
+              "type": "string",
+              "description": "Content to search for and replace"
+            },
+            "new_content": {
+              "type": "string",
+              "description": "New content to replace with"
+            }
+          },
+          "required": [
+            "file_path",
+            "old_content",
+            "new_content"
+          ]
+        }
+      }
+    }
+  ]
+}{
+  "tools": []
+}{
+  "tools": []
+}

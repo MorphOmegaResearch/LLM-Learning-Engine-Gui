@@ -1,0 +1,17 @@
+{
+  "description": "Tool schema for GUI Tester grand_master",
+  "type": "gui_tester",
+  "class": "grand_master",
+  "enabled_tools": {
+    "page_extract": true,
+    "wait": true,
+    "browser_scroll": true,
+    "browser_screenshot": true,
+    "browser_click": true,
+    "browser_navigate": true,
+    "browser_drag": true,
+    "browser_type": true,
+    "element_detect": true
+  },
+  "tools": []
+}

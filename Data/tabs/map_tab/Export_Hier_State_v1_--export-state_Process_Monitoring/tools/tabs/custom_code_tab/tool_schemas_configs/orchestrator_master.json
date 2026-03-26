@@ -1,0 +1,22 @@
+{
+  "description": "Tool schema for Orchestrator master",
+  "type": "orchestrator",
+  "class": "master",
+  "enabled_tools": {
+    "all": true
+  },
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "all",
+        "description": "Meta-tool representing access to all available tools. Used for orchestrator agents with unrestricted tool access.",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      }
+    }
+  ]
+}

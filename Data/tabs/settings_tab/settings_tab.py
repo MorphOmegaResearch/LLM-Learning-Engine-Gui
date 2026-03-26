@@ -1,6 +1,6 @@
 """
 Settings Tab - Application configuration and preferences
-Isolated module for settings-related functionality
+Isolated module for settings-related functionality#
 """
 
 import tkinter as tk
@@ -11,16 +11,14 @@ from pathlib import Path
 import os
 import sys
 import glob
+from datetime import datetime
 import logger_util
+import recovery_util
 from logger_util import log_message
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from tabs.base_tab import BaseTab
-from config import (TRAINER_ROOT, DATA_DIR, MODELS_DIR, TODOS_DIR,
-                    create_todo_file, list_todo_files, read_todo_file,
-                    update_todo_file, delete_todo_file, move_todo_to_completed,
-                    get_project_todos_dir, create_project_todo_file, list_project_todo_files,
-                    list_all_projects_with_todos, move_project_todo_to_completed)
+from config import TRAINER_ROOT, DATA_DIR, MODELS_DIR
 
 
 class SettingsTab(BaseTab):
@@ -37,20 +35,21 @@ class SettingsTab(BaseTab):
         self.log_poll_job = None
         self.current_log_file = None
         self.last_read_position = 0
+
+        # Changes polling variables
+        self.changes_poll_job = None
+        self.last_manifest_mtime = None
         self.log_file_paths = {} # Corrected indentation
         self.tab_enabled_vars = {} # For managing tab visibility
         self.reorder_mode = tk.StringVar(value='static') # New setting for tab reordering
+        self.right_click_enabled = tk.BooleanVar(value=True) # Global right-click menu toggle
+        self.right_click_tab_overrides = {}  # {tab_name: BooleanVar} per-tab overrides
+        self.right_click_subtab_overrides = {}  # {tab_name.sub_label: BooleanVar} per-sub-tab overrides
         # Settings file
         self.settings_file = DATA_DIR / "settings.json"
         self.settings = self.load_settings()
-        # Lazy terminal init flag
-        self.terminal_initialized = False
-        # Internal flag to suppress reorder mode popups during programmatic changes
-        self._suppress_reorder_popup = False
-        # Internal mapping from (tab_name, panel_header_text) -> file path (if resolvable)
-        self.panel_file_map = {}
-        # Current project context for unified ToDo manager (set by Projects panel)
-        self.current_project_context = None
+        # Manifest data for undo operations
+        self.current_manifest = {}
 
     def create_ui(self):
         """Create the settings tab UI with side menu and sub-tabs"""
@@ -80,218 +79,6 @@ class SettingsTab(BaseTab):
         quick_restart_btn.pack(side=tk.RIGHT, padx=(5, 0))
         print(f"DEBUG: Quick Restart button created. Command bound to: {quick_restart_btn.cget('command')}")
         log_message(f"SETTINGS: Quick Restart button created. Command bound to: {quick_restart_btn.cget('command')}")
-
-    # --- Plan Template Dialog (shared by Main/Project ToDo) ---
-    def _open_plan_template_dialog(self, project_name: str | None = None):
-        dlg = tk.Toplevel(self.root)
-        dlg.title('New Plan')
-        dlg.geometry('760x560')
-        try:
-            dlg.transient(self.root); dlg.grab_set()
-        except Exception:
-            pass
-
-        # Scrollable body container
-        container = ttk.Frame(dlg)
-        container.pack(fill=tk.BOTH, expand=True)
-        canvas = tk.Canvas(container, highlightthickness=0)
-        vbar = ttk.Scrollbar(container, orient=tk.VERTICAL, command=canvas.yview)
-        canvas.configure(yscrollcommand=vbar.set)
-        canvas.grid(row=0, column=0, sticky=tk.NSEW)
-        vbar.grid(row=0, column=1, sticky=tk.NS)
-        container.columnconfigure(0, weight=1)
-        container.rowconfigure(0, weight=1)
-        body = ttk.Frame(canvas, padding=10)
-        body_id = canvas.create_window((0,0), window=body, anchor='nw')
-
-        def _on_body_config(_e=None):
-            try:
-                canvas.configure(scrollregion=canvas.bbox('all'))
-            except Exception:
-                pass
-        def _on_container_resize(e):
-            try:
-                canvas.itemconfigure(body_id, width=e.width - vbar.winfo_width())
-            except Exception:
-                pass
-        body.bind('<Configure>', _on_body_config)
-        container.bind('<Configure>', _on_container_resize)
-
-        f = body  # Alias for layout
-        # Plan name
-        ttk.Label(f, text='Plan Name', style='CategoryPanel.TLabel').grid(row=0, column=0, sticky=tk.W)
-        name_var = tk.StringVar(); ttk.Entry(f, textvariable=name_var).grid(row=0, column=1, sticky=tk.EW)
-        # Priority
-        ttk.Label(f, text='Priority', style='CategoryPanel.TLabel').grid(row=1, column=0, sticky=tk.W)
-        pvar = tk.StringVar(value='medium'); pr = ttk.Frame(f); pr.grid(row=1, column=1, sticky=tk.W)
-        ttk.Radiobutton(pr, text='High', value='high', variable=pvar).pack(side=tk.LEFT, padx=4)
-        ttk.Radiobutton(pr, text='Medium', value='medium', variable=pvar).pack(side=tk.LEFT, padx=4)
-        ttk.Radiobutton(pr, text='Low', value='low', variable=pvar).pack(side=tk.LEFT, padx=4)
-        # Helper: auto-resize text widget 1..3 lines and hide scrollbar
-        def _mk_auto_text(parent, min_lines=1, max_lines=3):
-            txt = scrolledtext.ScrolledText(parent, height=min_lines, wrap=tk.WORD, font=('Arial',9), bg='#1e1e1e', fg='#dcdcdc')
-            # Hide the visible scrollbar by setting its width to 0; keep wheel working
-            try:
-                for child in txt.winfo_children():
-                    if isinstance(child, tk.Scrollbar):
-                        child.configure(width=0)
-            except Exception:
-                pass
-            def _update_height(_e=None):
-                try:
-                    # Count visual lines (approximate by content lines)
-                    text = txt.get('1.0', 'end-1c')
-                    lines = max(min_lines, min(max_lines, max(1, text.count('\n') + 1)))
-                    if int(txt.cget('height')) != lines:
-                        txt.configure(height=lines)
-                except Exception:
-                    pass
-                finally:
-                    try:
-                        txt.edit_modified(False)
-                    except Exception:
-                        pass
-            try:
-                txt.bind('<<Modified>>', _update_height)
-            except Exception:
-                pass
-            return txt
-
-        # Overview
-        ttk.Label(f, text='Overview', style='CategoryPanel.TLabel').grid(row=2, column=0, sticky=tk.NW)
-        ov = _mk_auto_text(f, 1, 3); ov.grid(row=2, column=1, sticky=tk.NSEW)
-        # Objectives
-        ttk.Label(f, text='Objectives', style='CategoryPanel.TLabel').grid(row=3, column=0, sticky=tk.NW)
-        obj = _mk_auto_text(f, 1, 3); obj.grid(row=3, column=1, sticky=tk.NSEW)
-        # Section builder: dynamic single-line entries with + / - controls
-        def _mk_section(row_idx: int, label_text: str, examples: list[str]):
-            ttk.Label(f, text=label_text, style='CategoryPanel.TLabel').grid(row=row_idx, column=0, sticky=tk.NW, pady=(6,0))
-            wrap = ttk.Frame(f); wrap.grid(row=row_idx, column=1, sticky=tk.NSEW, pady=(6,0))
-            wrap.columnconfigure(0, weight=1)
-
-            # controls under header
-            ctrl = ttk.Frame(wrap)
-            ctrl.grid(row=0, column=0, sticky=tk.W)
-            rows_frame = ttk.Frame(wrap)
-            rows_frame.grid(row=1, column=0, sticky=tk.NSEW)
-            rows = []
-
-            def add_row(text: str = '', *, placeholder: bool = False):
-                r = ttk.Frame(rows_frame)
-                r.columnconfigure(0, weight=1)
-                e = ttk.Entry(r)
-                e.grid(row=0, column=0, sticky=tk.EW, padx=(0,6), pady=2)
-                if text:
-                    e.insert(0, text)
-                if placeholder and text:
-                    try:
-                        e.configure(foreground='#888888')
-                        e._placeholder = True
-                    except Exception:
-                        pass
-                    def _clear_placeholder(_e):
-                        try:
-                            if getattr(e, '_placeholder', False):
-                                e.delete(0, tk.END)
-                                e.configure(foreground='#dcdcdc')
-                                e._placeholder = False
-                        except Exception:
-                            pass
-                    e.bind('<FocusIn>', _clear_placeholder, add='+')
-                rows.append(e)
-                r.pack(fill=tk.X)
-
-            def remove_row():
-                if rows:
-                    e = rows.pop()
-                    try:
-                        e.master.destroy()
-                    except Exception:
-                        pass
-
-            ttk.Button(ctrl, text='＋', width=3, command=lambda: add_row('')).pack(side=tk.LEFT, padx=(0,4))
-            ttk.Button(ctrl, text='−', width=3, command=remove_row).pack(side=tk.LEFT)
-
-            # Default three entries; first with example placeholder
-            add_row(examples[0] if examples else '', placeholder=True)
-            add_row('')
-            add_row('')
-
-            return rows
-
-        # Build sections
-        task_rows = _mk_section(4, 'Tasks', ['Add overview window when a model is selected'])
-        wo_rows = _mk_section(5, 'Work Orders', ['Create Popup Window'])
-        tests_rows = _mk_section(6, 'Tests', ['Selecting a model shows overview'])
-        f.columnconfigure(1, weight=1); f.rowconfigure(6, weight=1)
-        # Prefill examples
-        try:
-            ov.insert(tk.END, 'Example: Upgrade Chat interface to show model overview panel.')
-            obj.insert(tk.END, '- Improve discoverability\n- Reduce clicks\n- Keep layout responsive')
-        except Exception:
-            pass
-        # Create
-        def create_plan():
-            try:
-                title = (name_var.get() or '').strip()
-                if not title:
-                    messagebox.showwarning('Missing Plan Name','Please enter a plan name.', parent=dlg); return
-                prio = pvar.get()
-                from config import create_todo_file, create_project_todo_file
-                def mk(cat, text_):
-                    if project_name:
-                        return create_project_todo_file(project_name, cat, text_, prio, '', plan=title)
-                    else:
-                        return create_todo_file(cat, text_, prio, '', plan=title)
-                # Plan body summary
-                body_parts = [
-                    'Overview:\n' + ov.get('1.0', tk.END).strip(),
-                    'Objectives:\n' + obj.get('1.0', tk.END).strip(),
-                ]
-                # Collect non-empty rows; ignore placeholder examples
-                def _collect(rows):
-                    out = []
-                    for e in rows:
-                        try:
-                            if getattr(e, '_placeholder', False):
-                                continue
-                        except Exception:
-                            pass
-                        val = (e.get() or '').strip()
-                        if val:
-                            out.append(val)
-                    return out
-                lines_tasks = _collect(task_rows)
-                lines_wo = _collect(wo_rows)
-                lines_tests = _collect(tests_rows)
-                body_parts.append('Tasks:\n' + '\n'.join(f'- {t}' for t in lines_tasks) or 'Tasks:\n-')
-                body_parts.append('Work Orders:\n' + '\n'.join(f'{i+1}. {w}' for i,w in enumerate(lines_wo)) or 'Work Orders:\n1.')
-                body_parts.append('Tests:\n' + '\n'.join(f'- {t}' for t in lines_tests) or 'Tests:\n-')
-                body = '\n\n'.join(body_parts)
-                # Plan file
-                if project_name:
-                    create_project_todo_file(project_name, 'plans', f'Plan: {title}', prio, body, plan=title)
-                else:
-                    create_todo_file('plans', f'Plan: {title}', prio, body, plan=title)
-                # Derived items
-                for t in lines_tasks:
-                    mk('tasks', f'Plan:{title} | Task: {t}')
-                for i,w in enumerate(lines_wo, 1):
-                    mk('work_orders', f'Plan:{title} | Work-Order {i}: {w}')
-                for t in lines_tests:
-                    mk('tests', f'Plan:{title} | Test: {t}')
-                try:
-                    # Refresh listings in active popup
-                    self.refresh_todo_view()
-                except Exception:
-                    pass
-                dlg.destroy()
-            except Exception as e:
-                log_message(f'SETTINGS: Error creating plan (dialog): {e}')
-                messagebox.showerror('Error', f'Failed to create plan: {e}', parent=dlg)
-        b = ttk.Frame(f); b.grid(row=7, column=1, sticky=tk.E, pady=(8,0))
-        ttk.Button(b, text='Create Plan', style='Action.TButton', command=create_plan).pack(side=tk.LEFT, padx=4)
-        ttk.Button(b, text='Cancel', style='Select.TButton', command=dlg.destroy).pack(side=tk.LEFT, padx=4)
 
         # Settings tab refresh button
         ttk.Button(header_frame, text="🔄 Refresh Settings",
@@ -337,9 +124,9 @@ class SettingsTab(BaseTab):
         self.settings_notebook.add(self.custom_code_settings_frame, text="Custom Code")
         self.create_custom_code_settings(self.custom_code_settings_frame)
 
-        # Debug Tab
+        # Backups & Logs Tab
         self.debug_tab_frame = ttk.Frame(self.settings_notebook)
-        self.settings_notebook.add(self.debug_tab_frame, text="Debug")
+        self.settings_notebook.add(self.debug_tab_frame, text="Backups & Logs")
         self.create_debug_tab(self.debug_tab_frame)
 
         # System Blueprints Tab
@@ -359,88 +146,669 @@ class SettingsTab(BaseTab):
         self.create_right_panel(self.parent)
 
     def _on_sub_tab_changed(self, event):
-        """Switch between help menu and terminal based on selected sub-tab."""
+        """Switch between help menu and backup manager based on selected sub-tab."""
         selected_tab_index = self.settings_notebook.index(self.settings_notebook.select())
         selected_tab_text = self.settings_notebook.tab(selected_tab_index, "text")
 
-        # Auto-enable Arrow reordering when opening Tab Manager (without popups)
-        if selected_tab_text == "Tab Manager":
-            try:
-                self._suppress_reorder_popup = True
-                self.reorder_mode.set('arrow')
-                self._on_reorder_mode_changed()
-                # Ensure tree reflects live tab instances (panels) once Tab Manager is shown
-                try:
-                    self.refresh_tabs_tree()
-                except Exception:
-                    pass
-            except Exception:
-                pass
-            finally:
-                self._suppress_reorder_popup = False
-
-        if selected_tab_text == "Debug":
+        if selected_tab_text == "Backups & Logs":
             self.help_menu_frame.grid_remove()
-            # Lazy-initialize terminal when Debug is selected
-            if not self.terminal_initialized:
-                self.create_terminal_ui(self.terminal_frame)
-                self.terminal_initialized = True
-            self.terminal_frame.grid()
+            self.backup_frame.grid()
+            self.populate_backup_tree() # Fresh load on entry
+            self.start_backup_polling() # Start periodic refresh
         else:
-            # Destroy terminal contents to stop background threads
-            try:
-                for child in self.terminal_frame.winfo_children():
-                    child.destroy()
-            except Exception:
-                pass
-            self.terminal_initialized = False
-            self.terminal_frame.grid_remove()
+            self.stop_backup_polling()
+            self.backup_frame.grid_remove()
             self.help_menu_frame.grid()
 
-    def create_terminal_ui(self, parent):
-        """Creates the terminal interface using tkterminal library."""
-        try:
-            from tkterminal import Terminal
-        except ImportError:
-            error_label = ttk.Label(
-                parent,
-                text="Error: 'tkterminal' library not found.\nPlease install it by running: pip install tkterminal",
-                foreground="red",
-                wraplength=300
-            )
-            error_label.pack(pady=20, padx=10)
-            return
+    def start_backup_polling(self):
+        """Periodic refresh of the backup tree to catch live watcher updates."""
+        if hasattr(self, 'backup_poll_job') and self.backup_poll_job:
+            self.parent.after_cancel(self.backup_poll_job)
+        self.poll_backups()
 
+    def stop_backup_polling(self):
+        """Stops the periodic refresh of the backup tree."""
+        if hasattr(self, 'backup_poll_job') and self.backup_poll_job:
+            self.parent.after_cancel(self.backup_poll_job)
+            self.backup_poll_job = None
+
+    def poll_backups(self):
+        """Refreshes the tree if 'Backups & Logs' is still the active sub-tab."""
+        # Only poll if this tab is visible and sub-tab is active
+        try:
+            selected_tab_index = self.settings_notebook.index(self.settings_notebook.select())
+            if self.settings_notebook.tab(selected_tab_index, "text") == "Backups & Logs":
+                self.populate_backup_tree()
+                self.backup_poll_job = self.parent.after(10000, self.poll_backups) # Every 10s
+        except Exception: pass
+
+    def create_backup_manager_ui(self, parent):
+        """Creates the Backup Manager interface."""
         parent.columnconfigure(0, weight=1)
-        parent.rowconfigure(1, weight=1)
+        parent.rowconfigure(0, weight=1)
 
-        # Header with reset button
-        header = ttk.Frame(parent)
-        header.grid(row=0, column=0, sticky=tk.EW, padx=5, pady=5)
-        ttk.Button(header, text="🔁 Reset Terminal", command=lambda: self.reset_terminal(parent), style='Select.TButton').pack(side=tk.LEFT)
+        # Main Layout: PanedWindow (Vertical) - Tree on top, Details on bottom
+        paned = ttk.PanedWindow(parent, orient=tk.VERTICAL)
+        paned.grid(row=0, column=0, sticky='nsew', padx=5, pady=5)
 
-        self.terminal = Terminal(parent, pady=5, padx=5)
-        self.terminal.shell = True
-        self.terminal_widget = self.terminal
-        self.terminal_widget.grid(row=1, column=0, sticky='nsew')
+        # --- Top: Tree View ---
+        tree_frame = ttk.Frame(paned, style='Category.TFrame')
+        paned.add(tree_frame, weight=3)
+        tree_frame.columnconfigure(0, weight=1)
+        tree_frame.rowconfigure(1, weight=1)
 
-        # Use main-thread safe scheduling for terminal commands
+        # Header
+        header = ttk.Frame(tree_frame)
+        header.grid(row=0, column=0, sticky='ew', padx=5, pady=5)
+        ttk.Label(header, text="🛡️ Backup History & Health", font=('Arial', 10, 'bold'), style='CategoryPanel.TLabel').pack(side=tk.LEFT)
+        ttk.Button(header, text="🔄 Refresh", command=self.populate_backup_tree, style='Select.TButton').pack(side=tk.RIGHT)
+
+        # Tree
+        self.backup_tree = ttk.Treeview(tree_frame, selectmode='browse', show='tree headings')
+        self.backup_tree.grid(row=1, column=0, sticky='nsew', padx=5, pady=5)
+        
+        # Scrollbar
+        sb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.backup_tree.yview)
+        sb.grid(row=1, column=1, sticky='ns')
+        self.backup_tree.configure(yscrollcommand=sb.set)
+
+        self.backup_tree.heading('#0', text='File / Status / Backup Timestamp')
+        self.backup_tree.bind('<<TreeviewSelect>>', self.on_backup_select)
+        self.backup_tree.bind('<<TreeviewOpen>>', self._on_backup_tree_expand)
+
+        # --- COORDINATED COLORATION SYSTEM ---
+        # Unified status colors and styles
+        self.status_colors = {
+            'error': '#ff5555',     # Red
+            'warning': '#ffaa00',   # Orange
+            'active': '#55ff55',    # Green
+            'stable': '#ffffff',    # White
+            'backup': '#aaaaaa',    # Grey
+            'tab': '#61dafb'        # Cyan
+        }
+
+        for tree in [self.backup_tree]:
+            tree.tag_configure('error', foreground=self.status_colors['error'], font=('Arial', 10, 'bold'))
+            tree.tag_configure('warning', foreground=self.status_colors['warning'], font=('Arial', 10, 'bold'))
+            tree.tag_configure('active', foreground=self.status_colors['active'], font=('Arial', 10, 'bold'))
+            tree.tag_configure('stable', foreground=self.status_colors['stable'])
+            tree.tag_configure('backup', foreground=self.status_colors['backup'])
+            tree.tag_configure('tab', foreground=self.status_colors['tab'], font=('Arial', 10, 'bold'))
+
+        # --- Bottom: Detail View ---
+        detail_frame = ttk.Frame(paned, style='Category.TFrame')
+        paned.add(detail_frame, weight=2) # Give more weight to details
+        detail_frame.columnconfigure(0, weight=1)
+        detail_frame.rowconfigure(1, weight=1) # Text area expands
+        
+        ttk.Label(detail_frame, text="📋 Backup Details", font=('Arial', 10, 'bold'), style='CategoryPanel.TLabel').grid(row=0, column=0, sticky='w', padx=5, pady=5)
+        
+        # Scrollable Text Area for Details
+        detail_text_container = ttk.Frame(detail_frame)
+        detail_text_container.grid(row=1, column=0, sticky='nsew', padx=5, pady=5)
+        detail_text_container.columnconfigure(0, weight=1)
+        detail_text_container.rowconfigure(0, weight=1)
+
+        self.backup_details_text = tk.Text(detail_text_container, height=12, width=40, state='disabled', bg='#1e1e1e', fg='#d4d4d4', font=('Courier', 9), relief='flat')
+        self.backup_details_text.grid(row=0, column=0, sticky='nsew')
+        
+        detail_sb = ttk.Scrollbar(detail_text_container, orient="vertical", command=self.backup_details_text.yview)
+        detail_sb.grid(row=0, column=1, sticky='ns')
+        self.backup_details_text.configure(yscrollcommand=detail_sb.set)
+
+        # Action buttons frame
+        self.backup_action_frame = ttk.Frame(detail_frame)
+        self.backup_action_frame.grid(row=2, column=0, sticky='ew', padx=5, pady=5)
+
+        # Initial Population
+        self.populate_backup_tree()
+
+    def _scan_for_file_errors(self):
+        """Scans the latest debug log for filenames associated with errors."""
+        error_counts = {}
         try:
-            self.root.after(0, lambda: self.terminal_widget.run_command(f"cd {DATA_DIR} && clear"))
-            self.root.after(10, lambda: self.terminal_widget.run_command("echo 'Welcome to the in-house terminal!'"))
-            self.root.after(20, lambda: self.terminal_widget.run_command(f"echo 'Working directory: $(pwd)'"))
-        except Exception as e:
-            log_message(f"SETTINGS: Terminal init scheduling error: {e}")
-
-    def reset_terminal(self, parent):
-        """Destroy and recreate the terminal widget to clear state and stop any background threads."""
-        try:
-            for child in parent.winfo_children():
-                child.destroy()
+            log_path = logger_util.get_log_file_path()
+            if not log_path or not os.path.exists(log_path): return {}
+            
+            with open(log_path, 'r') as f:
+                log_content = f.read()
+            
+            import re
+            # Matches: File "/path/to/file.py", line 123
+            pattern = re.compile(r'File "([^"]+)", line \d+')
+            matches = pattern.findall(log_content)
+            
+            for absolute_path in matches:
+                # Normalize path separators
+                path_str = str(Path(absolute_path))
+                # Check if it's in our Data directory
+                if str(TRAINER_ROOT) in path_str:
+                    try:
+                        # Extract relative path to match manifest keys
+                        rel_path = str(Path(absolute_path).relative_to(TRAINER_ROOT))
+                        error_counts[rel_path] = error_counts.get(rel_path, 0) + 1
+                    except ValueError:
+                        pass
         except Exception:
             pass
-        # Recreate terminal UI
-        self.create_terminal_ui(parent)
+        return error_counts
+
+    def populate_backup_tree(self):
+        """Populates the backup tree with lazy-loaded file-first layout.
+
+        Structure:
+          📦 System Versions (N)        — all unique backup timestamps, grouped by date
+          🟠 Live Changes (Unsaved)     — if any pending changes
+          📂 File Backup History (N)    — each tracked file, backups loaded on expand
+        """
+        for item in self.backup_tree.get_children():
+            self.backup_tree.delete(item)
+        self._lazy_loaded_nodes = set()
+
+        # --- Load data sources ---
+        self.version_manifest = recovery_util.load_version_manifest()
+        self._enriched_changes = self.version_manifest.get("enriched_changes", {})
+        history_root = DATA_DIR / "backup" / "history"
+        default_v = self.version_manifest.get("default_version")
+        vm_versions = self.version_manifest.get("versions", {})
+
+        # --- Collect ALL unique timestamps (fast: scan top 5 busiest history dirs only) ---
+        all_timestamps = set(vm_versions.keys())
+        if history_root.exists():
+            # Find top dirs by file count (use dir size as proxy — faster than counting)
+            h_dirs = []
+            for hdir in history_root.iterdir():
+                if hdir.is_dir():
+                    try:
+                        h_dirs.append((hdir, hdir.stat().st_mtime))
+                    except OSError:
+                        pass
+            # Sort by mtime desc, scan top 10 for timestamps (covers 90%+ of unique ts)
+            h_dirs.sort(key=lambda x: x[1], reverse=True)
+            for hdir, _ in h_dirs[:10]:
+                try:
+                    for f in hdir.iterdir():
+                        stem = f.stem
+                        if len(stem) == 15 and '_' in stem:  # YYYYMMDD_HHMMSS format
+                            all_timestamps.add(stem)
+                except OSError:
+                    pass
+
+        # --- Section 1: System Versions (grouped by date) ---
+        sorted_ts = sorted(all_timestamps, reverse=True)
+        self.all_good_versions = sorted_ts
+
+        if sorted_ts:
+            versions_node = self.backup_tree.insert(
+                '', 'end',
+                text=f"📦 System Versions ({len(sorted_ts)})",
+                open=True, tags=('stable',), values=("", "section")
+            )
+            current_date = None
+            date_node = None
+            for ts in sorted_ts:
+                try:
+                    dt = datetime.strptime(ts, "%Y%m%d_%H%M%S")
+                    date_str = dt.strftime("%Y-%m-%d")
+                    display_time = dt.strftime("%H:%M:%S")
+
+                    # Group by date
+                    if date_str != current_date:
+                        current_date = date_str
+                        # Count how many in this date
+                        n_in_date = sum(1 for t in sorted_ts if t.startswith(ts[:8]))
+                        date_node = self.backup_tree.insert(
+                            versions_node, 'end',
+                            text=f"📅 {date_str} ({n_in_date} versions)",
+                            open=(date_str == dt.today().strftime("%Y-%m-%d")),
+                            tags=('stable',), values=("", "date_group")
+                        )
+
+                    # Determine status
+                    vm_entry = vm_versions.get(ts)
+                    is_default = (ts == default_v)
+                    if vm_entry:
+                        status = self._infer_version_status(ts, vm_entry)
+                    else:
+                        status = "archived"  # exists in history but not in version_manifest
+
+                    icon, tag = self._status_icon_tag(status)
+                    prefix = "⭐ " if is_default else ""
+                    self.backup_tree.insert(
+                        date_node, 'end',
+                        text=f"{prefix}{icon} {display_time} ({status.upper()})",
+                        values=(ts, 'version'), tags=(tag,)
+                    )
+                except (ValueError, Exception):
+                    continue
+
+        # --- Section 2: Live Changes ---
+        pending = self.version_manifest.get("pending_live_changes", {})
+        if pending:
+            live_node = self.backup_tree.insert(
+                '', 'end', text=f"🟠 Live Changes ({len(pending)} unsaved)",
+                open=True, tags=('warning',), values=("", "section")
+            )
+            for rel_path in sorted(pending.keys()):
+                self.backup_tree.insert(
+                    live_node, 'end', text=f"📝 {rel_path}",
+                    values=(rel_path, 'live_change'), tags=('backup',)
+                )
+
+        # --- Section 3: File Backup History (lazy-loaded from manifest.json only) ---
+        manifest_path = DATA_DIR / "backup" / "manifest.json"
+        manifest = {}
+        if manifest_path.exists():
+            try:
+                with open(manifest_path, 'r') as f:
+                    manifest = json.load(f)
+            except Exception:
+                pass
+
+        error_counts = self._scan_for_file_errors()
+
+        # Sort manifest entries by last_modified descending
+        sorted_files = sorted(
+            manifest.items(),
+            key=lambda x: x[1].get('last_modified', 0),
+            reverse=True
+        )
+
+        if sorted_files:
+            files_section = self.backup_tree.insert(
+                '', 'end',
+                text=f"📂 File Backup History ({len(sorted_files)} files)",
+                open=False, tags=('stable',), values=("", "section")
+            )
+
+            for file_rel_path, manifest_data in sorted_files:
+                feature = recovery_util.get_feature_for_path(file_rel_path)
+                errors = error_counts.get(file_rel_path, 0)
+                last_mod = manifest_data.get('last_modified', 0)
+                time_since_mod = datetime.now().timestamp() - last_mod if last_mod else 99999
+
+                file_status, file_icon, file_tag = self._infer_file_status(
+                    file_rel_path, errors, time_since_mod
+                )
+
+                display_text = f"{file_icon} {file_rel_path} [{feature}] {file_status}"
+
+                file_node = self.backup_tree.insert(
+                    files_section, 'end', text=display_text, open=False,
+                    values=(file_rel_path, 'file'), tags=(file_tag,)
+                )
+
+                # Lazy-load placeholder (always insert — real count on expand)
+                self.backup_tree.insert(
+                    file_node, 'end', text="⏳ Loading...",
+                    values=("", "lazy_placeholder"), tags=('backup',)
+                )
+
+    def _on_backup_tree_expand(self, event):
+        """Lazy-load backup versions when a file node is expanded."""
+        item = self.backup_tree.focus()
+        if not item:
+            return
+        values = self.backup_tree.item(item, "values")
+        if not values or len(values) < 2:
+            return
+
+        path_str, type_ = values[0], values[1]
+
+        # Only lazy-load file nodes
+        if type_ != 'file':
+            return
+        if item in getattr(self, '_lazy_loaded_nodes', set()):
+            return
+
+        # Remove placeholder children
+        for child in self.backup_tree.get_children(item):
+            child_vals = self.backup_tree.item(child, "values")
+            if child_vals and len(child_vals) >= 2 and child_vals[1] == "lazy_placeholder":
+                self.backup_tree.delete(child)
+
+        self._lazy_loaded_nodes.add(item)
+
+        # Load actual backups
+        safe_key = path_str.replace("/", "_").replace("\\", "_").replace(":", "")
+        backup_dir = DATA_DIR / "backup" / "history" / safe_key
+        backups_found = []
+
+        if backup_dir.exists() and backup_dir.is_dir():
+            for backup_file in backup_dir.iterdir():
+                if backup_file.suffix not in ('.py', '.json', '.md'):
+                    continue
+                try:
+                    ts_str = backup_file.stem
+                    datetime.strptime(ts_str, "%Y%m%d_%H%M%S")
+                    size_kb = backup_file.stat().st_size / 1024
+                    backups_found.append({
+                        'path': str(backup_file),
+                        'ts': ts_str,
+                        'size_kb': size_kb,
+                    })
+                except (ValueError, OSError):
+                    pass
+
+        # Also check for bulk backup pointer from manifest
+        manifest_path = DATA_DIR / "backup" / "manifest.json"
+        if manifest_path.exists():
+            try:
+                with open(manifest_path, 'r') as f:
+                    m = json.load(f)
+                mdata = m.get(path_str, {})
+                ptr = mdata.get('latest_backup', '')
+                if "backup_" in ptr:
+                    full_bulk = DATA_DIR / "backup" / ptr
+                    if full_bulk.exists():
+                        backups_found.append({
+                            'path': str(full_bulk),
+                            'ts': "00000000_000000",
+                            'size_kb': full_bulk.stat().st_size / 1024,
+                            'bulk': True,
+                        })
+            except Exception:
+                pass
+
+        backups_found.sort(key=lambda x: x['ts'], reverse=True)
+
+        # Check version statuses for each backup timestamp
+        version_statuses = self.version_manifest.get("versions", {})
+
+        for bk in backups_found:
+            if bk.get('bulk'):
+                text = f"📦 Initial/Bulk Snapshot ({bk['size_kb']:.0f} KB)"
+                tag = 'stable'
+            else:
+                try:
+                    dt = datetime.strptime(bk['ts'], "%Y%m%d_%H%M%S")
+                    display = dt.strftime("%Y-%m-%d %H:%M:%S")
+                except ValueError:
+                    display = bk['ts']
+
+                # Cross-reference with version status
+                v_entry = version_statuses.get(bk['ts'])
+                if v_entry:
+                    v_status = self._infer_version_status(bk['ts'], v_entry)
+                    icon, tag = self._status_icon_tag(v_status)
+                    text = f"{icon} {display} ({bk['size_kb']:.0f} KB) [{v_status.upper()}]"
+                else:
+                    text = f"🕒 {display} ({bk['size_kb']:.0f} KB)"
+                    tag = 'backup'
+
+            self.backup_tree.insert(
+                item, 'end', text=text,
+                values=(bk['path'], 'backup'), tags=(tag,)
+            )
+
+        if not backups_found:
+            self.backup_tree.insert(
+                item, 'end', text="(No backups found)",
+                values=("", "info"), tags=('backup',)
+            )
+
+    def _status_icon_tag(self, status):
+        """Return (icon, tree_tag) for a version status string."""
+        _map = {
+            "stable":       ("✅", "active"),
+            "unstable":     ("⚠️",  "warning"),
+            "damaged":      ("❌", "error"),
+            "testing":      ("🧪", "warning"),
+            "pending":      ("⏳", "stable"),
+            "initializing": ("⏳", "stable"),
+            "archived":     ("📋", "backup"),
+            "unknown":      ("❓", "stable"),
+        }
+        return _map.get(status, ("❓", "stable"))
+
+    def _infer_version_status(self, ts, entry):
+        """Infer version status from manifest entry + enriched_changes probe data.
+
+        Status hierarchy:
+          damaged    — crash before LAUNCH_SUCCESS (or manually marked)
+          unstable   — launched but has probe failures OR failed tabs
+          testing    — marked as testing (Quick Restart target)
+          pending    — just created, not yet validated
+          stable     — launched OK, no probe failures
+          initializing — first run, not yet completed
+        """
+        explicit = entry.get("status", "unknown")
+
+        # Trust explicit damaged mark
+        if explicit == "damaged":
+            return "damaged"
+
+        # If explicitly set to testing/pending, keep it
+        if explicit in ("testing", "pending"):
+            return explicit
+
+        # Check for failed tabs
+        failed_tabs = entry.get("failed_tabs", [])
+        if failed_tabs:
+            return "unstable"
+
+        # Check enriched_changes for probe/test failures in this version
+        if hasattr(self, '_enriched_changes'):
+            _fails = 0
+            _unresolved = 0
+            for eid, ch in self._enriched_changes.items():
+                if ch.get("version_ts") != ts:
+                    continue
+                if ch.get("probe_status") == "FAIL" or ch.get("test_status") == "FAIL":
+                    _fails += 1
+                    if not ch.get("resolved_by"):
+                        _unresolved += 1
+
+            if _unresolved > 0:
+                return "unstable"
+
+        # If explicitly stable or unknown with no failures → stable
+        if explicit in ("stable", "unknown"):
+            return "stable" if explicit == "stable" else entry.get("status", "unknown")
+
+        return explicit
+
+    def _infer_file_status(self, file_rel_path, errors, time_since_mod):
+        """Infer per-file health from errors, recency, and enriched probe data.
+
+        Returns: (status_text, icon, tag)
+        """
+        # Check enriched_changes for probe failures on this file
+        _probe_fails = 0
+        _unresolved_probes = 0
+        if hasattr(self, '_enriched_changes'):
+            for eid, ch in self._enriched_changes.items():
+                if not ch.get("file", "").endswith(Path(file_rel_path).name):
+                    continue
+                if ch.get("probe_status") == "FAIL" or ch.get("test_status") == "FAIL":
+                    _probe_fails += 1
+                    if not ch.get("resolved_by"):
+                        _unresolved_probes += 1
+
+        if errors > 0 or _unresolved_probes > 0:
+            parts = []
+            if errors > 0:
+                parts.append(f"{errors} errors")
+            if _unresolved_probes > 0:
+                parts.append(f"{_unresolved_probes} probe fails")
+            return f"({', '.join(parts)})", "🔴", "error"
+        elif time_since_mod < 3600:
+            return "(Active)", "🟢", "active"
+        else:
+            return "", "⚪", "stable"
+
+    def on_backup_select(self, event):
+        """Handles selection of a backup item."""
+        selected = self.backup_tree.selection()
+        if not selected: return
+        
+        item_id = selected[0]
+        item_text = self.backup_tree.item(item_id, "text")
+        values = self.backup_tree.item(item_id, "values")
+        
+        if not values: return
+        
+        path_str, type_ = values
+        
+        # Clear previous action buttons
+        for widget in self.backup_action_frame.winfo_children():
+            widget.destroy()
+
+        info = ""
+        if type_ == 'file':
+             feature = recovery_util.get_feature_for_path(path_str)
+             info = f"FILE: {path_str}\n"
+             info += f"ASSIGNMENT: {feature}\n\n"
+             
+             # --- COORDINATION: Fetch Blame History for this file ---
+             history = recovery_util.get_blame_for_file(path_str)
+             if history:
+                 info += "🚨 CRASH/BLAME HISTORY:\n"
+                 for entry in history:
+                     b = entry["blame"]
+                     status = entry["status"].upper()
+                     info += f"  • VERSION: {entry['version']} [{status}]\n"
+                     info += f"    TARGET: {b.get('target')}\n"
+                     info += f"    LINE: {b.get('line', '?')}\n"
+                     if entry.get("traceback"):
+                         snippet = entry["traceback"][-150:].replace("\n", " ")
+                         info += f"    ERROR: ...{snippet}\n"
+                     info += "\n"
+             else:
+                 info += "Status: No historic crashes recorded in manifest.\n\n"
+                 info += "Select a timestamp below to view specific backup details."
+
+        elif type_ == 'backup':
+             p = Path(path_str)
+             if p.exists():
+                 stats = p.stat()
+                 size_kb = stats.st_size / 1024
+                 mtime = datetime.fromtimestamp(stats.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+                 
+                 info = f"BACKUP: {item_text}\n"
+                 info += f"Path: {p}\n"
+                 info += f"Size: {size_kb:.2f} KB\n"
+                 info += f"Created: {mtime}\n"
+             else:
+                 info = "File not found."
+        elif type_ == 'version':
+            version_ts = path_str
+            entry = self.version_manifest["versions"].get(version_ts, {})
+
+            status = entry.get("status", "unknown") if entry else "archived"
+            changes = entry.get("files_changed", [])
+            diffs = entry.get("diffs", [])
+
+            info = f"SYSTEM VERSION: {item_text}\n"
+            info += f"Timestamp: {version_ts}\n"
+            info += f"Status: {status.upper()}\n"
+            if entry.get("is_default"):
+                info += "DEFAULT STATE: YES (Rollback point)\n"
+
+            if status in ["damaged", "unstable"]:
+                info += f"\n🚨 {status.upper()} CONTEXT:\n"
+                blame_list = entry.get("blame", [])
+                if blame_list:
+                    info += "BLAME TARGETS:\n"
+                    for b in blame_list:
+                        if isinstance(b, dict):
+                            mark = " [MODIFIED]" if b.get("modified_this_version") else ""
+                            feat = f"({b.get('feature', 'Core')})"
+                            info += f"  • {feat} {b.get('target', 'Unknown')}{mark} (Line {b.get('line', '?')})\n"
+                        else:
+                            info += f"  • {b}\n"
+                info += f"\nTRACEBACK:\n{entry.get('traceback', 'N/A')}\n"
+
+            if changes:
+                info += f"\nFiles modified in this state ({len(changes)}):\n"
+                for change in changes:
+                    info += f"  • {change}\n"
+
+            # For archived versions (not in version_manifest), scan history for files at this timestamp
+            if not entry:
+                info += "\n📋 ARCHIVED — backup files at this timestamp:\n"
+                _history_root = DATA_DIR / "backup" / "history"
+                if _history_root.exists():
+                    _found = []
+                    for _hdir in _history_root.iterdir():
+                        if not _hdir.is_dir():
+                            continue
+                        _bk = _hdir / f"{version_ts}.py"
+                        if not _bk.exists():
+                            _bk = _hdir / f"{version_ts}.json"
+                        if _bk.exists():
+                            _size = _bk.stat().st_size / 1024
+                            _found.append((_hdir.name, _size, str(_bk)))
+                    for _name, _sz, _path in sorted(_found):
+                        info += f"  • {_name} ({_sz:.0f} KB)\n"
+                    if not _found:
+                        info += "  (no backup files found)\n"
+
+            if diffs:
+                info += "\n--- CODE DIFF SUMMARY ---\n"
+                for diff in diffs:
+                    info += diff + "\n"
+            
+            # Action Buttons
+            btn_restore = ttk.Button(
+                self.backup_action_frame,
+                text=f"🔄 Restore System to {version_ts}",
+                command=lambda v=version_ts: self.restore_system_version(v),
+                style='Action.TButton'
+            )
+            btn_restore.pack(side=tk.LEFT, padx=5)
+
+            if not entry.get("is_default") and status == "stable":
+                btn_default = ttk.Button(
+                    self.backup_action_frame,
+                    text="⭐ Set as Default",
+                    command=lambda v=version_ts: self.set_as_default(v),
+                    style='Select.TButton'
+                )
+                btn_default.pack(side=tk.LEFT, padx=5)
+        
+        elif type_ == 'live_change':
+            rel_path = path_str
+            pending = self.version_manifest.get("pending_live_changes", {})
+            pending_data = pending.get(rel_path, "No diff available.")
+
+            # Handle tuple format: (diff_text, before_content, after_content)
+            if isinstance(pending_data, tuple) and len(pending_data) >= 1:
+                diff_text = pending_data[0]
+            else:
+                diff_text = pending_data
+
+            info = f"LIVE CHANGE: {rel_path}\n"
+            info += "Status: UNSAVED (Modified since last launch)\n"
+            info += "\n--- LIVE DIFF (Reference vs Current) ---\n"
+            info += str(diff_text)
+
+        self.backup_details_text.config(state='normal')
+        self.backup_details_text.delete(1.0, tk.END)
+        self.backup_details_text.insert(tk.END, info)
+        self.backup_details_text.config(state='disabled')
+
+    def restore_system_version(self, version_ts):
+        """Initiates a direct system restore to a specific version."""
+        msg = (f"⚠️ WARNING: This will overwrite your current project files with the versions from {version_ts}.\n\n"
+               "Unsaved changes in the current state will be lost.\n\n"
+               "Are you sure you want to proceed with this system restore?")
+        
+        if messagebox.askyesno("Confirm System Restore", msg):
+            success, message = recovery_util.restore_project_to_version(version_ts)
+            if success:
+                messagebox.showinfo("Restore Succeeded", f"{message}\n\nPlease Quick Restart the application to apply changes.")
+            else:
+                messagebox.showerror("Restore Failed", f"Error during restore: {message}")
+
+    def set_as_default(self, version_ts):
+        """Designates a version as the system default."""
+        if recovery_util.set_default_version(version_ts):
+            messagebox.showinfo("Default Updated", f"Version {version_ts} is now the default for rollbacks.")
+            self.populate_backup_tree()
+            self.on_tree_select(None) # Refresh inspector
+        else:
+            messagebox.showerror("Error", "Could not set default version.")
 
 
 
@@ -456,18 +824,17 @@ class SettingsTab(BaseTab):
         self.help_menu_frame.grid(row=0, column=0, sticky='nsew')
         self.help_menu_frame.columnconfigure(0, weight=1)
         self.help_menu_frame.rowconfigure(1, weight=1)
-        self.help_menu_frame.rowconfigure(2, weight=0)
 
         ttk.Label(self.help_menu_frame, text="🆘 Help Menu",
                  font=("Arial", 11, "bold"), style='CategoryPanel.TLabel').grid(
             row=0, column=0, pady=5, sticky=tk.W, padx=5
         )
 
-        self.help_paned = ttk.PanedWindow(self.help_menu_frame, orient=tk.VERTICAL)
-        self.help_paned.grid(row=1, column=0, sticky='nsew', padx=5, pady=5)
+        paned_window = ttk.PanedWindow(self.help_menu_frame, orient=tk.VERTICAL)
+        paned_window.grid(row=1, column=0, sticky='nsew', padx=5, pady=5)
 
-        tree_container = ttk.Frame(self.help_paned)
-        self.help_paned.add(tree_container, weight=1)
+        tree_container = ttk.Frame(paned_window)
+        paned_window.add(tree_container, weight=1)
         tree_container.columnconfigure(0, weight=1)
         tree_container.rowconfigure(0, weight=1)
 
@@ -489,90 +856,22 @@ class SettingsTab(BaseTab):
         
         self.populate_help_tree()
 
-        # Help text pane is created but not added until a topic is selected
-        self.help_text_frame = ttk.Frame(self.help_paned, style='Category.TFrame')
-        self.help_text_frame.columnconfigure(0, weight=1)
-        self.help_text_frame.rowconfigure(0, weight=1)
+        help_text_frame = ttk.Frame(paned_window, style='Category.TFrame')
+        paned_window.add(help_text_frame, weight=1)
+        help_text_frame.columnconfigure(0, weight=1)
+        help_text_frame.rowconfigure(0, weight=1)
 
         self.help_display = scrolledtext.ScrolledText(
-            self.help_text_frame, wrap=tk.WORD, state=tk.DISABLED, font=("Arial", 9),
+            help_text_frame, wrap=tk.WORD, state=tk.DISABLED, font=("Arial", 9),
             bg="#1e1e1e", fg="#d4d4d4", relief='flat', padx=5, pady=5
         )
         self.help_display.grid(row=0, column=0, sticky='nsew')
 
-        # --- ToDo List Section (as a pane under the help content) ---
-        self.todo_section = ttk.Frame(self.help_paned, style='Category.TFrame')
-        self.help_paned.add(self.todo_section, weight=1)
-        self.todo_section.columnconfigure(0, weight=1)
-
-        # Header with dynamic counts, centered
-        # Todo header with separate lines for better layout
-        self.todo_counts_var = tk.StringVar(value="Tasks: 0 | Bugs: 0 | Work-Orders: 0 | Notes: 0 | Completed: 0")
-        self.todo_priority_var = tk.StringVar(value="Priority: High 0 | Medium 0 | Low 0")
-        header_row = ttk.Frame(self.todo_section, style='Category.TFrame')
-        header_row.grid(row=0, column=0, sticky=tk.EW, pady=(4, 0))
-        header_row.columnconfigure(0, weight=0)
-        header_row.columnconfigure(1, weight=1)
-
-        # Show-on-launch checkbox (no label)
-        self.todo_show_on_launch = tk.BooleanVar(value=self.settings.get('todo_show_on_launch', False))
-        cb = ttk.Checkbutton(header_row, variable=self.todo_show_on_launch, command=self._on_todo_show_on_launch_changed)
-        cb.grid(row=0, column=0, rowspan=2, sticky=tk.W, padx=(0,8))
-
-        # Two-line header for better fit
-        ttk.Label(header_row, textvariable=self.todo_counts_var, font=("Arial", 10, "bold"), style='CategoryPanel.TLabel', anchor='center').grid(row=0, column=1, sticky=tk.EW)
-        ttk.Label(header_row, textvariable=self.todo_priority_var, font=("Arial", 9), style='CategoryPanel.TLabel', anchor='center').grid(row=1, column=1, sticky=tk.EW)
-
-        # Action buttons row
-        buttons_row = ttk.Frame(self.todo_section)
-        buttons_row.grid(row=1, column=0, sticky=tk.EW, pady=(6, 6))
-        buttons_row.columnconfigure(0, weight=1)
-        buttons_row.columnconfigure(1, weight=1)
-        buttons_row.columnconfigure(2, weight=1)
-        buttons_row.columnconfigure(3, weight=1)
-        self.todo_btn_create = ttk.Button(buttons_row, text="➕ Create Todo", command=self.todo_create, style='Action.TButton')
-        self.todo_btn_create.grid(row=0, column=0, padx=3, sticky=tk.EW)
-        self.todo_btn_mark = ttk.Button(buttons_row, text="✔ Mark Complete", command=self.todo_mark_complete, style='Select.TButton')
-        self.todo_btn_mark.grid(row=0, column=1, padx=3, sticky=tk.EW)
-        self.todo_btn_edit = ttk.Button(buttons_row, text="✏️ Edit Todo", command=self.todo_edit, style='Select.TButton')
-        self.todo_btn_edit.grid(row=0, column=2, padx=3, sticky=tk.EW)
-        self.todo_btn_delete = ttk.Button(buttons_row, text="🗑 Delete Todo", command=self.todo_delete, style='Select.TButton')
-        self.todo_btn_delete.grid(row=0, column=3, padx=3, sticky=tk.EW)
-
-        # Tree for Tasks/Bugs/Completed with checkbox-like glyphs
-        tree_wrap = ttk.Frame(self.todo_section)
-        tree_wrap.grid(row=2, column=0, sticky='nsew')
-        self.todo_section.rowconfigure(2, weight=1)
-        tree_scroll = ttk.Scrollbar(tree_wrap, orient="vertical")
-        tree_scroll.pack(side=tk.RIGHT, fill=tk.Y)
-        self.todo_tree = ttk.Treeview(tree_wrap, columns=("done",), show='tree headings')
-        self.todo_tree.heading('#0', text='Item')
-        self.todo_tree.heading('done', text='Done')
-        self.todo_tree.column('done', width=60, anchor=tk.CENTER, stretch=False)
-        self.todo_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        self.todo_tree.configure(yscrollcommand=tree_scroll.set)
-        tree_scroll.config(command=self.todo_tree.yview)
-        # Styles for completed
-        self.todo_tree.tag_configure('completed', foreground='#8a8a8a', font=('Arial', 9, 'italic'))
-        # Bind click to toggle checkbox in 'done' column
-        self.todo_tree.bind('<Button-1>', self._on_todo_click, add=True)
-
-        # Initialize storage and populate
-        if not hasattr(self, 'todos'):
-            self.todos = { 'tasks': [], 'bugs': [], 'work_orders': [], 'notes': [], 'completed': [] }
-        else:
-            # Backfill new categories if missing
-            self.todos.setdefault('work_orders', [])
-            self.todos.setdefault('notes', [])
-        self.todo_tree.bind('<<TreeviewSelect>>', self._on_todo_selection_changed)
-        self._wire_todo_button_hover()
-        self.refresh_todo_view()
-
-        # --- Terminal Frame (created here, but hidden) ---
-        self.terminal_frame = ttk.Frame(self.right_panel, style='Category.TFrame')
-        self.terminal_frame.grid(row=0, column=0, sticky='nsew')
-        # Do not initialize the terminal yet; wait until Debug tab is selected
-        self.terminal_frame.grid_remove() # Hide it initially
+        # --- Backup Manager Frame ---
+        self.backup_frame = ttk.Frame(self.right_panel, style='Category.TFrame')
+        self.backup_frame.grid(row=0, column=0, sticky='nsew')
+        self.create_backup_manager_ui(self.backup_frame)
+        self.backup_frame.grid_remove() # Hide it initially
 
     def populate_help_tree(self):
         """Populate the help tree with application structure and help text."""
@@ -580,36 +879,6 @@ class SettingsTab(BaseTab):
             self.help_tree.delete(item)
 
         self.help_structure = {
-            "Automation Guide": {
-                "description": "How to drive common workflows with minimal clicks using Quick Actions, saved orders, and defaults.",
-                "sub_tabs": {
-                    "Quick Actions": "Use ⚙ at bottom-left in Chat to access: Working Dir, Tools, Think Time (one-shot), Mode, Prompt/Schema, Temperature (Manual/Auto), and ToDo. The icon grid wraps and auto-hides when clicking away.",
-                    "Indicators": "Next to ⚙: ⏱ ThinkTime pending • 📂 Working dir (hover shows path) • 🔧 Enabled tools (hover lists) • 🌡 Temp (value + Manual/Auto) • 🗒 ToDo popup active • ⚡ Mode • 📝 Prompt/Schema.",
-                    "Save Tab Order": "In Settings → Tab Manager, Arrow mode lets you reorder tabs/panels. Click 'Save Tab Order' to persist both main tabs and per-tab panel order.",
-                    "Show ToDo on Launch": "Enable the checkbox left of the ToDo header under Help & Guide to display ToDo on startup. ToDo v2 supports categories (Tasks, Bugs, Work-Orders, Notes, Completed) and priorities (High/Medium/Low) with color coding.",
-                }
-            },
-            "Manual Guide": {
-                "description": "Detailed, step-by-step usage for manual workflows and training.",
-                "sub_tabs": {
-                    "System Prompt & Tool Schema": "From Quick Actions → 📝 open the unified manager. Top toggles switch between System Prompt and Tool Schema. 'Select & Apply' remounts the model if mounted.",
-                    "Temperature": "Click 🌡 to choose Manual (adjust slider in popup and Save) or Auto (uses training stats). Mode and value persist per session and are shown in the bottom indicator.",
-                    "Think Time": "From Quick Actions → ⏱ set min/max seconds for the next input only. A ⏱ indicator appears while pending.",
-                    "Chat Sessions": "Use 🆕 New Chat; 🗑 Delete Chat; ✏️ Rename Chat (Chat tab and Projects). History supports load/export/delete.",
-                }
-            },
-            "Project Blueprint v2": {
-                "description": "High-level system plan and current state.",
-                "sub_tabs": {
-                    "Overview": "See extras/blueprints/Trainer_Blue_Print_v2.0.txt for the v2 plan, roadmap, dependencies, and acceptance for v2.1.",
-                }
-            },
-            "Git & Branching": {
-                "description": "Local Git workflow and branches used for docs/blueprints.",
-                "sub_tabs": {
-                    "START_HERE": "Read START_HERE.md for setup, branching (docs/blueprint-v2), and commit conventions.",
-                }
-            },
             "Beginner’s Guide": {
                 "description": "A step‑by‑step path from a fresh PyTorch model to a verified skillset: datasets → baseline → training → export → evaluation → compare.",
                 "sub_tabs": {
@@ -693,14 +962,6 @@ class SettingsTab(BaseTab):
         else: # It's a main tab
             main_tab_text = self.help_tree.item(item_id, 'text')
             help_text = self.help_structure.get(main_tab_text, {}).get("description", help_text)
-
-        # Ensure help text pane is visible (add to paned if not already present)
-        try:
-            panes = [str(p) for p in getattr(self.help_paned, 'panes')()] if hasattr(self, 'help_paned') else []
-            if hasattr(self, 'help_text_frame') and str(self.help_text_frame) not in panes:
-                self.help_paned.insert(1, self.help_text_frame, weight=1)
-        except Exception:
-            pass
 
         self.help_display.config(state=tk.NORMAL)
         self.help_display.delete(1.0, tk.END)
@@ -917,43 +1178,29 @@ Data Dir: {DATA_DIR}
         parent.columnconfigure(0, weight=1)
         parent.rowconfigure(0, weight=1)
 
-        # Scrollable root for entire Tab Manager panel
-        scroll_root = ttk.Frame(parent)
-        scroll_root.grid(row=0, column=0, sticky=tk.NSEW)
-        scroll_root.columnconfigure(0, weight=1)
-        scroll_root.rowconfigure(0, weight=1)
+        # --- Scrollable Container Setup ---
+        canvas = tk.Canvas(parent, bg="#2b2b2b", highlightthickness=0)
+        scrollbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
+        container = ttk.Frame(canvas) # Content frame
 
-        canvas = tk.Canvas(scroll_root, borderwidth=0, highlightthickness=0)
-        vscroll = ttk.Scrollbar(scroll_root, orient="vertical", command=canvas.yview)
-        canvas.configure(yscrollcommand=vscroll.set)
-        canvas.grid(row=0, column=0, sticky=tk.NSEW)
-        vscroll.grid(row=0, column=1, sticky=tk.NS)
+        container.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
 
-        # Inner container that actually holds the content
-        container = ttk.Frame(canvas)
-        # Create window for inner frame
         canvas_window = canvas.create_window((0, 0), window=container, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
 
-        # Configure resizing behavior
-        def _on_container_configure(event=None):
-            try:
-                canvas.configure(scrollregion=canvas.bbox("all"))
-                # Keep inner frame width synced to canvas width for nice layout
-                canvas.itemconfigure(canvas_window, width=canvas.winfo_width())
-            except Exception:
-                pass
+        canvas.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+        scrollbar.pack(side="right", fill="y")
 
-        container.bind("<Configure>", _on_container_configure)
-        canvas.bind("<Configure>", _on_container_configure)
+        # Force container to expand to canvas width
+        canvas.bind("<Configure>", lambda e: canvas.itemconfig(canvas_window, width=e.width))
 
-        # Mouse wheel on hover for the canvas area (bind_all only while hovering)
-        try:
-            self._bind_mousewheel_to_canvas_hover(canvas, hover_widgets=[canvas, container])
-        except Exception:
-            pass
-
+        # Configure container grid
         container.columnconfigure(0, weight=1)
-        container.rowconfigure(1, weight=1)
+        
+        # --- Content Generation ---
 
         # Title
         ttk.Label(
@@ -1014,18 +1261,145 @@ Data Dir: {DATA_DIR}
             style='Action.TButton'
         ).pack(pady=10, padx=10, fill=tk.X)
 
+
+        # Onboard Standalone Script Section
+        onboard_frame = ttk.LabelFrame(container, text="🚢 Onboard Standalone Script", style='TLabelframe')
+        onboard_frame.grid(row=2, column=0, sticky=tk.EW, pady=10)
+        onboard_frame.columnconfigure(0, weight=1)
+
+        # File picker
+        picker_row = ttk.Frame(onboard_frame)
+        picker_row.pack(fill=tk.X, padx=10, pady=5)
+        ttk.Label(picker_row, text="Script Path:", style='Config.TLabel', width=15).pack(side=tk.LEFT)
+        self.onboard_script_path = tk.StringVar()
+        ttk.Entry(picker_row, textvariable=self.onboard_script_path, width=40).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
+        ttk.Button(picker_row, text="Browse", command=self._browse_onboard_script).pack(side=tk.LEFT)
+        
+        # Profile & Preview button
+        ttk.Button(onboard_frame, text="🔍 Profile Script", command=self._profile_onboard_script, style='Action.TButton').pack(pady=5, padx=10, fill=tk.X)
+
+        # Profiling Preview Area
+        self.onboard_preview_frame = ttk.Frame(onboard_frame)
+        self.onboard_preview_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        # Will be populated by _profile_onboard_script
+
+        # Target selection
+        target_row = ttk.Frame(onboard_frame)
+        target_row.pack(fill=tk.X, padx=10, pady=5)
+        ttk.Label(target_row, text="Integration:", style='Config.TLabel').pack(side=tk.LEFT, padx=(0,10))
+        self.onboard_target_type = tk.StringVar(value="main")
+        ttk.Radiobutton(target_row, text="New Main Tab", variable=self.onboard_target_type, value="main").pack(side=tk.LEFT, padx=5)
+        ttk.Radiobutton(target_row, text="Sub-Tab (Future)", variable=self.onboard_target_type, value="sub", state="disabled").pack(side=tk.LEFT, padx=5)
+
+        ttk.Label(target_row, text="Tab Name:", style='Config.TLabel').pack(side=tk.LEFT, padx=(10,5))
+        self.onboard_tab_name = tk.StringVar()
+        ttk.Entry(target_row, textvariable=self.onboard_tab_name, width=15).pack(side=tk.LEFT)
+
+        ttk.Button(onboard_frame, text="⚡ Onboard & Inject", command=self._execute_onboard, style='Action.TButton').pack(pady=10, padx=10, fill=tk.X)
+
         # Tab Visibility Section
         visibility_frame = ttk.LabelFrame(container, text="👁️ Tab Visibility", style='TLabelframe')
-        visibility_frame.grid(row=2, column=0, sticky=tk.EW, pady=10)
+        visibility_frame.grid(row=3, column=0, sticky=tk.EW, pady=10)
         visibility_frame.columnconfigure(0, weight=1)
 
         # Populate with checkboxes for each tab
         self._populate_tab_visibility_controls(visibility_frame)
 
+        # Right-Click Menu Configuration Section
+        rcm_frame = ttk.LabelFrame(container, text="🖱 Right-Click Menus", style='TLabelframe')
+        rcm_frame.grid(row=4, column=0, sticky=tk.EW, pady=10)
+        rcm_frame.columnconfigure(0, weight=1)
+
+        # Global enable/disable
+        global_rc_frame = ttk.Frame(rcm_frame)
+        global_rc_frame.pack(fill=tk.X, padx=10, pady=(8, 4))
+        ttk.Checkbutton(
+            global_rc_frame,
+            text="Enable right-click context menus on tab headers (global)",
+            variable=self.right_click_enabled,
+            style='Category.TCheckbutton',
+            command=self._on_right_click_toggle
+        ).pack(side=tk.LEFT)
+
+        # Per-tab overrides
+        overrides_frame = ttk.Frame(rcm_frame)
+        overrides_frame.pack(fill=tk.X, padx=20, pady=(0, 8))
+        ttk.Label(
+            overrides_frame,
+            text="Per-tab overrides (uncheck to suppress menu for that tab):",
+            style='Config.TLabel',
+            foreground='#888888'
+        ).grid(row=0, column=0, columnspan=4, sticky=tk.W, pady=(0, 4))
+
+        tab_names = [
+            ('settings_tab', 'Settings'),
+            ('training_tab', 'Training'),
+            ('models_tab', 'Models'),
+            ('custom_code_tab', 'Custom Code'),
+            ('map_tab', 'Digital Biosphere'),
+        ]
+        for col, (tab_key, tab_label) in enumerate(tab_names):
+            if tab_key not in self.right_click_tab_overrides:
+                self.right_click_tab_overrides[tab_key] = tk.BooleanVar(value=True)
+            ttk.Checkbutton(
+                overrides_frame,
+                text=tab_label,
+                variable=self.right_click_tab_overrides[tab_key],
+                style='Category.TCheckbutton'
+            ).grid(row=1, column=col, sticky=tk.W, padx=(0, 15))
+
+        # Info label
+        ttk.Label(
+            rcm_frame,
+            text="Right-click any tab header to: Refresh, View Profile, Undo Changes, Disable Tab",
+            style='Config.TLabel',
+            foreground='#666666',
+            font=('Arial', 8)
+        ).pack(anchor=tk.W, padx=10, pady=(0, 6))
+
+        # Sub-Tab Right-Click Config
+        subtab_frame = ttk.LabelFrame(container, text="🗂 Sub-Tab Right-Click Config", style='TLabelframe')
+        subtab_frame.grid(row=5, column=0, sticky=tk.EW, pady=(0, 10))
+        subtab_frame.columnconfigure(0, weight=1)
+        ttk.Label(
+            subtab_frame,
+            text="Sub-notebooks are discovered after each tab loads. Toggle right-click per sub-tab.",
+            style='Config.TLabel',
+            foreground='#666666',
+            font=('Arial', 8)
+        ).pack(anchor=tk.W, padx=10, pady=(5, 4))
+        subtab_checks_frame = ttk.Frame(subtab_frame)
+        subtab_checks_frame.pack(anchor=tk.W, padx=10, pady=(0, 6))
+        # Enumerate sub-notebooks from loaded tab instances
+        found_any = False
+        if getattr(self, 'tab_instances', None):
+            for tab_name, meta in self.tab_instances.items():
+                inst = meta.get('instance')
+                if inst and hasattr(inst, '_sub_notebooks') and inst._sub_notebooks:
+                    for sub in inst._sub_notebooks:
+                        key = f"{tab_name}.{sub['label']}"
+                        if key not in self.right_click_subtab_overrides:
+                            self.right_click_subtab_overrides[key] = tk.BooleanVar(value=True)
+                        ttk.Checkbutton(
+                            subtab_checks_frame,
+                            text=f"{meta.get('text', tab_name)} → {sub['label']}",
+                            variable=self.right_click_subtab_overrides[key],
+                            style='Category.TCheckbutton'
+                        ).pack(anchor=tk.W, padx=5, pady=1)
+                        found_any = True
+        if not found_any:
+            ttk.Label(
+                subtab_checks_frame,
+                text="No sub-notebooks detected yet — open each tab once to register them.",
+                foreground='#666666',
+                font=('Arial', 8)
+            ).pack(anchor=tk.W, padx=5)
+
         # Existing Tabs Browser Section
         browser_frame = ttk.LabelFrame(container, text="📂 Tab Browser & Editor", style='TLabelframe')
-        browser_frame.grid(row=3, column=0, sticky=tk.NSEW, pady=10) # Adjusted row
+        browser_frame.grid(row=6, column=0, sticky=tk.NSEW, pady=10)
         browser_frame.columnconfigure(0, weight=1)
+        # We give the browser frame a fixed minimum height so it doesn't collapse
         browser_frame.rowconfigure(0, weight=1)
 
         # Split into left (tree) and right (editor)
@@ -1059,12 +1433,6 @@ Data Dir: {DATA_DIR}
         self.tabs_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         tree_scroll.config(command=self.tabs_tree.yview)
 
-        # Mouse wheel on hover for the structure tree (bind to both tree and its container)
-        try:
-            self._bind_mousewheel_to_tree(self.tabs_tree, tree_container)
-        except Exception:
-            pass
-
         # Configure tree columns
         self.tabs_tree.heading('#0', text='Structure')
 
@@ -1079,91 +1447,59 @@ Data Dir: {DATA_DIR}
                  background=[('selected', '#3d3d3d')],
                  foreground=[('selected', '#61dafb')])
 
-        # Configure tree tags for different item types
-        self.tabs_tree.tag_configure('tab', foreground='#61dafb', font=('Arial', 10, 'bold'))
+        # --- COORDINATED COLORATION SYSTEM ---
+        # (Colors already defined in self.status_colors)
+        if not hasattr(self, 'status_colors'):
+            self.status_colors = {
+                'error': '#ff5555', 'warning': '#ffaa00', 'active': '#55ff55',
+                'stable': '#ffffff', 'backup': '#aaaaaa', 'tab': '#61dafb'
+            }
+
+        self.tabs_tree.tag_configure('error', foreground=self.status_colors['error'], font=('Arial', 10, 'bold'))
+        self.tabs_tree.tag_configure('warning', foreground=self.status_colors['warning'], font=('Arial', 10, 'bold'))
+        self.tabs_tree.tag_configure('active', foreground=self.status_colors['active'], font=('Arial', 10, 'bold'))
+        self.tabs_tree.tag_configure('stable', foreground=self.status_colors['stable'])
+        self.tabs_tree.tag_configure('backup', foreground=self.status_colors['backup'])
+        self.tabs_tree.tag_configure('tab', foreground=self.status_colors['tab'], font=('Arial', 10, 'bold'))
+
+        # Feature/Structure tags (kept specific)
         self.tabs_tree.tag_configure('file', foreground='#ffffff')
         self.tabs_tree.tag_configure('panel', foreground='#a8dadc')
+        self.tabs_tree.tag_configure('class', foreground='#ffdd88', font=('Consolas', 9))  # Yellow for Classes
+        self.tabs_tree.tag_configure('method', foreground='#aaaaaa', font=('Consolas', 8)) # Grey for Methods
 
         self.tabs_tree.bind('<<TreeviewSelect>>', self.on_tree_select)
 
-        # Right: Panel editor/actions
-        editor_frame = ttk.Frame(browser_paned)
-        browser_paned.add(editor_frame, weight=2)
-
-        ttk.Label(
-            editor_frame,
-            text="Panel Editor",
-            font=("Arial", 10, "bold"),
-            style='CategoryPanel.TLabel'
-        ).pack(pady=5)
-
-        # Selected item info
-        self.selected_info_label = ttk.Label(
-            editor_frame,
-            text="Select a tab or panel from the tree",
-            style='Config.TLabel'
-        )
-        self.selected_info_label.pack(pady=10)
-
-        # Panel selector UI (appears when a tab is selected)
-        self.panel_select_container = ttk.Frame(editor_frame)
-        ttk.Label(self.panel_select_container, text="Select Panel:", style='Config.TLabel').pack(side=tk.LEFT, padx=(0,8))
-        self.panel_selector = ttk.Combobox(self.panel_select_container, state='readonly', width=28)
-        self.panel_selector.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.panel_selector.bind('<<ComboboxSelected>>', self._on_panel_combo_changed)
-        # Initially hidden
-        self.panel_select_container.pack_forget()
-        # Panel selection indicator
-        self.panel_selected_label = ttk.Label(editor_frame, text="", style='Config.TLabel')
-        self.panel_selected_label.pack(pady=(4,10))
-        # Track which tab drives the panel selector
-        self.current_tab_for_panel_selector = None
-
-        # Action buttons
-        actions_frame = ttk.Frame(editor_frame)
-        actions_frame.pack(fill=tk.X, padx=10, pady=10)
-
-        self.move_left_button = ttk.Button(
-            actions_frame,
-            text="⬅️ Move Left",
-            command=lambda: self.move_tab("left"),
-            style='Action.TButton'
-        )
+        # Right: Panel Inspector & Global Actions
+        right_pane = ttk.Frame(browser_paned) 
+        browser_paned.add(right_pane, weight=2)
         
-        self.move_right_button = ttk.Button(
-            actions_frame,
-            text="➡️ Move Right",
-            command=lambda: self.move_tab("right"),
-            style='Action.TButton'
-        )
+        # 1. Dynamic Inspector Area (Top, expands)
+        self.inspector_frame = ttk.Frame(right_pane)
+        self.inspector_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
+        # 2. Persistent Global Actions (Bottom, fixed)
+        global_actions = ttk.Frame(right_pane, style='Category.TFrame')
+        global_actions.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=10)
+        
         ttk.Button(
-            actions_frame,
-            text="➕ Add Panel",
-            command=self.add_new_panel,
-            style='Action.TButton'
-        ).pack(fill=tk.X, pady=2)
-
-        ttk.Button(
-            actions_frame,
-            text="✏️ Edit Panel",
-            command=self.edit_selected_panel,
-            style='Select.TButton'
-        ).pack(fill=tk.X, pady=2)
-
-        ttk.Button(
-            actions_frame,
-            text="🗑️ Delete Panel",
-            command=self.delete_selected_panel,
-            style='Select.TButton'
-        ).pack(fill=tk.X, pady=2)
-
-        ttk.Button(
-            actions_frame,
-            text="🔄 Refresh",
+            global_actions,
+            text="🔄 Refresh Tree",
             command=self.refresh_tabs_tree,
             style='Select.TButton'
-        ).pack(fill=tk.X, pady=2)
+        ).pack(side=tk.RIGHT, padx=5)
+
+        ttk.Button(
+            global_actions,
+            text="📂 Open Folder",
+            command=lambda: __import__('subprocess').Popen(['xdg-open', str(DATA_DIR / "tabs")]),
+            style='Select.TButton'
+        ).pack(side=tk.RIGHT, padx=5)
+        
+        ttk.Label(global_actions, text="Global Actions:", style='Config.TLabel', foreground="#888888").pack(side=tk.LEFT, padx=5)
+
+        # Initial State
+        self.update_inspector_view(None)
 
         # Populate tree
         self.refresh_tabs_tree()
@@ -1171,84 +1507,101 @@ Data Dir: {DATA_DIR}
         # Store selected item
         self.selected_tree_item = None
 
-        # Initially hide the move buttons
-        self.move_left_button.pack_forget()
-        self.move_right_button.pack_forget()
 
-    def _bind_mousewheel_to_tree(self, tree_widget, container_widget=None):
-        """Enable mouse wheel scrolling on hover for Treeview (Linux/Windows/Mac)."""
-        import platform
-        system = platform.system()
+    def _browse_onboard_script(self):
+        from tkinter import filedialog
+        path = filedialog.askopenfilename(
+            title="Select Python Script to Onboard",
+            filetypes=[("Python Scripts", "*.py")]
+        )
+        if path:
+            self.onboard_script_path.set(path)
 
-        targets = [tree_widget]
-        if container_widget is not None:
-            targets.append(container_widget)
+    def _profile_onboard_script(self):
+        script_path = self.onboard_script_path.get().strip()
+        if not script_path or not os.path.exists(script_path):
+            messagebox.showerror("Error", "Invalid script path.")
+            return
 
-        if system == "Linux":
-            def _on_up(event):
-                tree_widget.yview_scroll(-1, "units")
-                return "break"
-            def _on_down(event):
-                tree_widget.yview_scroll(1, "units")
-                return "break"
-            for w in targets:
-                w.bind("<Button-4>", _on_up, add=True)
-                w.bind("<Button-5>", _on_down, add=True)
+        from tab_onboarder import TabOnboarder
+        onboarder = TabOnboarder(DATA_DIR)
+        result = onboarder.analyze_candidate(script_path)
+
+        # Clear existing preview
+        for widget in self.onboard_preview_frame.winfo_children():
+            widget.destroy()
+
+        if not result['can_onboard']:
+            ttk.Label(self.onboard_preview_frame, text=f"❌ Cannot Onboard: {', '.join(result.get('issues', ['Unknown error']))}", foreground="red").pack()
+            return
+
+        self._onboard_target_class = result['suggested_class']
+        
+        ttk.Label(self.onboard_preview_frame, text=f"✅ Ready! Detected Class: {result['suggested_class']}", foreground="green", font=("Arial", 10, "bold")).pack(anchor=tk.W)
+        
+        props = result.get('properties', [])
+        if props:
+            ttk.Label(self.onboard_preview_frame, text="Found Tkinter Variables (Lower-Order Properties):", font=("Arial", 9, "bold")).pack(anchor=tk.W, pady=(5,2))
+            
+            tree = ttk.Treeview(self.onboard_preview_frame, columns=("Type", "Default", "Line"), show="headings", height=5)
+            tree.heading("Type", text="Type")
+            tree.heading("Default", text="Default")
+            tree.heading("Line", text="Line")
+            tree.column("Type", width=100)
+            tree.column("Default", width=100)
+            tree.column("Line", width=50)
+            
+            for p in props:
+                # Name goes in the first implied col if we had #0, but we use show="headings" so let's add Name col
+                pass
+            
+            tree.destroy() # recreate with name
+            tree = ttk.Treeview(self.onboard_preview_frame, columns=("Name", "Type", "Default", "Line"), show="headings", height=5)
+            tree.heading("Name", text="Variable Name")
+            tree.heading("Type", text="Type")
+            tree.heading("Default", text="Default Value")
+            tree.heading("Line", text="Line #")
+            tree.column("Name", width=150)
+            tree.column("Type", width=100)
+            tree.column("Default", width=100)
+            tree.column("Line", width=50)
+            tree.pack(fill=tk.X)
+            
+            for p in props:
+                tree.insert("", "end", values=(p['name'], p['type'], p['default'], p['lineno']))
+
+    def _execute_onboard(self):
+        script_path = self.onboard_script_path.get().strip()
+        tab_name = self.onboard_tab_name.get().strip()
+        
+        if not script_path or not tab_name:
+            messagebox.showerror("Error", "Please provide a script path and a tab name.")
+            return
+            
+        if not hasattr(self, '_onboard_target_class') or not self._onboard_target_class:
+            messagebox.showerror("Error", "Please profile the script first to detect the target class.")
+            return
+
+        from tab_onboarder import TabOnboarder
+        onboarder = TabOnboarder(DATA_DIR)
+        
+        is_main = self.onboard_target_type.get() == "main"
+        
+        result = onboarder.onboard_script(
+            script_path=script_path,
+            tab_name=tab_name,
+            target_class=self._onboard_target_class,
+            is_main_tab=is_main
+        )
+        
+        if result.get('success'):
+            from logger_util import log_message
+            log_message(f"Successfully onboarded {script_path} as {tab_name}.")
+            messagebox.showinfo("Success", f"Script onboarded!\nWrapper created at: {result.get('wrapper_path')}\n\nPlease restart the application to load the new tab.")
+            self.refresh_tabs_tree()
         else:
-            def _on_wheel(event):
-                try:
-                    delta = int(-1 * (event.delta / 120))
-                except Exception:
-                    delta = -1
-                tree_widget.yview_scroll(delta, "units")
-                return "break"
-            for w in targets:
-                w.bind("<MouseWheel>", _on_wheel, add=True)
+            messagebox.showerror("Error", f"Failed to onboard: {result.get('error')}")
 
-    def _bind_mousewheel_to_canvas_hover(self, canvas_widget, hover_widgets=None):
-        """Enable scrolling the Tab Manager canvas with the mouse wheel while hovering.
-
-        Uses bind_all only during hover to capture wheel events anywhere over the
-        scrollable area (including inner child widgets), but allows inner widgets
-        like the Treeview to consume events by returning "break" first.
-        """
-        import platform
-        system = platform.system()
-
-        if hover_widgets is None:
-            hover_widgets = [canvas_widget]
-
-        # Handlers that scroll the canvas
-        if system == "Linux":
-            def _wheel_up(event):
-                canvas_widget.yview_scroll(-1, "units")
-                return "break"
-            def _wheel_down(event):
-                canvas_widget.yview_scroll(1, "units")
-                return "break"
-            def _enable(_e=None):
-                canvas_widget.bind_all("<Button-4>", _wheel_up)
-                canvas_widget.bind_all("<Button-5>", _wheel_down)
-            def _disable(_e=None):
-                canvas_widget.unbind_all("<Button-4>")
-                canvas_widget.unbind_all("<Button-5>")
-        else:
-            def _wheel_any(event):
-                try:
-                    delta = int(-1 * (event.delta / 120))
-                except Exception:
-                    delta = -1
-                canvas_widget.yview_scroll(delta, "units")
-                return "break"
-            def _enable(_e=None):
-                canvas_widget.bind_all("<MouseWheel>", _wheel_any)
-            def _disable(_e=None):
-                canvas_widget.unbind_all("<MouseWheel>")
-
-        # Attach enter/leave to both the canvas and inner container
-        for w in hover_widgets:
-            w.bind("<Enter>", _enable, add=True)
-            w.bind("<Leave>", _disable, add=True)
 
     def create_new_tab(self):
         """Create a new tab with user specifications"""
@@ -1282,11 +1635,19 @@ Data Dir: {DATA_DIR}
         """Refresh the tree view of tabs and panels - includes ALL tabs"""
         log_message("SETTINGS: Refreshing tabs tree.")
         log_message(f"SETTINGS: Tab order from settings: {self.settings.get('tab_order')}")
+        
+        # Load Manifest for profiling data
+        manifest = {}
+        manifest_path = DATA_DIR / "backup" / "manifest.json"
+        if manifest_path.exists():
+            try:
+                with open(manifest_path, 'r') as f:
+                    manifest = json.load(f)
+            except: pass
+
         # Clear existing tree
         for item in self.tabs_tree.get_children():
             self.tabs_tree.delete(item)
-        # Reset panel file mapping
-        self.panel_file_map = {}
 
         tabs_dir = DATA_DIR / "tabs"
         if not tabs_dir.exists():
@@ -1322,7 +1683,7 @@ Data Dir: {DATA_DIR}
         }
 
         # Get the saved tab order
-        saved_order = self.settings.get('tab_order', ['training_tab', 'models_tab', 'custom_code_tab', 'settings_tab'])
+        saved_order = self.settings.get('tab_order', ['training_tab', 'models_tab', 'custom_code_tab', 'map_tab', 'settings_tab'])
         
         # Get all tab directories
         all_tab_dirs = {tab_dir.name: tab_dir for tab_dir in sorted(tabs_dir.iterdir()) if tab_dir.is_dir() and not tab_dir.name.startswith('__')}
@@ -1332,260 +1693,416 @@ Data Dir: {DATA_DIR}
         # Add tabs in the saved order
         for tab_dir_name in saved_order:
             if tab_dir_name in all_tab_dirs:
-                self._add_tab_to_tree(all_tab_dirs[tab_dir_name], built_in_tabs)
+                self._add_tab_to_tree(all_tab_dirs[tab_dir_name], built_in_tabs, manifest)
                 processed_tabs.add(tab_dir_name)
 
         # Add any remaining tabs that were not in the saved order
         for tab_dir_name, tab_dir in all_tab_dirs.items():
             if tab_dir_name not in processed_tabs:
-                self._add_tab_to_tree(tab_dir, built_in_tabs)
+                self._add_tab_to_tree(tab_dir, built_in_tabs, manifest)
+        
+        # --- Add External Project Files (if in manifest) ---
+        # Scan manifest for 'project' type entries
+        project_entries = []
+        for key, entry in manifest.items():
+            if entry.get('type') == 'project':
+                project_entries.append((key, entry))
+        
+        if project_entries:
+            project_root = self.tabs_tree.insert(
+                '',
+                'end',
+                text="📂 Custom Project",
+                values=("Project Root", 'root'),
+                tags=('tab',) # Reuse tab style
+            )
+            
+            for key, entry in project_entries:
+                file_path = Path(key) # Key is usually absolute path for project files
+                file_name = file_path.name
+                
+                file_node = self.tabs_tree.insert(
+                    project_root,
+                    'end',
+                    text=f"📄 {file_name}",
+                    values=(str(file_path), 'project_file'),
+                    tags=('file',)
+                )
+                self._add_file_features(file_node, file_path, manifest)
 
-    def _add_tab_to_tree(self, tab_dir, built_in_tabs):
-        """Add a single tab node and its live panel headers, hiding raw files."""
-        tab_name = tab_dir.name
-
-        # Determine display name and icon
-        if tab_name in built_in_tabs:
-            tab_info = built_in_tabs[tab_name]
+    def _add_tab_to_tree(self, tab_dir, built_in_tabs, manifest=None):
+        """Helper function to add a single tab and its contents to the treeview."""
+        tab_dir_name = tab_dir.name
+        
+        # Determine display name and base icon
+        if tab_dir_name in built_in_tabs:
+            tab_info = built_in_tabs[tab_dir_name]
             tab_display_name = tab_info['display']
             icon = tab_info['icon']
         else:
+            # Custom tab
             tab_display_name = tab_dir.name.replace('_tab', '').replace('_', ' ').title()
             icon = '📂'
 
-        # Add tab as root node (store tab_name, not path)
+        # --- Check Runtime Status from Registry ---
+        import logger_util
+        registry_info = logger_util.TAB_REGISTRY.get(tab_dir_name, {})
+        runtime_status = registry_info.get('status', 'UNKNOWN')
+        
+        status_icon = ""
+        tag = 'tab' # default tag
+
+        if runtime_status == 'SUCCESS':
+            status_icon = "✅ "
+            tag = 'active'
+        elif runtime_status == 'FAILED':
+            status_icon = "❌ "
+            tag = 'error'
+        elif runtime_status == 'DISABLED':
+            status_icon = "⚠️ "
+            tag = 'backup'
+        else:
+            # Not in registry
+            status_icon = "⚪ "
+            tag = 'stable'
+
+        # --- COORDINATION: Check Version Manifest for Damaged State ---
+        # If any file in this tab's directory is blamed in a damaged version, show warning
+        v_manifest = getattr(self, 'version_manifest', {})
+        if not v_manifest:
+             v_manifest = recovery_util.load_version_manifest()
+             
+        for v in v_manifest.get("versions", {}).values():
+            if v.get("status") == "damaged":
+                for b in v.get("blame", []):
+                    if isinstance(b, dict) and tab_dir_name in b.get("file", ""):
+                        status_icon = "☢️ " # Biohazard for damaged
+                        tag = 'warning'
+                        break
+
+        display_text = f"{status_icon}{icon} {tab_display_name}"
+
+        # Add tab as root node
         tab_node = self.tabs_tree.insert(
-            '', 'end',
-            text=f"{icon} {tab_display_name}",
-            values=(tab_name, 'tab'),
-            tags=('tab',)
+            '',
+            'end',
+            text=display_text,
+            values=(str(tab_dir), 'tab'),
+            tags=(tag,)
         )
 
-        # Add panel headers from the live notebook (if available)
-        instance = None
+        # Find main tab file
+        if tab_dir_name in built_in_tabs and built_in_tabs[tab_dir_name]['main_file']:
+            main_file = tab_dir / built_in_tabs[tab_dir_name]['main_file']
+        else:
+            main_file = tab_dir / f"{tab_dir.name}.py"
+
+        if main_file.exists():
+            file_node = self.tabs_tree.insert(
+                tab_node,
+                'end',
+                text=f"📄 {main_file.name}",
+                values=(str(main_file), 'main_file'),
+                tags=('file',)
+            )
+            # Profile Main File
+            self._add_file_features(file_node, main_file, manifest)
+
+        # Find all panel files
+        if tab_dir_name in built_in_tabs and built_in_tabs[tab_dir_name]['panels']:
+            # Use predefined panel list for built-in tabs
+            panel_files = [tab_dir / p for p in built_in_tabs[tab_dir_name]['panels']
+                          if (tab_dir / p).exists()]
+        else:
+            # Auto-detect panels for custom tabs and built-in tabs without predefined list
+            panel_files = sorted([f for f in tab_dir.glob("*.py")
+                                 if f.name not in ['__init__.py', main_file.name]])
+
+        for panel_file in panel_files:
+            # Determine panel type/label
+            if 'panel' in panel_file.stem.lower():
+                icon = '🔧'
+            else:
+                icon = '📦'
+
+            panel_node = self.tabs_tree.insert(
+                tab_node,
+                'end',
+                text=f"{icon} {panel_file.name}",
+                values=(str(panel_file), 'panel'),
+                tags=('panel',)
+            )
+            # Profile Panel File
+            self._add_file_features(panel_node, panel_file, manifest)
+
+        # Expand the tab node by default so panels are visible
+        self.tabs_tree.item(tab_node, open=True)
+
+    def _add_file_features(self, parent_node, file_path, manifest):
+        """Helper to add Classes and Functions as child nodes to a file in the tree."""
+        if not manifest:
+            return
+
+        # Try to find the file in the manifest
+        entry = None
         try:
-            if self.tab_instances and tab_name in self.tab_instances:
-                instance = self.tab_instances[tab_name]['instance']
-        except Exception:
-            instance = None
+            # Prioritize relative path to TRAINER_ROOT
+            rel_path_to_trainer_root = str(file_path.relative_to(TRAINER_ROOT))
+            entry = manifest.get(rel_path_to_trainer_root)
+        except ValueError:
+            pass
+        
+        if not entry:
+            # Fallback to absolute path (for external project files or if relative_to(TRAINER_ROOT) fails for some reason)
+            entry = manifest.get(str(file_path.absolute()))
+            
+        if not entry:
+            return
 
-        notebook = None
-        if instance is not None:
-            # Known notebook attributes by tab
-            for attr in (
-                'training_notebook',    # TrainingTab
-                'sub_notebook',         # CustomCodeTab
-                'settings_notebook',    # SettingsTab
-                'model_info_notebook',  # ModelsTab
-                'models_notebook'       # Fallback (older naming)
-            ):
-                nb = getattr(instance, attr, None)
-                if nb is not None:
-                    notebook = nb
-                    break
+        profile = entry.get('profile', {})
+        if not profile:
+            return
 
-        if notebook is not None:
+        # Add Classes
+        for cls in profile.get('classes', []):
+            cls_name = cls['name']
+            cls_node = self.tabs_tree.insert(
+                parent_node,
+                'end',
+                text=f"C  {cls_name}",
+                values=(f"{file_path}::{cls_name}", 'class'),
+                tags=('class',)
+            )
+            
+            for method_name in cls.get('methods', []):
+                 self.tabs_tree.insert(
+                    cls_node,
+                    'end',
+                    text=f"M  {method_name}",
+                    values=(f"{file_path}::{cls_name}.{method_name}", 'method'),
+                    tags=('method',)
+                )
+
+    def update_inspector_view(self, item_data):
+        """
+        Refreshes the right-hand Inspector panel based on selection.
+        item_data: dict with 'path', 'type', 'values' (optional)
+        """
+        # Check if inspector_frame exists (it might not during initial load)
+        if not hasattr(self, 'inspector_frame'):
+            return
+
+        # Clear existing
+        for widget in self.inspector_frame.winfo_children():
+            widget.destroy()
+
+        if not item_data:
+            ttk.Label(
+                self.inspector_frame,
+                text="👈 Select a Tab or Panel to inspect",
+                font=("Arial", 12),
+                foreground="#888888"
+            ).pack(expand=True)
+            return
+
+        import logger_util
+        from datetime import datetime
+        
+        path = item_data['path']
+        item_type = item_data['type']
+        name = path.name
+
+        # --- Header ---
+        header_frame = ttk.Frame(self.inspector_frame, style='Header.TFrame')
+        header_frame.pack(fill=tk.X, pady=(0, 0)) # No padding at top to flush with container
+        
+        icon = "📄"
+        if item_type == 'tab': icon = "📂"
+        elif item_type == 'panel': icon = "🔧"
+        
+        ttk.Label(
+            header_frame,
+            text=f"{icon} {name}",
+            font=("Arial", 14, "bold"),
+            foreground="#61dafb",
+            background="#1e1e1e"
+        ).pack(padx=10, pady=15, anchor=tk.W)
+
+        # --- Content Area ---
+        content = ttk.Frame(self.inspector_frame)
+        content.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
+
+        if item_type == 'tab':
+            # Status Section
+            status_info = logger_util.TAB_REGISTRY.get(name, {})
+            status = status_info.get('status', 'UNKNOWN')
+            
+            status_color = "#888888"
+            if status == 'SUCCESS': status_color = "#4ade80"
+            elif status == 'FAILED': status_color = "#ef4444"
+            elif status == 'DISABLED': status_color = "#d1d5db"
+
+            ttk.Label(content, text="Runtime Status:", style='Config.TLabel', font=("Arial", 10, "bold")).pack(anchor=tk.W, pady=(5,0))
+            ttk.Label(
+                content,
+                text=f"  ● {status}",
+                foreground=status_color,
+                font=("Arial", 11, "bold")
+            ).pack(anchor=tk.W, pady=(0, 5))
+
+            # --- TAX Domain + UX Events ---
+            probe_info = status_info.get('execution_probe') or {}
+            domain = probe_info.get('domain', None)
+            if domain:
+                domain_color = {
+                    'matplotlib_3d': '#ff9933',
+                    'matplotlib': '#ffcc66',
+                    'tkinter_canvas': '#66ccff',
+                    'tkinter_composite': '#99ff99',
+                    'tkinter_standard': '#cccccc',
+                }.get(domain, '#aaaaaa')
+                ttk.Label(content, text="Domain (TAX):", style='Config.TLabel', font=("Arial", 9, "bold")).pack(anchor=tk.W)
+                ttk.Label(
+                    content,
+                    text=f"  {domain}",
+                    foreground=domain_color,
+                    font=("Arial", 10)
+                ).pack(anchor=tk.W, pady=(0, 3))
+                known_issues = probe_info.get('domain_known_issues', [])
+                if known_issues:
+                    ttk.Label(content, text=f"  ⚠ {'; '.join(known_issues[:2])}", foreground="#ffaa44", font=("Arial", 8)).pack(anchor=tk.W)
+
+            # UX Events summary
+            tab_ux = [e for e in logger_util.UX_EVENT_LOG if e.get('tab') == name]
+            ux_errors = [e for e in tab_ux if e.get('outcome') == 'error']
+            ux_label_color = '#ef4444' if ux_errors else '#4ade80' if tab_ux else '#888888'
+            ux_text = f"UX Events: {len(tab_ux)} fired, {len(ux_errors)} errors"
+            ttk.Label(content, text=ux_text, foreground=ux_label_color, font=("Arial", 9)).pack(anchor=tk.W, pady=(3, 0))
+            if ux_errors:
+                last_err = ux_errors[-1]
+                ttk.Label(
+                    content,
+                    text=f"  Last error: {last_err.get('timestamp','')} — {last_err.get('widget','')}",
+                    foreground="#ffaaaa", font=("Arial", 8)
+                ).pack(anchor=tk.W)
+            # --- end TAX / UX section ---
+
+            # Error Log (if any)
+            if status == 'FAILED':
+                ttk.Label(content, text="Error Log:", style='Config.TLabel', foreground="#ef4444").pack(anchor=tk.W)
+                error_text = tk.Text(content, height=8, width=40, bg="#2b1b1b", fg="#ffcccc", relief="flat", font=("Consolas", 9), highlightthickness=1, highlightbackground="#ef4444")
+                error_text.pack(fill=tk.X, pady=5)
+                error_text.insert("1.0", status_info.get('message', 'No details available.'))
+                error_text.config(state=tk.DISABLED)
+
+            # Actions
+            ttk.Label(content, text="Actions:", style='Config.TLabel', font=("Arial", 10, "bold")).pack(anchor=tk.W, pady=(15,5))
+            
+            btn_frame = ttk.Frame(content)
+            btn_frame.pack(fill=tk.X, pady=5)
+            
+            if status != 'UNKNOWN': # Only allow moving known tabs
+                 ttk.Button(btn_frame, text="⬅️ Move Left", command=lambda: self.move_tab("left"), style='Select.TButton').pack(side=tk.LEFT, padx=(0, 5), fill=tk.X, expand=True)
+                 ttk.Button(btn_frame, text="➡️ Move Right", command=lambda: self.move_tab("right"), style='Select.TButton').pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
+            
+            ttk.Button(content, text="➕ Add New Panel", command=self.add_new_panel, style='Action.TButton').pack(fill=tk.X, pady=10)
+
+            # --- DIAGNOSTIC: Check Version Manifest for specific blame on this tab ---
+            v_manifest = getattr(self, 'version_manifest', {})
+            if not v_manifest: v_manifest = recovery_util.load_version_manifest()
+            
+            found_blame = []
+            for v in v_manifest.get("versions", {}).values():
+                if v.get("status") == "damaged":
+                    for b in v.get("blame", []):
+                        if isinstance(b, dict) and name in b.get("file", ""):
+                            found_blame.append({"version": v["timestamp"], "blame": b})
+            
+            if found_blame:
+                ttk.Label(content, text="🚨 DAMAGED VERSION BLAME:", style='Config.TLabel', foreground="#ffaa00", font=("Arial", 10, "bold")).pack(anchor=tk.W, pady=(10, 5))
+                diag_text = tk.Text(content, height=6, width=40, bg="#2b1b1b", fg="#ffcc66", relief="flat", font=("Consolas", 8))
+                diag_text.pack(fill=tk.X, pady=5)
+                for entry in found_blame:
+                    b = entry["blame"]
+                    diag_text.insert(tk.END, f"Version: {entry['version']}\n")
+                    diag_text.insert(tk.END, f"Target: {b.get('target')}\n")
+                    diag_text.insert(tk.END, f"Line: {b.get('line')}\n")
+                    diag_text.insert(tk.END, f"Feature: {b.get('feature', 'Core')}\n\n")
+                diag_text.config(state=tk.DISABLED)
+
+        elif item_type in ['panel', 'main_file', 'project_file']:
+            # File Info
             try:
-                tab_ids = notebook.tabs()
-                for i, tid in enumerate(tab_ids):
-                    try:
-                        header = notebook.tab(tid, 'text')
-                    except Exception:
-                        header = f"Panel {i+1}"
-
-                    # Record potential file mapping for known tabs
-                    file_path = self._resolve_panel_file(tab_name, header, tab_dir)
-                    if file_path:
-                        self.panel_file_map[(tab_name, header)] = file_path
-
-                    self.tabs_tree.insert(
-                        tab_node,
-                        'end',
-                        text=f"🔧 {header}",
-                        values=(f"{tab_name}|{header}", 'panel_header'),
-                        tags=('panel',)
-                    )
+                stats = path.stat()
+                size_kb = stats.st_size / 1024
+                mtime = datetime.fromtimestamp(stats.st_mtime).strftime('%Y-%m-%d %H:%M')
+                
+                info_frame = ttk.LabelFrame(content, text="File Info", style='TLabelframe')
+                info_frame.pack(fill=tk.X, pady=10)
+                
+                ttk.Label(info_frame, text=f"Size: {size_kb:.1f} KB", style='Config.TLabel').pack(anchor=tk.W, padx=10, pady=2)
+                ttk.Label(info_frame, text=f"Modified: {mtime}", style='Config.TLabel').pack(anchor=tk.W, padx=10, pady=2)
             except Exception:
                 pass
 
-        # Expand by default
-        self.tabs_tree.item(tab_node, open=True)
+            # Actions
+            ttk.Label(content, text="Actions:", style='Config.TLabel', font=("Arial", 10, "bold")).pack(anchor=tk.W, pady=(15,5))
+            
+            ttk.Button(content, text="✏️ Edit File", command=self.edit_selected_panel, style='Action.TButton').pack(fill=tk.X, pady=5)
+            
+            if item_type == 'panel':
+                ttk.Button(content, text="🗑️ Delete Panel", command=self.delete_selected_panel, style='Select.TButton').pack(fill=tk.X, pady=5)
 
-    def _resolve_panel_file(self, tab_name, header_text, tab_dir):
-        """Best-effort mapping from panel header to its source file for built-in tabs."""
-        try:
-            if tab_name == 'training_tab':
-                mapping = {
-                    'Runner': 'runner_panel.py',
-                    'Script Manager': 'category_manager_panel.py',
-                    'Model Selection': 'model_selection_panel.py',
-                    'Profiles': 'profiles_panel.py',
-                    'Summary': 'summary_panel.py',
-                }
-                fn = mapping.get(header_text)
-                if fn:
-                    p = tab_dir / fn
-                    return p if p.exists() else None
-            # Custom Code panels are all in custom_code_tab.py; skip mapping to file
-        except Exception:
-            pass
-        return None
+            # --- DIAGNOSTIC: Check for specific blame on this file ---
+            rel_path = ""
+            try: rel_path = str(path.relative_to(TRAINER_ROOT))
+            except: pass
+
+            if rel_path:
+                v_manifest = getattr(self, 'version_manifest', {})
+                if not v_manifest: v_manifest = recovery_util.load_version_manifest()
+                
+                found_blame = []
+                for v in v_manifest.get("versions", {}).values():
+                    if v.get("status") == "damaged":
+                        for b in v.get("blame", []):
+                            if isinstance(b, dict) and rel_path == b.get("file"):
+                                found_blame.append({"version": v["timestamp"], "blame": b, "traceback": v.get("traceback")})
+                
+                if found_blame:
+                    ttk.Label(content, text="🚨 FILE CRASH HISTORY:", style='Config.TLabel', foreground="#ff5555", font=("Arial", 10, "bold")).pack(anchor=tk.W, pady=(10, 5))
+                    diag_text = tk.Text(content, height=10, width=40, bg="#2b1b1b", fg="#ffcccc", relief="flat", font=("Consolas", 8))
+                    diag_text.pack(fill=tk.X, pady=5)
+                    for entry in found_blame:
+                        b = entry["blame"]
+                        diag_text.insert(tk.END, f"VERSION: {entry['version']}\n")
+                        diag_text.insert(tk.END, f"METHOD: {b.get('method')}\n")
+                        diag_text.insert(tk.END, f"LINE: {b.get('line')}\n")
+                        diag_text.insert(tk.END, f"ERROR SNIPPET:\n{entry['traceback'][-200:] if entry['traceback'] else 'N/A'}\n")
+                        diag_text.insert(tk.END, "-"*30 + "\n")
+                    diag_text.config(state=tk.DISABLED)
 
     def on_tree_select(self, event):
         """Handle tree item selection"""
         selection = self.tabs_tree.selection()
         if not selection:
-            if hasattr(self, 'move_left_button'):
-                self.move_left_button.config(state=tk.DISABLED)
-                self.move_right_button.config(state=tk.DISABLED)
-            # Hide panel selector
-            self.panel_select_container.pack_forget()
-            self.panel_selected_label.config(text="")
+            self.selected_tree_item = None
+            self.update_inspector_view(None)
             return
 
         item = selection[0]
         values = self.tabs_tree.item(item, 'values')
 
         if not values:
-            if hasattr(self, 'move_left_button'):
-                self.move_left_button.config(state=tk.DISABLED)
-                self.move_right_button.config(state=tk.DISABLED)
+            self.selected_tree_item = None
+            self.update_inspector_view(None)
             return
 
-        raw_key, item_type = values
-        # Decode selection meta
-        if item_type == 'tab':
-            tab_name = raw_key
-            self.selected_tree_item = {'type': 'tab', 'tab_name': tab_name, 'path': Path(DATA_DIR) / 'tabs' / tab_name}
-        elif item_type == 'panel_header':
-            # raw_key = "tab_name|header"
-            try:
-                tab_name, header = raw_key.split('|', 1)
-            except ValueError:
-                tab_name, header = raw_key, ''
-            info = {'type': 'panel_header', 'tab_name': tab_name, 'panel_header': header}
-            file_path = self.panel_file_map.get((tab_name, header))
-            if file_path:
-                info['path'] = file_path
-            self.selected_tree_item = info
-        else:
-            # Fallback to previous behavior
-            self.selected_tree_item = {'path': Path(raw_key), 'type': item_type}
-
-        # Update info label and button states
-        if item_type in ('tab', 'panel_header') and self.reorder_mode.get() == 'arrow':
-            # Always persist Tab label at the top
-            tab_name_for_label = self.selected_tree_item.get('tab_name') if item_type == 'panel_header' else self.selected_tree_item.get('tab_name')
-            self.selected_info_label.config(text=f"Tab: {tab_name_for_label}")
-            if hasattr(self, 'move_left_button'):
-                self.move_left_button.config(state=tk.NORMAL)
-                self.move_right_button.config(state=tk.NORMAL)
-            # Show and sync panel selector
-            if item_type == 'tab':
-                self._show_panel_selector(self.selected_tree_item.get('tab_name'))
-            else:
-                header = self.selected_tree_item.get('panel_header')
-                self._show_panel_selector(self.selected_tree_item.get('tab_name'), preselect=header)
-                # Show panel indicator separately
-                self.panel_selected_label.config(text=f"Panel: {header}")
-        else:
-            if hasattr(self, 'move_left_button'):
-                self.move_left_button.config(state=tk.DISABLED)
-                self.move_right_button.config(state=tk.DISABLED)
-            if item_type == 'tab':
-                self.selected_info_label.config(text=f"Tab: {self.selected_tree_item.get('tab_name')}")
-                self._show_panel_selector(self.selected_tree_item.get('tab_name'))
-            elif item_type == 'panel_header':
-                # Persist Tab label and show panel indicator below
-                self.selected_info_label.config(text=f"Tab: {self.selected_tree_item.get('tab_name')}")
-                header = self.selected_tree_item.get('panel_header')
-                self._show_panel_selector(self.selected_tree_item.get('tab_name'), preselect=header)
-                self.panel_selected_label.config(text=f"Panel: {header}")
-
-    def _get_tab_notebook(self, tab_name):
-        """Return the ttk.Notebook for the given tab instance, if any."""
-        try:
-            if not self.tab_instances or tab_name not in self.tab_instances:
-                return None
-            instance = self.tab_instances[tab_name]['instance']
-            for attr in (
-                'training_notebook',
-                'sub_notebook',
-                'settings_notebook',
-                'model_info_notebook',
-                'models_notebook'
-            ):
-                nb = getattr(instance, attr, None)
-                if nb is not None:
-                    return nb
-        except Exception:
-            return None
-        return None
-
-    def _get_panel_headers(self, tab_name):
-        """List of panel header texts for the tab's notebook."""
-        nb = self._get_tab_notebook(tab_name)
-        if nb is None:
-            return []
-        headers = []
-        try:
-            for tid in nb.tabs():
-                try:
-                    headers.append(nb.tab(tid, 'text'))
-                except Exception:
-                    headers.append('')
-        except Exception:
-            pass
-        return headers
-
-    def _show_panel_selector(self, tab_name, preselect=None):
-        """Populate and show the panel selector for a given tab."""
-        headers = [h for h in self._get_panel_headers(tab_name) if h]
-        if not headers:
-            self.panel_select_container.pack_forget()
-            self.panel_selected_label.config(text="")
-            self.current_tab_for_panel_selector = None
-            return
-        self.current_tab_for_panel_selector = tab_name
-        # Update combobox values and selection
-        try:
-            self.panel_selector['values'] = headers
-        except Exception:
-            pass
-        if preselect and preselect in headers:
-            self.panel_selector.set(preselect)
-            self.panel_selected_label.config(text=f"Panel: {preselect}")
-        else:
-            # No preselect: leave empty until user picks
-            try:
-                self.panel_selector.set("")
-            except Exception:
-                pass
-            self.panel_selected_label.config(text="")
-        # Show container
-        self.panel_select_container.pack(fill=tk.X, padx=10)
-
-        # Do not change selected_tree_item here unless preselect used
-        if preselect and preselect in headers:
-            selected_header = preselect
-            info = {'type': 'panel_header', 'tab_name': tab_name, 'panel_header': selected_header}
-            file_path = self.panel_file_map.get((tab_name, selected_header))
-            if file_path:
-                info['path'] = file_path
-            self.selected_tree_item = info
-
-    def _on_panel_combo_changed(self, event=None):
-        """Handle selection change from the panel combobox."""
-        tab_name = self.current_tab_for_panel_selector
-        if not tab_name:
-            return
-        header = self.panel_selector.get()
-        self.panel_selected_label.config(text=f"Panel: {header}")
-        info = {'type': 'panel_header', 'tab_name': tab_name, 'panel_header': header}
-        file_path = self.panel_file_map.get((tab_name, header))
-        if file_path:
-            info['path'] = file_path
-        self.selected_tree_item = info
+        file_path, item_type = values
+        self.selected_tree_item = {'path': Path(file_path), 'type': item_type}
+        
+        # Update Inspector View
+        self.update_inspector_view(self.selected_tree_item)
 
     def add_new_panel(self):
         """Add a new panel to selected tab"""
@@ -1673,7 +2190,7 @@ class {class_name}:
             messagebox.showerror("Error", f"Failed to create panel: {e}")
 
     def edit_selected_panel(self):
-        """Open selected panel file in default editor (when resolvable)."""
+        """Open selected panel file in default editor"""
         if not self.selected_tree_item:
             messagebox.showwarning(
                 "No Selection",
@@ -1684,23 +2201,15 @@ class {class_name}:
             )
             return
 
-        stype = self.selected_tree_item.get('type')
-        if stype not in ['panel', 'main_file', 'panel_header']:
+        if self.selected_tree_item['type'] not in ['panel', 'main_file']:
             messagebox.showwarning(
                 "Invalid Selection",
-                f"Cannot edit {stype}.\n\n"
+                f"Cannot edit {self.selected_tree_item['type']}.\n\n"
                 "Please select a panel file (🔧) or main file (📄)."
             )
             return
 
-        # For panel_header, we may not have a file path
-        file_path = self.selected_tree_item.get('path')
-        if stype == 'panel_header' and not file_path:
-            messagebox.showinfo(
-                "Not Editable",
-                "This panel does not map to a single source file."
-            )
-            return
+        file_path = self.selected_tree_item['path']
 
         if not file_path.exists():
             messagebox.showerror(
@@ -1816,6 +2325,7 @@ class {class_name}:
             ("Models Tab", "models_tab_enabled"),
             ("Settings Tab", "settings_tab_enabled"),
             ("Custom Code Tab", "custom_code_tab_enabled"),
+            ("Map Tab", "map_tab_enabled"),
         ]:
             # Initialize var if not already done (e.g., in __init__)
             if setting_key not in self.tab_enabled_vars:
@@ -1823,12 +2333,12 @@ class {class_name}:
             self.tab_enabled_vars[setting_key].set(settings.get(setting_key, True)) # Default to enabled
 
             self.reorder_mode.set(settings.get('reorder_mode', 'static')) # Default to static
-
-        # Load ToDos
-        try:
-            self.todos = settings.get('todos', { 'tasks': [], 'bugs': [], 'completed': [] })
-        except Exception:
-            self.todos = { 'tasks': [], 'bugs': [], 'completed': [] }
+            self.right_click_enabled.set(settings.get('right_click_menu_enabled', True))
+            for k, v in settings.get('right_click_subtab_overrides', {}).items():
+                if k not in self.right_click_subtab_overrides:
+                    self.right_click_subtab_overrides[k] = tk.BooleanVar(value=v)
+                else:
+                    self.right_click_subtab_overrides[k].set(v)
 
         return settings
 
@@ -1853,11 +2363,16 @@ class {class_name}:
                 'auto_refresh_models': self.auto_refresh.get(),
                 'show_debug': self.show_debug.get(),
                 'confirm_training': self.confirm_training.get(),
-                'max_cpu_threads': self.max_cpu_threads.get(),
-                'max_ram_percent': self.max_ram_percent.get(),
-                'max_seq_length': self.max_seq_length.get(),
-                'gradient_accumulation': self.gradient_accumulation.get()
             })
+            # Resource vars are only created when the Resources sub-tab is first rendered
+            if hasattr(self, 'max_cpu_threads'):
+                all_settings['max_cpu_threads'] = self.max_cpu_threads.get()
+            if hasattr(self, 'max_ram_percent'):
+                all_settings['max_ram_percent'] = self.max_ram_percent.get()
+            if hasattr(self, 'max_seq_length'):
+                all_settings['max_seq_length'] = self.max_seq_length.get()
+            if hasattr(self, 'gradient_accumulation'):
+                all_settings['gradient_accumulation'] = self.gradient_accumulation.get()
             
             # Save tab visibility settings
             for setting_key, var in self.tab_enabled_vars.items():
@@ -1866,15 +2381,25 @@ class {class_name}:
             # Save tab reordering setting
             all_settings['reorder_mode'] = self.reorder_mode.get()
 
-            # Ensure custom_code_tab is in tab_order if it's enabled
-            tab_order = self.settings.get('tab_order', ['training_tab', 'models_tab', 'custom_code_tab', 'settings_tab'])
-            if 'custom_code_tab' not in tab_order and self.tab_enabled_vars.get('custom_code_tab_enabled', tk.BooleanVar(value=False)).get():
-                # Insert custom_code_tab before settings_tab if enabled
-                if 'settings_tab' in tab_order:
-                    idx = tab_order.index('settings_tab')
-                    tab_order.insert(idx, 'custom_code_tab')
-                else:
-                    tab_order.append('custom_code_tab')
+            # Save right-click menu setting
+            all_settings['right_click_menu_enabled'] = self.right_click_enabled.get()
+            all_settings['right_click_subtab_overrides'] = {
+                k: v.get() for k, v in self.right_click_subtab_overrides.items()
+            }
+
+            # Ensure custom_code_tab and map_tab are in tab_order if they are enabled
+            tab_order = self.settings.get('tab_order', ['training_tab', 'models_tab', 'custom_code_tab', 'map_tab', 'settings_tab'])
+            
+            # Logic for ensuring enabled tabs are in the order
+            for tab_key in ['custom_code_tab', 'map_tab']:
+                setting_key = f"{tab_key}_enabled"
+                if tab_key not in tab_order and self.tab_enabled_vars.get(setting_key, tk.BooleanVar(value=False)).get():
+                    # Insert before settings_tab if enabled
+                    if 'settings_tab' in tab_order:
+                        idx = tab_order.index('settings_tab')
+                        tab_order.insert(idx, tab_key)
+                    else:
+                        tab_order.append(tab_key)
             all_settings['tab_order'] = tab_order
 
             # Save Regression Policy
@@ -1891,17 +2416,6 @@ class {class_name}:
                 'auto_rollback': self.policy_auto_rollback.get()
             }
 
-            # If caller populated panel_orders in memory, persist it
-            if 'panel_orders' in self.settings:
-                all_settings['panel_orders'] = self.settings.get('panel_orders', {})
-
-            # Persist ToDos
-            try:
-                all_settings['todos'] = getattr(self, 'todos', { 'tasks': [], 'bugs': [], 'completed': [] })
-                all_settings['todo_show_on_launch'] = bool(self.todo_show_on_launch.get()) if hasattr(self, 'todo_show_on_launch') else False
-            except Exception:
-                pass
-
             with open(self.settings_file, 'w') as f:
                 json.dump(all_settings, f, indent=2)
 
@@ -1911,1709 +2425,6 @@ class {class_name}:
         except Exception as e:
             log_message(f"SETTINGS ERROR: Failed to save settings: {e}")
             messagebox.showerror("Save Error", f"Failed to save settings: {e}")
-
-    # --- ToDo List: Handlers ---
-    def refresh_todo_view(self):
-        """Refresh main todo tree view from file-based storage."""
-        # Clear tree
-        for item in self.todo_tree.get_children():
-            self.todo_tree.delete(item)
-
-        # Roots
-        tasks_root = self.todo_tree.insert('', 'end', text='🗒 Tasks', open=True)
-        bugs_root = self.todo_tree.insert('', 'end', text='🐞 Bugs', open=True)
-        work_root = self.todo_tree.insert('', 'end', text='📋 Work-Orders', open=True)
-        notes_root = self.todo_tree.insert('', 'end', text='📝 Notes', open=True)
-        completed_root = self.todo_tree.insert('', 'end', text='✅ Completed', open=True)
-
-        # Priority tag styles
-        try:
-            self.todo_tree.tag_configure('prio_high', foreground='#ff5555')
-            self.todo_tree.tag_configure('prio_med', foreground='#ff9900')
-            self.todo_tree.tag_configure('prio_low', foreground='#ffd700')
-            self.todo_tree.tag_configure('completed', foreground='#33cc33', font=('Arial', 9, 'italic'))
-        except Exception:
-            pass
-
-        # Helper to sort by priority
-        def _prio_key(item):
-            p = (item or {}).get('priority', 'low').lower()
-            return {'high': 0, 'medium': 1, 'low': 2}.get(p, 2)
-
-        # Load from files and populate
-        tcount = bcount = wcount = ncount = 0
-        ph = pm = pl = 0
-
-        # Tasks
-        try:
-            task_files = list_todo_files('tasks')
-            tasks_data = [read_todo_file(f) for f in task_files]
-            for todo in sorted(tasks_data, key=_prio_key):
-                text = todo.get('title', '').strip() or 'Untitled Task'
-                pr = (todo.get('priority', 'low') or 'low').lower()
-                tag = ('prio_high',) if pr == 'high' else (('prio_med',) if pr == 'medium' else ('prio_low',))
-                self.todo_tree.insert(tasks_root, 'end', iid=f'tasks:{todo["filename"]}', text=text, values=('☐',), tags=tag)
-                tcount += 1
-                if pr == 'high':
-                    ph += 1
-                elif pr == 'medium':
-                    pm += 1
-                else:
-                    pl += 1
-        except Exception as e:
-            log_message(f"SETTINGS: Error loading tasks: {e}")
-
-        # Bugs
-        try:
-            bug_files = list_todo_files('bugs')
-            bugs_data = [read_todo_file(f) for f in bug_files]
-            for todo in sorted(bugs_data, key=_prio_key):
-                text = todo.get('title', '').strip() or 'Untitled Bug'
-                pr = (todo.get('priority', 'low') or 'low').lower()
-                tag = ('prio_high',) if pr == 'high' else (('prio_med',) if pr == 'medium' else ('prio_low',))
-                self.todo_tree.insert(bugs_root, 'end', iid=f'bugs:{todo["filename"]}', text=text, values=('☐',), tags=tag)
-                bcount += 1
-                if pr == 'high':
-                    ph += 1
-                elif pr == 'medium':
-                    pm += 1
-                else:
-                    pl += 1
-        except Exception as e:
-            log_message(f"SETTINGS: Error loading bugs: {e}")
-
-        # Work Orders
-        try:
-            work_files = list_todo_files('work_orders')
-            work_data = [read_todo_file(f) for f in work_files]
-            for todo in sorted(work_data, key=_prio_key):
-                text = todo.get('title', '').strip() or 'Untitled Work-Order'
-                pr = (todo.get('priority', 'low') or 'low').lower()
-                tag = ('prio_high',) if pr == 'high' else (('prio_med',) if pr == 'medium' else ('prio_low',))
-                self.todo_tree.insert(work_root, 'end', iid=f'work_orders:{todo["filename"]}', text=text, values=('☐',), tags=tag)
-                wcount += 1
-                if pr == 'high':
-                    ph += 1
-                elif pr == 'medium':
-                    pm += 1
-                else:
-                    pl += 1
-        except Exception as e:
-            log_message(f"SETTINGS: Error loading work orders: {e}")
-
-        # Notes
-        try:
-            note_files = list_todo_files('notes')
-            notes_data = [read_todo_file(f) for f in note_files]
-            for todo in sorted(notes_data, key=_prio_key):
-                text = todo.get('title', '').strip() or 'Untitled Note'
-                pr = (todo.get('priority', 'low') or 'low').lower()
-                tag = ('prio_high',) if pr == 'high' else (('prio_med',) if pr == 'medium' else ('prio_low',))
-                self.todo_tree.insert(notes_root, 'end', iid=f'notes:{todo["filename"]}', text=text, values=('☐',), tags=tag)
-                ncount += 1
-                if pr == 'high':
-                    ph += 1
-                elif pr == 'medium':
-                    pm += 1
-                else:
-                    pl += 1
-        except Exception as e:
-            log_message(f"SETTINGS: Error loading notes: {e}")
-
-        # Completed
-        ccount = 0
-        try:
-            completed_files = list_todo_files('completed')
-            completed_data = [read_todo_file(f) for f in completed_files]
-            for todo in completed_data:
-                text = todo.get('title', '').strip() or 'Untitled Item'
-                self.todo_tree.insert(completed_root, 'end', iid=f'completed:{todo["filename"]}', text=text, values=('☑',), tags=('completed',))
-                ccount += 1
-        except Exception as e:
-            log_message(f"SETTINGS: Error loading completed: {e}")
-
-        # Update header counts with priority totals (two-line layout)
-        self.todo_counts_var.set(f"Tasks: {tcount} | Bugs: {bcount} | Work-Orders: {wcount} | Notes: {ncount} | Completed: {ccount}")
-        self.todo_priority_var.set(f"Priority: High {ph} | Medium {pm} | Low {pl}")
-        # Update buttons state
-        self._apply_todo_button_states()
-
-    def _on_todo_click(self, event):
-        """Handle click on todo item - file-based storage doesn't use 'done' checkboxes."""
-        # With file-based storage, items are either active or completed (in different folders)
-        # No need for inline checkbox toggling
-        pass
-
-    def _get_selected_todo(self):
-        """Get selected todo from tree - returns (category, filename)."""
-        sel = self.todo_tree.selection()
-        if not sel:
-            return None
-        item = sel[0]
-        if ':' not in item:
-            return None
-        category, filename = item.split(':', 1)
-        return category, filename
-
-    def _is_todo_actionable(self, action):
-        """Check if action is valid for selected todo."""
-        sel = self._get_selected_todo()
-        if not sel:
-            return False
-        category, filename = sel
-        if action == 'mark':
-            return category in ('tasks', 'bugs', 'work_orders', 'notes')
-        if action == 'edit':
-            return category in ('tasks', 'bugs', 'work_orders', 'notes')
-        if action == 'delete':
-            return category in ('tasks', 'bugs', 'work_orders', 'notes', 'completed')
-        return True
-
-    def _apply_todo_button_states(self):
-        # Enable/disable buttons based on selection
-        for action, btn in (
-            ('mark', self.todo_btn_mark),
-            ('edit', self.todo_btn_edit),
-            ('delete', self.todo_btn_delete),
-        ):
-            actionable = self._is_todo_actionable(action)
-            try:
-                btn.state(['!disabled'] if actionable else ['disabled'])
-            except Exception:
-                pass
-
-    def _on_todo_selection_changed(self, event=None):
-        self._apply_todo_button_states()
-        # Also refresh hover style immediately
-        self._update_todo_button_hover_style()
-
-    def _wire_todo_button_hover(self):
-        # Bind hover events
-        for action, btn in (
-            ('mark', self.todo_btn_mark),
-            ('edit', self.todo_btn_edit),
-            ('delete', self.todo_btn_delete),
-        ):
-            btn.bind('<Enter>', lambda e, a=action: self._on_todo_btn_enter(a))
-            btn.bind('<Leave>', lambda e, a=action: self._on_todo_btn_leave(a))
-
-    def _on_todo_btn_enter(self, action):
-        actionable = self._is_todo_actionable(action)
-        btn = {
-            'mark': self.todo_btn_mark,
-            'edit': self.todo_btn_edit,
-            'delete': self.todo_btn_delete,
-        }.get(action)
-        if not btn:
-            return
-        try:
-            btn.configure(style='Action.TButton' if actionable else 'Select.TButton')
-        except Exception:
-            pass
-
-    def _on_todo_btn_leave(self, action):
-        # Revert to selection-based style
-        self._update_todo_button_hover_style()
-
-    def _update_todo_button_hover_style(self):
-        for action, btn in (
-            ('mark', self.todo_btn_mark),
-            ('edit', self.todo_btn_edit),
-            ('delete', self.todo_btn_delete),
-        ):
-            actionable = self._is_todo_actionable(action)
-            try:
-                btn.configure(style='Action.TButton' if actionable else 'Select.TButton')
-            except Exception:
-                pass
-
-    def _on_todo_show_on_launch_changed(self):
-        # Persist immediately
-        try:
-            self.save_settings_to_file()
-        except Exception:
-            pass
-
-    # Optional popup on launch
-    def show_todo_popup(self, project_name: str = None, prefer_project: bool = False):
-        """Show main todo popup.
-
-        If project_name is provided and prefer_project is True, open the Project ToDo view instead.
-        """
-        # Redirect to project view if requested
-        try:
-            ctx_project = project_name or getattr(self, 'current_project_context', None)
-            if prefer_project and ctx_project:
-                return self.show_project_todo_popup(ctx_project)
-        except Exception:
-            pass
-        top = tk.Toplevel(self.root)
-        top.title("ToDo List")
-        try:
-            geom = (self.settings or {}).get('todo_geometry_main')
-            if isinstance(geom, str) and 'x' in geom:
-                top.geometry(geom)
-            else:
-                top.geometry('820x560')
-        except Exception:
-            top.geometry('820x560')
-        try:
-            top.transient(self.root)
-            top.lift()
-            top.attributes('-topmost', True)
-            # Drop always-on-top shortly after so normal stacking resumes
-            self.root.after(500, lambda: top.attributes('-topmost', False))
-            top.focus_force()
-        except Exception:
-            pass
-        # Track active state so other tabs can show an indicator
-        try:
-            self.todo_popup_active = True
-            def _on_close():
-                # Persist window geometry silently
-                try:
-                    w = max(400, int(top.winfo_width()))
-                    h = max(300, int(top.winfo_height()))
-                    self.settings['todo_geometry_main'] = f"{w}x{h}"
-                    # Merge minimal write
-                    all_settings = {}
-                    if self.settings_file.exists():
-                        try:
-                            with open(self.settings_file, 'r') as f:
-                                all_settings = json.load(f)
-                        except Exception:
-                            all_settings = {}
-                    all_settings['todo_geometry_main'] = self.settings['todo_geometry_main']
-                    with open(self.settings_file, 'w') as f:
-                        json.dump(all_settings, f, indent=2)
-                except Exception:
-                    pass
-                try:
-                    self.todo_popup_active = False
-                except Exception:
-                    pass
-                try:
-                    top.destroy()
-                except Exception:
-                    pass
-            top.protocol('WM_DELETE_WINDOW', _on_close)
-            top.bind('<Destroy>', lambda e: setattr(self, 'todo_popup_active', False))
-        except Exception:
-            pass
-        frame = ttk.Frame(top)
-        frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
-        frame.columnconfigure(0, weight=1)
-        frame.columnconfigure(1, weight=0)
-        frame.rowconfigure(2, weight=1)
-
-        # Toggle header: allow switching to Project list when context is provided
-        def _open_project_from_main():
-            try:
-                top.destroy()
-            except Exception:
-                pass
-            try:
-                ctx = project_name or getattr(self, 'current_project_context', None)
-                if ctx:
-                    self.show_project_todo_popup(ctx)
-            except Exception:
-                pass
-
-        log_message("TODO POPUP: Building header toggle row (Main)...")
-        toggle = ttk.Frame(frame)
-        toggle.grid(row=0, column=0, columnspan=2, sticky=tk.EW)
-        try:
-            for c in range(3):
-                toggle.columnconfigure(c, weight=1)
-            plan_btn = ttk.Button(toggle, text='＋ Plan', style='Action.TButton', command=lambda: self._open_plan_template_dialog(None))
-            plan_btn.grid(row=0, column=0, sticky=tk.W, padx=(0,8))
-            main_btn = ttk.Button(toggle, text='Main ToDo List', style='Action.TButton')
-            main_btn.grid(row=0, column=1, sticky=tk.EW, padx=(0,4))
-            ctx = project_name or getattr(self, 'current_project_context', None)
-            if ctx:
-                try:
-                    get_project_todos_dir(ctx)
-                except Exception:
-                    pass
-                proj_btn = ttk.Button(toggle, text='Project ToDo List', style='Select.TButton', command=_open_project_from_main)
-                proj_btn.grid(row=0, column=2, sticky=tk.EW, padx=(4,0))
-        except Exception as e:
-            log_message(f"TODO POPUP: Header build error (Main): {e}")
-
-        # Top right header buttons
-        def open_system_trash():
-            try:
-                import platform, subprocess, os, shutil
-                system = platform.system()
-                if system == 'Linux':
-                    if shutil.which('gio'):
-                        subprocess.Popen(['gio', 'open', 'trash:///'])
-                    elif shutil.which('xdg-open'):
-                        subprocess.Popen(['xdg-open', os.path.expanduser('~/.local/share/Trash/files')])
-                elif system == 'Darwin':
-                    subprocess.Popen(['open', os.path.expanduser('~/.Trash')])
-                elif system == 'Windows':
-                    subprocess.Popen(['explorer', 'shell:RecycleBinFolder'])
-            except Exception:
-                pass
-
-        try:
-            trash_btn = ttk.Button(frame, text='🗑', width=3, command=open_system_trash)
-            trash_btn.grid(row=0, column=1, sticky=tk.NE, padx=(6,0))
-        except Exception:
-            pass
-
-        # Plan context (used to auto-link new todos to a selected plan)
-        plan_context = {'name': None}
-
-        # Two-line header for better fit
-        try:
-            ttk.Label(frame, textvariable=self.todo_counts_var, font=("Arial", 11, "bold"), style='CategoryPanel.TLabel', anchor='center').grid(row=1, column=0, sticky=tk.EW)
-            ttk.Label(frame, textvariable=self.todo_priority_var, font=("Arial", 10), style='CategoryPanel.TLabel', anchor='center').grid(row=2, column=0, sticky=tk.EW, pady=(0,6))
-        except Exception as e:
-            log_message(f"TODO POPUP: Counts row error (Main): {e}")
-
-        # Folder button to open todos directory in file manager
-        def open_todos_folder():
-            """Open the todos directory in system file manager."""
-            try:
-                import subprocess
-                import platform
-
-                todos_path = str(TODOS_DIR)
-                log_message(f"SETTINGS: Opening todos folder: {todos_path}")
-
-                system = platform.system()
-                if system == 'Linux':
-                    subprocess.Popen(['xdg-open', todos_path])
-                elif system == 'Darwin':  # macOS
-                    subprocess.Popen(['open', todos_path])
-                elif system == 'Windows':
-                    subprocess.Popen(['explorer', todos_path])
-                else:
-                    messagebox.showinfo("Unsupported OS", f"Please manually navigate to:\n{todos_path}", parent=top)
-            except Exception as e:
-                log_message(f"SETTINGS: Error opening todos folder: {e}")
-                messagebox.showerror("Error", f"Failed to open folder:\n{e}\n\nPath: {TODOS_DIR}", parent=top)
-
-        try:
-            folder_btn = ttk.Button(frame, text="📁", command=open_todos_folder, width=3)
-            folder_btn.grid(row=1, column=1, rowspan=2, sticky=tk.NE, padx=(6,0))
-        except Exception as e:
-            log_message(f"TODO POPUP: Folder button error (Main): {e}")
-        # Tree
-        log_message("TODO POPUP: Building body (tree) (Main)...")
-        try:
-            sub = ttk.Frame(frame)
-            sub.grid(row=3, column=0, columnspan=2, sticky=tk.NSEW)
-            sub.columnconfigure(0, weight=1)
-            sub.rowconfigure(0, weight=1)
-            scr = ttk.Scrollbar(sub, orient=tk.VERTICAL)
-            scr.pack(side=tk.RIGHT, fill=tk.Y)
-            pop_tree = ttk.Treeview(sub, columns=("done",), show='tree headings')
-            pop_tree.heading('#0', text='Item')
-            pop_tree.heading('done', text='Done')
-            pop_tree.column('done', width=60, anchor=tk.CENTER, stretch=False)
-            pop_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-            pop_tree.configure(yscrollcommand=scr.set)
-            scr.config(command=pop_tree.yview)
-        except Exception as e:
-            log_message(f"TODO POPUP: Tree build error (Main): {e}")
-            # Fallback minimal tree
-            try:
-                ttk.Label(frame, text='[Tree build failed]', style='CategoryPanel.TLabel').grid(row=3, column=0, sticky=tk.W)
-            except Exception:
-                pass
-
-        # Tag colors for priorities/completed in popup
-        try:
-            pop_tree.tag_configure('prio_high', foreground='#ff5555')
-            pop_tree.tag_configure('prio_med', foreground='#ff9900')
-            pop_tree.tag_configure('prio_low', foreground='#ffd700')
-            pop_tree.tag_configure('completed', foreground='#33cc33', font=('Arial', 9, 'italic'))
-        except Exception:
-            pass
-
-        # Details editor inside popup
-        log_message("TODO POPUP: Building body (details) (Main)...")
-        try:
-            details = ttk.Frame(frame)
-            details.grid(row=4, column=0, columnspan=2, sticky=tk.NSEW)
-            frame.rowconfigure(3, weight=1)
-            frame.rowconfigure(4, weight=1)
-            details.columnconfigure(1, weight=1)
-        except Exception as e:
-            log_message(f"TODO POPUP: Details frame error (Main): {e}")
-        ttk.Label(details, text='Priority', style='CategoryPanel.TLabel').grid(row=0, column=0, sticky=tk.W)
-        pr_var = tk.StringVar(value='low')
-        pr_btns = ttk.Frame(details)
-        pr_btns.grid(row=0, column=1, sticky=tk.W, pady=(0,6))
-        ttk.Radiobutton(pr_btns, text='High', value='high', variable=pr_var).pack(side=tk.LEFT, padx=2)
-        ttk.Radiobutton(pr_btns, text='Medium', value='medium', variable=pr_var).pack(side=tk.LEFT, padx=2)
-        ttk.Radiobutton(pr_btns, text='Low', value='low', variable=pr_var).pack(side=tk.LEFT, padx=2)
-        ttk.Label(details, text='Title', style='CategoryPanel.TLabel').grid(row=1, column=0, sticky=tk.W)
-        title_var = tk.StringVar(value='')
-        title_entry = ttk.Entry(details, textvariable=title_var)
-        title_entry.grid(row=1, column=1, sticky=tk.EW, pady=(0,6))
-        ttk.Label(details, text='Details', style='CategoryPanel.TLabel').grid(row=2, column=0, sticky=tk.W)
-        details_txt = scrolledtext.ScrolledText(details, height=8, wrap=tk.WORD, font=('Arial', 9), bg='#1e1e1e', fg='#dcdcdc')
-        details_txt.grid(row=2, column=1, sticky=tk.NSEW)
-        details.rowconfigure(2, weight=1)
-
-        # Show helpful instructions on popup open
-        try:
-            details_txt.insert(tk.END, "📝 Quick Start:\n\n")
-            details_txt.insert(tk.END, "1. To CREATE: Fill in Title & Details, set Priority, click 'Create Todo', then select category\n\n")
-            details_txt.insert(tk.END, "2. To EDIT: Select an item from the list above, modify fields, click 'Save'\n\n")
-            details_txt.insert(tk.END, "3. To VIEW: Click any item in the tree to view/edit its details here\n\n")
-            details_txt.insert(tk.END, "Select an item above to get started!")
-            log_message("SETTINGS: Quick Start instructions added to details pane")
-        except Exception as e:
-            log_message(f"SETTINGS: Error adding Quick Start instructions: {e}")
-
-        # Populate from file-based storage
-        def refresh_pop():
-            log_message("SETTINGS: refresh_pop() START")
-            try:
-                for i in pop_tree.get_children():
-                    pop_tree.delete(i)
-                log_message("SETTINGS: Tree cleared successfully")
-            except Exception as e:
-                log_message(f"SETTINGS: Error clearing popup tree: {e}")
-                return
-            try:
-                troot = pop_tree.insert('', 'end', text='🗒 Tasks', open=True)
-                broot = pop_tree.insert('', 'end', text='🐞 Bugs', open=True)
-                wroot = pop_tree.insert('', 'end', text='📋 Work-Orders', open=True)
-                nroot = pop_tree.insert('', 'end', text='📝 Notes', open=True)
-                croot = pop_tree.insert('', 'end', text='✅ Completed', open=True)
-                log_message("SETTINGS: Tree roots created successfully")
-            except Exception as e:
-                log_message(f"SETTINGS: Error creating popup tree roots: {e}")
-                return
-
-            def _prio_key(todo_dict):
-                p = (todo_dict or {}).get('priority','low').lower()
-                return {'high':0, 'medium':1, 'low':2}.get(p, 2)
-
-            # Load from files instead of JSON
-            try:
-                task_files = list_todo_files('tasks')
-                log_message(f"SETTINGS: Found {len(task_files)} task files")
-                tasks_data = [read_todo_file(f) for f in task_files]
-                for todo in sorted(tasks_data, key=_prio_key):
-                    pr = (todo.get('priority','low') or 'low').lower()
-                    tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
-                    # Use filename as stable iid
-                    pop_tree.insert(troot, 'end', iid=f'tasks:{todo["filename"]}', text=todo.get('title',''), values=('☐',), tags=tag)
-                log_message(f"SETTINGS: Populated {len(tasks_data)} tasks")
-            except Exception as e:
-                log_message(f"SETTINGS: Error populating tasks in popup: {e}")
-
-            try:
-                bug_files = list_todo_files('bugs')
-                bugs_data = [read_todo_file(f) for f in bug_files]
-                for todo in sorted(bugs_data, key=_prio_key):
-                    pr = (todo.get('priority','low') or 'low').lower()
-                    tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
-                    pop_tree.insert(broot, 'end', iid=f'bugs:{todo["filename"]}', text=todo.get('title',''), values=('☐',), tags=tag)
-            except Exception as e:
-                log_message(f"SETTINGS: Error populating bugs in popup: {e}")
-
-            try:
-                wo_files = list_todo_files('work_orders')
-                wo_data = [read_todo_file(f) for f in wo_files]
-                for todo in sorted(wo_data, key=_prio_key):
-                    pr = (todo.get('priority','low') or 'low').lower()
-                    tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
-                    pop_tree.insert(wroot, 'end', iid=f'work_orders:{todo["filename"]}', text=todo.get('title',''), values=('☐',), tags=tag)
-            except Exception as e:
-                log_message(f"SETTINGS: Error populating work-orders in popup: {e}")
-
-            try:
-                notes_files = list_todo_files('notes')
-                notes_data = [read_todo_file(f) for f in notes_files]
-                for todo in sorted(notes_data, key=_prio_key):
-                    pr = (todo.get('priority','low') or 'low').lower()
-                    tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
-                    pop_tree.insert(nroot, 'end', iid=f'notes:{todo["filename"]}', text=todo.get('title',''), values=('☐',), tags=tag)
-            except Exception as e:
-                log_message(f"SETTINGS: Error populating notes in popup: {e}")
-
-            try:
-                completed_files = list_todo_files('completed')
-                completed_data = [read_todo_file(f) for f in completed_files]
-                for todo in completed_data:
-                    pop_tree.insert(croot, 'end', iid=f'completed:{todo["filename"]}', text=todo.get('title',''), values=('☑',), tags=('completed',))
-            except Exception as e:
-                log_message(f"SETTINGS: Error populating completed in popup: {e}")
-
-            # Plans and Tests (optional roots)
-            try:
-                plans_root = pop_tree.insert('', 'end', text='📐 Plans', open=True)
-                plan_files = list_todo_files('plans')
-                plans_data = [read_todo_file(f) for f in plan_files]
-                for todo in plans_data:
-                    pop_tree.insert(plans_root, 'end', iid=f'plans:{todo["filename"]}', text=todo.get('title',''), values=('☐',))
-            except Exception as e:
-                log_message(f"SETTINGS: Error populating plans in popup: {e}")
-            try:
-                tests_root = pop_tree.insert('', 'end', text='🧪 Tests', open=True)
-                test_files = list_todo_files('tests')
-                tests_data = [read_todo_file(f) for f in test_files]
-                for todo in tests_data:
-                    pop_tree.insert(tests_root, 'end', iid=f'tests:{todo["filename"]}', text=todo.get('title',''), values=('☐',))
-            except Exception as e:
-                log_message(f"SETTINGS: Error populating tests in popup: {e}")
-
-        # Populate tree first, then bind events
-        try:
-            refresh_pop()
-        except Exception as e:
-            log_message(f"TODO POPUP: Initial populate error (Main): {e}")
-        # Auto-refresh while popup is open to pick up external changes/restores
-        last_sig = {'v': 0}
-        def _tick_refresh():
-            try:
-                import os
-                sig = 0
-                base = get_project_todos_dir(project_name)
-                for cat in ('tasks','bugs','work_orders','notes','completed'):
-                    d = base / cat
-                    if d.exists():
-                        sig ^= int(d.stat().st_mtime)
-                if sig != last_sig['v']:
-                    last_sig['v'] = sig
-                    refresh_pop()
-            except Exception:
-                pass
-            try:
-                if top.winfo_exists():
-                    self.root.after(2000, _tick_refresh)
-            except Exception:
-                pass
-        try:
-            self.root.after(2000, _tick_refresh)
-        except Exception:
-            pass
-        # Auto-refresh while popup is open to pick up external changes/restores
-        last_sig = {'v': 0}
-        def _tick_refresh():
-            try:
-                import os, time
-                sig = 0
-                for cat in ('tasks','bugs','work_orders','notes','completed'):
-                    d = TODOS_DIR / cat
-                    if d.exists():
-                        sig ^= int(d.stat().st_mtime)
-                if sig != last_sig['v']:
-                    last_sig['v'] = sig
-                    refresh_pop()
-            except Exception:
-                pass
-            try:
-                if top.winfo_exists():
-                    self.root.after(2000, _tick_refresh)
-            except Exception:
-                pass
-        try:
-            self.root.after(2000, _tick_refresh)
-        except Exception:
-            pass
-
-        # Action buttons use existing handlers but with selected item from popup
-        try:
-            btns = ttk.Frame(frame)
-            btns.grid(row=5, column=0, columnspan=2, sticky=tk.EW, pady=(6,0))
-        except Exception as e:
-            log_message(f"TODO POPUP: Buttons row error (Main): {e}")
-        for i in range(5):
-            btns.columnconfigure(i, weight=1)
-
-        def get_sel_from_pop():
-            """Returns (category, filename) from selected tree item."""
-            sel = pop_tree.selection()
-            if not sel:
-                return None
-            item = sel[0]
-            if ':' not in item:
-                return None
-            category, filename = item.split(':', 1)
-            return category, filename
-
-        def populate_details_from_sel():
-            """Load todo file and populate detail fields."""
-            log_message("SETTINGS: populate_details_from_sel() called")
-            sel = get_sel_from_pop()
-
-            # If nothing selected, don't clear the Quick Start instructions
-            if not sel:
-                log_message("SETTINGS: No selection, keeping Quick Start instructions")
-                return
-
-            # Reset fields when we have a selection
-            try:
-                pr_var.set('low')
-                title_var.set('')
-                details_txt.delete('1.0', tk.END)
-                log_message(f"SETTINGS: Fields cleared for selection: {sel}")
-            except Exception:
-                pass
-            category, filename = sel
-
-            # Don't populate details for completed items (read-only)
-            if category == 'completed':
-                try:
-                    title_var.set('[Completed - Read Only]')
-                    details_txt.insert(tk.END, 'Completed items are read-only. Delete to remove or recreate as new todo.')
-                except Exception:
-                    pass
-                return
-
-            # Load from file
-            try:
-                from pathlib import Path
-                todo_dir = TODOS_DIR / category
-                filepath = todo_dir / filename
-                if not filepath.exists():
-                    return
-
-                todo_data = read_todo_file(filepath)
-                pr_var.set(todo_data.get('priority', 'low'))
-                title_var.set(todo_data.get('title', ''))
-                details_txt.insert(tk.END, todo_data.get('details', ''))
-            except Exception as e:
-                log_message(f"SETTINGS: Error loading todo file: {e}")
-                pass
-
-        try:
-            pop_tree.bind('<<TreeviewSelect>>', lambda e: populate_details_from_sel())
-        except Exception:
-            pass
-        # Populate details for initial selection if any
-        try:
-            populate_details_from_sel()
-        except Exception:
-            pass
-
-        def create_cb():
-            """Open a full create dialog to enter category, title, priority, and details."""
-            dlg = tk.Toplevel(top)
-            dlg.title('Create ToDo')
-            dlg.geometry('640x420')
-            try:
-                dlg.transient(top); dlg.grab_set()
-            except Exception:
-                pass
-            frm = ttk.Frame(dlg, padding=10)
-            frm.pack(fill=tk.BOTH, expand=True)
-            # Category
-            ttk.Label(frm, text='Category', style='CategoryPanel.TLabel').grid(row=0, column=0, sticky=tk.W)
-            cat_var = tk.StringVar(value='tasks')
-            cats = [('Tasks','tasks'),('Bugs','bugs'),('Work-Orders','work_orders'),('Notes','notes')]
-            cat_row = ttk.Frame(frm); cat_row.grid(row=0, column=1, sticky=tk.W)
-            for label, val in cats:
-                ttk.Radiobutton(cat_row, text=label, value=val, variable=cat_var).pack(side=tk.LEFT, padx=4)
-            # Priority
-            ttk.Label(frm, text='Priority', style='CategoryPanel.TLabel').grid(row=1, column=0, sticky=tk.W)
-            pr_local = tk.StringVar(value='low')
-            pr_row = ttk.Frame(frm); pr_row.grid(row=1, column=1, sticky=tk.W)
-            ttk.Radiobutton(pr_row, text='High', value='high', variable=pr_local).pack(side=tk.LEFT, padx=4)
-            ttk.Radiobutton(pr_row, text='Medium', value='medium', variable=pr_local).pack(side=tk.LEFT, padx=4)
-            ttk.Radiobutton(pr_row, text='Low', value='low', variable=pr_local).pack(side=tk.LEFT, padx=4)
-            # Title
-            ttk.Label(frm, text='Title', style='CategoryPanel.TLabel').grid(row=2, column=0, sticky=tk.W)
-            tvar = tk.StringVar()
-            ttk.Entry(frm, textvariable=tvar).grid(row=2, column=1, sticky=tk.EW)
-            # Details
-            ttk.Label(frm, text='Details', style='CategoryPanel.TLabel').grid(row=3, column=0, sticky=tk.NW)
-            txt = scrolledtext.ScrolledText(frm, height=10, wrap=tk.WORD, font=('Arial', 9), bg='#1e1e1e', fg='#dcdcdc')
-            txt.grid(row=3, column=1, sticky=tk.NSEW)
-            frm.columnconfigure(1, weight=1)
-            frm.rowconfigure(3, weight=1)
-            # Buttons
-            def do_create():
-                try:
-                    title_text = (tvar.get() or '').strip()
-                    if not title_text:
-                        messagebox.showwarning('Missing Title', 'Please enter a title.', parent=dlg); return
-                    plan_name = plan_context.get('name') if isinstance(plan_context, dict) else None
-                    # Auto-label in title if linked to a plan
-                    if plan_name and not title_text.lower().startswith(f"plan:{plan_name.lower()}"):
-                        title_text = f"Plan:{plan_name} | {title_text}"
-                    created = create_todo_file(cat_var.get(), title_text, pr_local.get(), txt.get('1.0', tk.END).strip(), plan=plan_name)
-                    self.refresh_todo_view(); refresh_pop()
-                    try:
-                        import subprocess, platform
-                        system = platform.system(); path = str(created)
-                        if system == 'Linux': subprocess.Popen(['xdg-open', path])
-                        elif system == 'Darwin': subprocess.Popen(['open', path])
-                        elif system == 'Windows': subprocess.Popen(['explorer', path])
-                    except Exception: pass
-                    dlg.destroy()
-                except Exception as e:
-                    log_message(f'SETTINGS: Error creating todo (dialog): {e}')
-                    messagebox.showerror('Error', f'Failed to create todo: {e}', parent=dlg)
-            btns2 = ttk.Frame(frm); btns2.grid(row=4, column=1, sticky=tk.E)
-            ttk.Button(btns2, text='Create', style='Action.TButton', command=do_create).pack(side=tk.LEFT, padx=4)
-            ttk.Button(btns2, text='Cancel', style='Select.TButton', command=dlg.destroy).pack(side=tk.LEFT, padx=4)
-
-        def mark_cb():
-            """Move todo file to completed directory."""
-            sel = get_sel_from_pop()
-            if not sel:
-                messagebox.showinfo("No Selection", "Please select a todo to mark complete.", parent=top)
-                return
-            category, filename = sel
-            if category not in ('tasks', 'bugs', 'work_orders', 'notes', 'tests'):
-                messagebox.showinfo("Invalid Selection", "Select a task, bug, work-order, or note to mark complete.", parent=top)
-                return
-            if not messagebox.askyesno("Mark Complete", "Mark this todo as complete?", parent=top):
-                return
-            try:
-                # Move file to completed directory
-                from pathlib import Path
-                todo_dir = TODOS_DIR / category
-                filepath = todo_dir / filename
-                if filepath.exists():
-                    move_todo_to_completed(filepath)
-
-                self.refresh_todo_view()
-                refresh_pop()
-                # Clear details after marking complete
-                try:
-                    pr_var.set('low')
-                    title_var.set('')
-                    details_txt.delete('1.0', tk.END)
-                except Exception:
-                    pass
-            except Exception as e:
-                log_message(f"SETTINGS: Error in mark_cb: {e}")
-                messagebox.showerror("Error", f"Failed to mark complete: {e}", parent=top)
-
-        def edit_cb():
-            """Open selected todo file in system editor."""
-            sel = get_sel_from_pop()
-            if not sel:
-                messagebox.showinfo("No Selection", "Please select a todo to edit.", parent=top)
-                return
-            category, filename = sel
-            if category not in ('tasks', 'bugs', 'work_orders', 'notes', 'completed'):
-                messagebox.showinfo("Invalid Selection", "Select a valid todo to open.", parent=top)
-                return
-            try:
-                from pathlib import Path
-                todo_dir = TODOS_DIR / category
-                filepath = todo_dir / filename
-                if not filepath.exists():
-                    messagebox.showerror("Error", "Todo file not found.", parent=top)
-                    return
-                import subprocess, platform
-                system = platform.system()
-                path = str(filepath)
-                if system == 'Linux': subprocess.Popen(['xdg-open', path])
-                elif system == 'Darwin': subprocess.Popen(['open', path])
-                elif system == 'Windows': subprocess.Popen(['explorer', path])
-            except Exception as e:
-                log_message(f"SETTINGS: Error opening todo externally: {e}")
-                messagebox.showerror("Error", f"Failed to open: {e}", parent=top)
-
-        def _send_to_trash(path_str: str) -> bool:
-            try:
-                # Prefer send2trash if available
-                try:
-                    from send2trash import send2trash
-                    send2trash(path_str)
-                    return True
-                except Exception:
-                    pass
-                import platform, subprocess, os, shutil
-                system = platform.system()
-                if system == 'Linux' and shutil.which('gio'):
-                    subprocess.check_call(['gio', 'trash', path_str])
-                    return True
-                # Fallback: move to local app trash
-                tdir = DATA_DIR / '.trash'
-                tdir.mkdir(parents=True, exist_ok=True)
-                import shutil as _sh
-                _sh.move(path_str, tdir / Path(path_str).name)
-                return True
-            except Exception:
-                return False
-
-        def delete_cb():
-            """Move todo file to system trash (recoverable)."""
-            sel = get_sel_from_pop()
-            if not sel:
-                messagebox.showinfo("No Selection", "Please select a todo to delete.", parent=top)
-                return
-            category, filename = sel
-            # Allow deleting from all categories including completed
-            if category not in ('tasks', 'bugs', 'work_orders', 'notes', 'completed', 'plans', 'tests'):
-                messagebox.showinfo("Invalid Selection", "Select an item to delete.", parent=top)
-                return
-            if not messagebox.askyesno("Confirm Delete", "Delete selected todo?", parent=top):
-                return
-            try:
-                from pathlib import Path
-                todo_dir = TODOS_DIR / category
-                filepath = todo_dir / filename
-                if filepath.exists():
-                    _send_to_trash(str(filepath))
-
-                self.refresh_todo_view()
-                refresh_pop()
-                # Clear details after delete
-                try:
-                    pr_var.set('low')
-                    title_var.set('')
-                    details_txt.delete('1.0', tk.END)
-                except Exception:
-                    pass
-            except Exception as e:
-                log_message(f"SETTINGS: Error in delete_cb: {e}")
-                messagebox.showerror("Error", f"Failed to delete: {e}", parent=top)
-
-        def save_cb():
-            """Update todo file with changes from detail fields."""
-            sel = get_sel_from_pop()
-            if not sel:
-                messagebox.showinfo("No Selection", "Please select a todo to save.", parent=top)
-                return
-            category, filename = sel
-            if category == 'completed':
-                messagebox.showinfo("Read Only", "Completed items are read-only. Delete or recreate to change.", parent=top)
-                return
-            try:
-                # Get field values
-                new_title = (title_var.get() or '').strip()
-                new_priority = pr_var.get()
-                new_details = details_txt.get('1.0', tk.END).strip()
-
-                if not new_title:
-                    messagebox.showwarning("Missing Title", "Title cannot be empty.", parent=top)
-                    return
-
-                # Update file (may rename if title changed)
-                from pathlib import Path
-                todo_dir = TODOS_DIR / category
-                filepath = todo_dir / filename
-                if not filepath.exists():
-                    messagebox.showerror("Error", "Todo file not found.", parent=top)
-                    return
-
-                new_filepath = update_todo_file(filepath, new_title, new_priority, new_details)
-
-                self.refresh_todo_view()
-                refresh_pop()
-
-                # Re-select the updated item (may have new filename if title changed)
-                try:
-                    new_filename = new_filepath.name
-                    pop_tree.selection_set(f"{category}:{new_filename}")
-                except Exception:
-                    pass
-
-                populate_details_from_sel()
-            except Exception as e:
-                log_message(f"SETTINGS: Error in save_cb: {e}")
-                messagebox.showerror("Error", f"Failed to save: {e}", parent=top)
-
-        ttk.Button(btns, text="➕ Create Todo", command=create_cb, style='Action.TButton').grid(row=0, column=0, padx=3, sticky=tk.EW)
-        ttk.Button(btns, text="✔ Mark Complete", command=mark_cb, style='Select.TButton').grid(row=0, column=1, padx=3, sticky=tk.EW)
-        ttk.Button(btns, text="✏️ Edit (Open)", command=edit_cb, style='Select.TButton').grid(row=0, column=2, padx=3, sticky=tk.EW)
-        ttk.Button(btns, text="📄 Open File", command=edit_cb, style='Select.TButton').grid(row=0, column=3, padx=3, sticky=tk.EW)
-        ttk.Button(btns, text="🗑 Delete Todo", command=delete_cb, style='Select.TButton').grid(row=0, column=4, padx=3, sticky=tk.EW)
-        ttk.Button(btns, text="💾 Save (Title/Priority)", command=save_cb, style='Action.TButton').grid(row=0, column=5, padx=3, sticky=tk.EW)
-
-
-    def show_project_todo_popup(self, project_name):
-        """Show project-specific todo popup - completely separate from main todos."""
-        if not project_name:
-            messagebox.showerror("No Project", "Please select a project first.")
-            return
-
-        # Ensure project todos directory exists
-        get_project_todos_dir(project_name)
-
-        top = tk.Toplevel(self.root)
-        top.title(f"Project ToDo List - {project_name}")
-        try:
-            geom = (self.settings or {}).get('todo_geometry_project')
-            if isinstance(geom, str) and 'x' in geom:
-                top.geometry(geom)
-            else:
-                top.geometry('820x560')
-        except Exception:
-            top.geometry('820x560')
-        try:
-            top.transient(self.root)
-            top.lift()
-            top.attributes('-topmost', True)
-            self.root.after(500, lambda: top.attributes('-topmost', False))
-            top.focus_force()
-        except Exception:
-            pass
-
-        # Track active state
-        try:
-            def _on_close():
-                # Persist project geometry silently
-                try:
-                    w = max(400, int(top.winfo_width()))
-                    h = max(300, int(top.winfo_height()))
-                    self.settings['todo_geometry_project'] = f"{w}x{h}"
-                    all_settings = {}
-                    if self.settings_file.exists():
-                        try:
-                            with open(self.settings_file, 'r') as f:
-                                all_settings = json.load(f)
-                        except Exception:
-                            all_settings = {}
-                    all_settings['todo_geometry_project'] = self.settings['todo_geometry_project']
-                    with open(self.settings_file, 'w') as f:
-                        json.dump(all_settings, f, indent=2)
-                except Exception:
-                    pass
-                try:
-                    top.destroy()
-                except Exception:
-                    pass
-            top.protocol('WM_DELETE_WINDOW', _on_close)
-        except Exception:
-            pass
-
-        frame = ttk.Frame(top)
-        frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
-        frame.columnconfigure(0, weight=1)
-        frame.columnconfigure(1, weight=0)
-        frame.rowconfigure(3, weight=1)
-
-        # Toggle header: Project/Main buttons
-        def _open_main_from_project():
-            try:
-                top.destroy()
-            except Exception:
-                pass
-            try:
-                self.show_todo_popup(project_name=project_name, prefer_project=False)
-            except Exception:
-                pass
-
-        log_message("TODO POPUP: Building header toggle row (Project)...")
-        toggle = ttk.Frame(frame)
-        toggle.grid(row=0, column=0, columnspan=2, sticky=tk.EW)
-        try:
-            for c in range(3):
-                toggle.columnconfigure(c, weight=1)
-            plan_btn = ttk.Button(toggle, text='＋ Plan', style='Action.TButton', command=lambda: self._open_plan_template_dialog(project_name))
-            plan_btn.grid(row=0, column=0, sticky=tk.W, padx=(0,8))
-            proj_btn = ttk.Button(toggle, text='Project ToDo List', style='Action.TButton')
-            proj_btn.grid(row=0, column=1, sticky=tk.EW, padx=(0,4))
-            main_btn = ttk.Button(toggle, text='Main ToDo List', style='Select.TButton', command=_open_main_from_project)
-            main_btn.grid(row=0, column=2, sticky=tk.EW, padx=(4,0))
-        except Exception as e:
-            log_message(f"TODO POPUP: Header build error (Project): {e}")
-
-        # Project-specific header variables
-        proj_counts_var = tk.StringVar(value="Tasks: 0 | Bugs: 0 | Work-Orders: 0 | Notes: 0 | Completed: 0")
-        proj_priority_var = tk.StringVar(value="Priority: High 0 | Medium 0 | Low 0")
-
-        # Two-line header
-        ttk.Label(frame, textvariable=proj_counts_var, font=("Arial", 11, "bold"), style='CategoryPanel.TLabel', anchor='center').grid(row=1, column=0, sticky=tk.EW)
-        ttk.Label(frame, textvariable=proj_priority_var, font=("Arial", 10), style='CategoryPanel.TLabel', anchor='center').grid(row=2, column=0, sticky=tk.EW, pady=(0,6))
-
-        # Top right: Trash and Folder buttons
-        def open_system_trash():
-            try:
-                import platform, subprocess, os, shutil
-                system = platform.system()
-                if system == 'Linux':
-                    if shutil.which('gio'):
-                        subprocess.Popen(['gio', 'open', 'trash:///'])
-                    elif shutil.which('xdg-open'):
-                        subprocess.Popen(['xdg-open', os.path.expanduser('~/.local/share/Trash/files')])
-                elif system == 'Darwin':
-                    subprocess.Popen(['open', os.path.expanduser('~/.Trash')])
-                elif system == 'Windows':
-                    subprocess.Popen(['explorer', 'shell:RecycleBinFolder'])
-            except Exception:
-                pass
-
-        try:
-            trash_btn = ttk.Button(frame, text='🗑', width=3, command=open_system_trash)
-            trash_btn.grid(row=0, column=1, sticky=tk.NE, padx=(6,0))
-        except Exception:
-            pass
-
-        # Folder button - opens project todos folder
-        def open_project_todos_folder():
-            try:
-                import subprocess, platform
-                todos_path = str(get_project_todos_dir(project_name))
-                log_message(f"SETTINGS: Opening project todos folder: {todos_path}")
-                system = platform.system()
-                if system == 'Linux':
-                    subprocess.Popen(['xdg-open', todos_path])
-                elif system == 'Darwin':
-                    subprocess.Popen(['open', todos_path])
-                elif system == 'Windows':
-                    subprocess.Popen(['explorer', todos_path])
-                else:
-                    messagebox.showinfo("Unsupported OS", f"Please manually navigate to:\n{todos_path}", parent=top)
-            except Exception as e:
-                log_message(f"SETTINGS: Error opening project todos folder: {e}")
-                messagebox.showerror("Error", f"Failed to open folder:\n{e}", parent=top)
-
-        folder_btn = ttk.Button(frame, text="📁", command=open_project_todos_folder, width=3)
-        folder_btn.grid(row=1, column=1, rowspan=2, sticky=tk.NE, padx=(6,0))
-
-        # Tree
-        log_message("TODO POPUP: Building body (tree) (Project)...")
-        try:
-            sub = ttk.Frame(frame)
-            sub.grid(row=3, column=0, columnspan=2, sticky=tk.NSEW)
-            sub.columnconfigure(0, weight=1)
-            sub.rowconfigure(0, weight=1)
-            scr = ttk.Scrollbar(sub, orient=tk.VERTICAL)
-            scr.pack(side=tk.RIGHT, fill=tk.Y)
-            pop_tree = ttk.Treeview(sub, columns=("done",), show='tree headings')
-            pop_tree.heading('#0', text='Item')
-            pop_tree.heading('done', text='Done')
-            pop_tree.column('done', width=60, anchor=tk.CENTER, stretch=False)
-            pop_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-            pop_tree.configure(yscrollcommand=scr.set)
-            scr.config(command=pop_tree.yview)
-        except Exception as e:
-            log_message(f"TODO POPUP: Tree build error (Project): {e}")
-            try:
-                ttk.Label(frame, text='[Tree build failed]', style='CategoryPanel.TLabel').grid(row=3, column=0, sticky=tk.W)
-            except Exception:
-                pass
-
-        # Tag colors
-        try:
-            pop_tree.tag_configure('prio_high', foreground='#ff5555')
-            pop_tree.tag_configure('prio_med', foreground='#ff9900')
-            pop_tree.tag_configure('prio_low', foreground='#ffd700')
-            pop_tree.tag_configure('completed', foreground='#33cc33', font=('Arial', 9, 'italic'))
-        except Exception:
-            pass
-
-        # Details viewer (read-only)
-        log_message("TODO POPUP: Building body (details) (Project)...")
-        try:
-            details = ttk.Frame(frame)
-            details.grid(row=4, column=0, columnspan=2, sticky=tk.NSEW)
-            frame.rowconfigure(3, weight=1)
-            frame.rowconfigure(4, weight=1)
-            details.columnconfigure(1, weight=1)
-        except Exception as e:
-            log_message(f"TODO POPUP: Details frame error (Project): {e}")
-        ttk.Label(details, text='Priority', style='CategoryPanel.TLabel').grid(row=0, column=0, sticky=tk.W)
-        pr_var = tk.StringVar(value='low')
-        pr_btns = ttk.Frame(details)
-        pr_btns.grid(row=0, column=1, sticky=tk.W, pady=(0,6))
-        ttk.Radiobutton(pr_btns, text='High', value='high', variable=pr_var).pack(side=tk.LEFT, padx=2)
-        ttk.Radiobutton(pr_btns, text='Medium', value='medium', variable=pr_var).pack(side=tk.LEFT, padx=2)
-        ttk.Radiobutton(pr_btns, text='Low', value='low', variable=pr_var).pack(side=tk.LEFT, padx=2)
-        ttk.Label(details, text='Title', style='CategoryPanel.TLabel').grid(row=1, column=0, sticky=tk.W)
-        title_var = tk.StringVar(value='')
-        title_entry = ttk.Entry(details, textvariable=title_var)
-        title_entry.grid(row=1, column=1, sticky=tk.EW, pady=(0,6))
-        ttk.Label(details, text='Details (read-only preview)', style='CategoryPanel.TLabel').grid(row=2, column=0, sticky=tk.W)
-        details_txt = scrolledtext.ScrolledText(details, height=8, wrap=tk.WORD, font=('Arial', 9), bg='#1e1e1e', fg='#dcdcdc')
-        details_txt.grid(row=2, column=1, sticky=tk.NSEW)
-        details.rowconfigure(2, weight=1)
-        try:
-            details_txt.configure(state='disabled')
-        except Exception:
-            pass
-
-        # Quick Start instructions
-        try:
-            details_txt.configure(state='normal')
-            details_txt.insert(tk.END, f"📝 Project: {project_name}\n\n")
-            details_txt.insert(tk.END, "1. To CREATE: Enter Title and set Priority, click 'Create Todo', then edit the file in your editor (auto-opens).\n\n")
-            details_txt.insert(tk.END, "2. To EDIT: Double-click an item or use 'Open File' to edit externally.\n\n")
-            details_txt.insert(tk.END, "3. To UPDATE Title/Priority: Change fields above and click 'Save (Title/Priority)'.\n\n")
-            details_txt.insert(tk.END, "This panel shows a read-only preview of the selected todo.")
-            details_txt.configure(state='disabled')
-            log_message(f"SETTINGS: Project todo popup opened for: {project_name}")
-        except Exception as e:
-            log_message(f"SETTINGS: Error adding Quick Start instructions: {e}")
-
-        # Helper: set details preview safely in read-only widget
-        def _set_details_text(text: str):
-            try:
-                details_txt.configure(state='normal')
-                details_txt.delete('1.0', tk.END)
-                details_txt.insert(tk.END, text or '')
-                details_txt.configure(state='disabled')
-            except Exception:
-                pass
-
-        # Populate from project-specific files
-        def refresh_pop():
-            log_message(f"SETTINGS: Refreshing project todos for: {project_name}")
-            try:
-                for i in pop_tree.get_children():
-                    pop_tree.delete(i)
-                log_message("SETTINGS: Project tree cleared successfully")
-            except Exception as e:
-                log_message(f"SETTINGS: Error clearing project popup tree: {e}")
-                return
-            try:
-                troot = pop_tree.insert('', 'end', text='🗒 Tasks', open=True)
-                broot = pop_tree.insert('', 'end', text='🐞 Bugs', open=True)
-                wroot = pop_tree.insert('', 'end', text='📋 Work-Orders', open=True)
-                nroot = pop_tree.insert('', 'end', text='📝 Notes', open=True)
-                croot = pop_tree.insert('', 'end', text='✅ Completed', open=True)
-                log_message("SETTINGS: Project tree roots created successfully")
-            except Exception as e:
-                log_message(f"SETTINGS: Error creating project popup tree roots: {e}")
-                return
-
-            def _prio_key(todo_dict):
-                p = (todo_dict or {}).get('priority','low').lower()
-                return {'high':0, 'medium':1, 'low':2}.get(p, 2)
-
-            tcount = bcount = wcount = ncount = ccount = 0
-            ph = pm = pl = 0
-
-            # Load project-specific todos
-            try:
-                task_files = list_project_todo_files(project_name, 'tasks')
-                log_message(f"SETTINGS: Found {len(task_files)} project task files")
-                tasks_data = [read_todo_file(f) for f in task_files]
-                for todo in sorted(tasks_data, key=_prio_key):
-                    pr = (todo.get('priority','low') or 'low').lower()
-                    tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
-                    pop_tree.insert(troot, 'end', iid=f'tasks:{todo["filename"]}', text=todo.get('title',''), values=('☐',), tags=tag)
-                    tcount += 1
-                    if pr == 'high': ph += 1
-                    elif pr == 'medium': pm += 1
-                    else: pl += 1
-                log_message(f"SETTINGS: Populated {len(tasks_data)} project tasks")
-            except Exception as e:
-                log_message(f"SETTINGS: Error populating project tasks in popup: {e}")
-
-            try:
-                bug_files = list_project_todo_files(project_name, 'bugs')
-                bugs_data = [read_todo_file(f) for f in bug_files]
-                for todo in sorted(bugs_data, key=_prio_key):
-                    pr = (todo.get('priority','low') or 'low').lower()
-                    tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
-                    pop_tree.insert(broot, 'end', iid=f'bugs:{todo["filename"]}', text=todo.get('title',''), values=('☐',), tags=tag)
-                    bcount += 1
-                    if pr == 'high': ph += 1
-                    elif pr == 'medium': pm += 1
-                    else: pl += 1
-            except Exception as e:
-                log_message(f"SETTINGS: Error populating project bugs in popup: {e}")
-
-            try:
-                wo_files = list_project_todo_files(project_name, 'work_orders')
-                wo_data = [read_todo_file(f) for f in wo_files]
-                for todo in sorted(wo_data, key=_prio_key):
-                    pr = (todo.get('priority','low') or 'low').lower()
-                    tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
-                    pop_tree.insert(wroot, 'end', iid=f'work_orders:{todo["filename"]}', text=todo.get('title',''), values=('☐',), tags=tag)
-                    wcount += 1
-                    if pr == 'high': ph += 1
-                    elif pr == 'medium': pm += 1
-                    else: pl += 1
-            except Exception as e:
-                log_message(f"SETTINGS: Error populating project work-orders in popup: {e}")
-
-            try:
-                notes_files = list_project_todo_files(project_name, 'notes')
-                notes_data = [read_todo_file(f) for f in notes_files]
-                for todo in sorted(notes_data, key=_prio_key):
-                    pr = (todo.get('priority','low') or 'low').lower()
-                    tag = ('prio_high',) if pr=='high' else (('prio_med',) if pr=='medium' else ('prio_low',))
-                    pop_tree.insert(nroot, 'end', iid=f'notes:{todo["filename"]}', text=todo.get('title',''), values=('☐',), tags=tag)
-                    ncount += 1
-                    if pr == 'high': ph += 1
-                    elif pr == 'medium': pm += 1
-                    else: pl += 1
-            except Exception as e:
-                log_message(f"SETTINGS: Error populating project notes in popup: {e}")
-
-            try:
-                completed_files = list_project_todo_files(project_name, 'completed')
-                completed_data = [read_todo_file(f) for f in completed_files]
-                for todo in completed_data:
-                    pop_tree.insert(croot, 'end', iid=f'completed:{todo["filename"]}', text=todo.get('title',''), values=('☑',), tags=('completed',))
-                    ccount += 1
-            except Exception as e:
-                log_message(f"SETTINGS: Error populating project completed in popup: {e}")
-
-            # Update counts
-            proj_counts_var.set(f"Tasks: {tcount} | Bugs: {bcount} | Work-Orders: {wcount} | Notes: {ncount} | Completed: {ccount}")
-            proj_priority_var.set(f"Priority: High {ph} | Medium {pm} | Low {pl}")
-
-        refresh_pop()
-
-        # Buttons and callbacks
-        btns = ttk.Frame(frame)
-        btns.grid(row=5, column=0, columnspan=2, sticky=tk.EW, pady=(6,0))
-        for i in range(5):
-            btns.columnconfigure(i, weight=1)
-
-        def get_sel_from_pop():
-            sel = pop_tree.selection()
-            if not sel:
-                return None
-            item = sel[0]
-            if ':' not in item:
-                return None
-            category, filename = item.split(':', 1)
-            return category, filename
-
-        def populate_details_from_sel():
-            log_message("SETTINGS: Project populate_details_from_sel() called")
-            sel = get_sel_from_pop()
-            if not sel:
-                log_message("SETTINGS: No selection, keeping Quick Start instructions")
-                return
-            try:
-                pr_var.set('low')
-                title_var.set('')
-                _set_details_text('')
-                log_message(f"SETTINGS: Fields cleared for selection: {sel}")
-            except Exception:
-                pass
-            category, filename = sel
-            if category == 'completed':
-                try:
-                    title_var.set('[Completed - Read Only]')
-                    _set_details_text('Completed items are read-only. Delete to remove or recreate as new todo.')
-                except Exception:
-                    pass
-                return
-            try:
-                from pathlib import Path
-                todos_dir = get_project_todos_dir(project_name)
-                todo_dir = todos_dir / category
-                filepath = todo_dir / filename
-                if not filepath.exists():
-                    return
-                todo_data = read_todo_file(filepath)
-                pr_var.set(todo_data.get('priority', 'low'))
-                title_var.set(todo_data.get('title', ''))
-                _set_details_text(todo_data.get('details', ''))
-            except Exception as e:
-                log_message(f"SETTINGS: Error loading project todo file: {e}")
-
-        try:
-            pop_tree.bind('<<TreeviewSelect>>', lambda e: populate_details_from_sel())
-        except Exception:
-            pass
-        try:
-            populate_details_from_sel()
-        except Exception:
-            pass
-
-        def create_cb():
-            """Open full create dialog for a new project todo."""
-            dlg = tk.Toplevel(top)
-            dlg.title('Create Project ToDo')
-            dlg.geometry('640x420')
-            try:
-                dlg.transient(top); dlg.grab_set()
-            except Exception:
-                pass
-            frm = ttk.Frame(dlg, padding=10)
-            frm.pack(fill=tk.BOTH, expand=True)
-            # Category
-            ttk.Label(frm, text='Category', style='CategoryPanel.TLabel').grid(row=0, column=0, sticky=tk.W)
-            cat_var = tk.StringVar(value='tasks')
-            cats = [('Tasks','tasks'),('Bugs','bugs'),('Work-Orders','work_orders'),('Notes','notes')]
-            cat_row = ttk.Frame(frm); cat_row.grid(row=0, column=1, sticky=tk.W)
-            for label, val in cats:
-                ttk.Radiobutton(cat_row, text=label, value=val, variable=cat_var).pack(side=tk.LEFT, padx=4)
-            # Priority
-            ttk.Label(frm, text='Priority', style='CategoryPanel.TLabel').grid(row=1, column=0, sticky=tk.W)
-            pr_local = tk.StringVar(value='low')
-            pr_row = ttk.Frame(frm); pr_row.grid(row=1, column=1, sticky=tk.W)
-            ttk.Radiobutton(pr_row, text='High', value='high', variable=pr_local).pack(side=tk.LEFT, padx=4)
-            ttk.Radiobutton(pr_row, text='Medium', value='medium', variable=pr_local).pack(side=tk.LEFT, padx=4)
-            ttk.Radiobutton(pr_row, text='Low', value='low', variable=pr_local).pack(side=tk.LEFT, padx=4)
-            # Title
-            ttk.Label(frm, text='Title', style='CategoryPanel.TLabel').grid(row=2, column=0, sticky=tk.W)
-            tvar = tk.StringVar()
-            ttk.Entry(frm, textvariable=tvar).grid(row=2, column=1, sticky=tk.EW)
-            # Details
-            ttk.Label(frm, text='Details', style='CategoryPanel.TLabel').grid(row=3, column=0, sticky=tk.NW)
-            txt = scrolledtext.ScrolledText(frm, height=10, wrap=tk.WORD, font=('Arial', 9), bg='#1e1e1e', fg='#dcdcdc')
-            txt.grid(row=3, column=1, sticky=tk.NSEW)
-            frm.columnconfigure(1, weight=1)
-            frm.rowconfigure(3, weight=1)
-            # Buttons
-            def do_create():
-                try:
-                    title_text = (tvar.get() or '').strip()
-                    if not title_text:
-                        messagebox.showwarning('Missing Title', 'Please enter a title.', parent=dlg); return
-                    plan_name = plan_context.get('name') if isinstance(plan_context, dict) else None
-                    if plan_name and not title_text.lower().startswith(f"plan:{plan_name.lower()}"):
-                        title_text = f"Plan:{plan_name} | {title_text}"
-                    created = create_project_todo_file(project_name, cat_var.get(), title_text, pr_local.get(), txt.get('1.0', tk.END).strip(), plan=plan_name)
-                    refresh_pop()
-                    try:
-                        import subprocess, platform
-                        system = platform.system(); path = str(created)
-                        if system == 'Linux': subprocess.Popen(['xdg-open', path])
-                        elif system == 'Darwin': subprocess.Popen(['open', path])
-                        elif system == 'Windows': subprocess.Popen(['explorer', path])
-                    except Exception: pass
-                    dlg.destroy()
-                except Exception as e:
-                    log_message(f'SETTINGS: Error creating project todo (dialog): {e}')
-                    messagebox.showerror('Error', f'Failed to create todo: {e}', parent=dlg)
-            btns2 = ttk.Frame(frm); btns2.grid(row=4, column=1, sticky=tk.E)
-            ttk.Button(btns2, text='Create', style='Action.TButton', command=do_create).pack(side=tk.LEFT, padx=4)
-            ttk.Button(btns2, text='Cancel', style='Select.TButton', command=dlg.destroy).pack(side=tk.LEFT, padx=4)
-
-        def mark_cb():
-            sel = get_sel_from_pop()
-            if not sel:
-                messagebox.showinfo("No Selection", "Please select a todo to mark complete.", parent=top)
-                return
-            category, filename = sel
-            if category not in ('tasks', 'bugs', 'work_orders', 'notes'):
-                messagebox.showinfo("Invalid Selection", "Select a task, bug, work-order, or note to mark complete.", parent=top)
-                return
-            if not messagebox.askyesno("Mark Complete", "Mark this todo as complete?", parent=top):
-                return
-            try:
-                from pathlib import Path
-                todos_dir = get_project_todos_dir(project_name)
-                todo_dir = todos_dir / category
-                filepath = todo_dir / filename
-                if filepath.exists():
-                    move_project_todo_to_completed(project_name, filepath)
-                refresh_pop()
-                try:
-                    pr_var.set('low')
-                    title_var.set('')
-                    _set_details_text('')
-                except Exception:
-                    pass
-            except Exception as e:
-                log_message(f"SETTINGS: Error in project mark_cb: {e}")
-                messagebox.showerror("Error", f"Failed to mark complete: {e}", parent=top)
-
-        def save_cb():
-            sel = get_sel_from_pop()
-            if not sel:
-                messagebox.showinfo("No Selection", "Please select a todo to save.", parent=top)
-                return
-            category, filename = sel
-            if category == 'completed':
-                messagebox.showinfo("Read Only", "Completed items are read-only. Delete or recreate to change.", parent=top)
-                return
-            try:
-                new_title = (title_var.get() or '').strip()
-                new_priority = pr_var.get()
-                # Preserve details; edit externally
-                new_details = None
-                if not new_title:
-                    messagebox.showwarning("Missing Title", "Title cannot be empty.", parent=top)
-                    return
-                from pathlib import Path
-                todos_dir = get_project_todos_dir(project_name)
-                todo_dir = todos_dir / category
-                filepath = todo_dir / filename
-                if not filepath.exists():
-                    messagebox.showerror("Error", "Todo file not found.", parent=top)
-                    return
-                new_filepath = update_todo_file(filepath, new_title, new_priority, new_details)
-                refresh_pop()
-                try:
-                    new_filename = new_filepath.name
-                    pop_tree.selection_set(f"{category}:{new_filename}")
-                except Exception:
-                    pass
-                populate_details_from_sel()
-            except Exception as e:
-                log_message(f"SETTINGS: Error in project save_cb: {e}")
-                messagebox.showerror("Error", f"Failed to save: {e}", parent=top)
-
-        def _send_to_trash(path_str: str) -> bool:
-            try:
-                try:
-                    from send2trash import send2trash
-                    send2trash(path_str)
-                    return True
-                except Exception:
-                    pass
-                import platform, subprocess, os, shutil
-                system = platform.system()
-                if system == 'Linux' and shutil.which('gio'):
-                    subprocess.check_call(['gio', 'trash', path_str])
-                    return True
-                tdir = get_project_todos_dir(project_name).parent / '.trash'
-                tdir.mkdir(parents=True, exist_ok=True)
-                import shutil as _sh
-                _sh.move(path_str, tdir / Path(path_str).name)
-                return True
-            except Exception:
-                return False
-
-        def delete_cb():
-            sel = get_sel_from_pop()
-            if not sel:
-                messagebox.showinfo("No Selection", "Please select a todo to delete.", parent=top)
-                return
-            category, filename = sel
-            if category not in ('tasks', 'bugs', 'work_orders', 'notes', 'completed'):
-                messagebox.showinfo("Invalid Selection", "Select an item to delete.", parent=top)
-                return
-            if not messagebox.askyesno("Confirm Delete", "Delete selected todo?", parent=top):
-                return
-            try:
-                from pathlib import Path
-                todos_dir = get_project_todos_dir(project_name)
-                todo_dir = todos_dir / category
-                filepath = todo_dir / filename
-                if filepath.exists():
-                    _send_to_trash(str(filepath))
-                refresh_pop()
-                try:
-                    pr_var.set('low')
-                    title_var.set('')
-                    details_txt.delete('1.0', tk.END)
-                except Exception:
-                    pass
-            except Exception as e:
-                log_message(f"SETTINGS: Error in project delete_cb: {e}")
-                messagebox.showerror("Error", f"Failed to delete: {e}", parent=top)
-
-        def edit_cb():
-            sel = get_sel_from_pop()
-            if not sel:
-                messagebox.showinfo("No Selection", "Please select a todo to edit.", parent=top)
-                return
-            category, filename = sel
-            if category not in ('tasks', 'bugs', 'work_orders', 'notes', 'completed', 'plans', 'tests'):
-                messagebox.showinfo("Invalid Selection", "Select a valid todo to open.", parent=top)
-                return
-
-            try:
-                from pathlib import Path
-                todos_dir = get_project_todos_dir(project_name)
-                todo_dir = todos_dir / category
-                filepath = todo_dir / filename
-                if not filepath.exists():
-                    messagebox.showerror("Error", "Todo file not found.", parent=top)
-                    return
-                import subprocess, platform
-                system = platform.system()
-                path = str(filepath)
-                if system == 'Linux': subprocess.Popen(['xdg-open', path])
-                elif system == 'Darwin': subprocess.Popen(['open', path])
-                elif system == 'Windows': subprocess.Popen(['explorer', path])
-            except Exception as e:
-                log_message(f"SETTINGS: Error opening project todo externally: {e}")
-                messagebox.showerror("Error", f"Failed to open: {e}", parent=top)
-
-        # Action buttons (includes Open)
-        for i in range(6):
-            try:
-                btns.columnconfigure(i, weight=1)
-            except Exception:
-                pass
-        ttk.Button(btns, text="➕ Create Todo", command=create_cb, style='Action.TButton').grid(row=0, column=0, padx=3, sticky=tk.EW)
-        ttk.Button(btns, text="✔ Mark Complete", command=mark_cb, style='Select.TButton').grid(row=0, column=1, padx=3, sticky=tk.EW)
-        ttk.Button(btns, text="✏️ Edit (Open)", command=edit_cb, style='Select.TButton').grid(row=0, column=2, padx=3, sticky=tk.EW)
-        ttk.Button(btns, text="📄 Open File", command=edit_cb, style='Select.TButton').grid(row=0, column=3, padx=3, sticky=tk.EW)
-        ttk.Button(btns, text="🗑 Delete Todo", command=delete_cb, style='Select.TButton').grid(row=0, column=4, padx=3, sticky=tk.EW)
-        ttk.Button(btns, text="💾 Save (Title/Priority)", command=save_cb, style='Action.TButton').grid(row=0, column=5, padx=3, sticky=tk.EW)
-
-        # Double-click to open file
-        try:
-            pop_tree.bind('<Double-1>', lambda e: edit_cb())
-        except Exception:
-            pass
-
-    def todo_create(self):
-        # Step 1: Category selection popup
-        top = tk.Toplevel(self.root); top.title('Create ToDo')
-        frm = ttk.Frame(top, padding=8); frm.pack(fill=tk.BOTH, expand=True)
-        ttk.Label(frm, text='Select Category', style='CategoryPanel.TLabel').grid(row=0, column=0, columnspan=5, pady=(0,6))
-        choice = {'cat': None, 'prio': None, 'title': None, 'details': None}
-        def pick(cat): choice['cat']=cat; pick_prio()
-        for i,(label,cat) in enumerate((('Tasks','tasks'),('Bugs','bugs'),('Work-Orders','work_orders'),('Completed','completed'),('Notes','notes'))):
-            ttk.Button(frm, text=label, style='Action.TButton', command=lambda c=cat: pick(c)).grid(row=1, column=i, padx=4, pady=4, sticky=tk.EW)
-        def pick_prio():
-            for w in frm.winfo_children(): w.destroy()
-            if choice['cat']=='completed':
-                choice['prio']='low'
-                enter_title(); return
-            ttk.Label(frm, text='Set Priority', style='CategoryPanel.TLabel').grid(row=0,column=0,columnspan=3,pady=(0,6))
-            def setp(p): choice['prio']=p; enter_title()
-            ttk.Button(frm, text='High', style='Action.TButton', command=lambda: setp('high')).grid(row=1,column=0,padx=4,pady=4,sticky=tk.EW)
-            ttk.Button(frm, text='Medium', style='Action.TButton', command=lambda: setp('medium')).grid(row=1,column=1,padx=4,pady=4,sticky=tk.EW)
-            ttk.Button(frm, text='Low', style='Action.TButton', command=lambda: setp('low')).grid(row=1,column=2,padx=4,pady=4,sticky=tk.EW)
-        def enter_title():
-            for w in frm.winfo_children(): w.destroy()
-            ttk.Label(frm, text='Describe ToDo', style='CategoryPanel.TLabel').grid(row=0,column=0,sticky=tk.W)
-            title_var = tk.StringVar()
-            ent = ttk.Entry(frm, textvariable=title_var, width=48)
-            ent.grid(row=1,column=0,sticky=tk.EW,pady=4)
-            def next_details():
-                choice['title'] = (title_var.get() or '').strip()
-                if not choice['title']:
-                    messagebox.showerror('Create ToDo','Please enter a description.'); return
-                enter_details()
-            ttk.Button(frm, text='Next', style='Action.TButton', command=next_details).grid(row=2,column=0,sticky=tk.E, pady=6)
-            ent.focus_set()
-        def enter_details():
-            for w in frm.winfo_children(): w.destroy()
-            ttk.Label(frm, text='Details', style='CategoryPanel.TLabel').grid(row=0,column=0,sticky=tk.W)
-            txt = scrolledtext.ScrolledText(frm, height=12, wrap=tk.WORD, font=('Arial', 9), bg='#1e1e1e', fg='#dcdcdc')
-            txt.grid(row=1,column=0,sticky=tk.NSEW)
-            frm.rowconfigure(1, weight=1)
-            def save_all():
-                choice['details'] = txt.get('1.0', tk.END).strip()
-                # Build entry and save
-                if choice['cat'] == 'completed':
-                    self.todos.setdefault('completed', []).append({ 'text': choice['title'], 'details': choice['details'], 'type': 'task', 'priority': 'low' })
-                else:
-                    self.todos.setdefault(choice['cat'], []).append({ 'text': choice['title'], 'details': choice['details'], 'priority': choice['prio'], 'done': False })
-                self.save_settings_to_file(); self.refresh_todo_view(); top.destroy()
-            ttk.Button(frm, text='OK', style='Action.TButton', command=save_all).grid(row=2,column=0,sticky=tk.E, pady=6)
-        # Start flow
-        try:
-            top.transient(self.root); top.lift(); top.attributes('-topmost', True); self.root.after(400, lambda: top.attributes('-topmost', False))
-        except Exception:
-            pass
-        # Initialize category selection view
-        # (Callbacks proceed to next steps)
-
-    def todo_mark_complete(self):
-        """Move selected todo file to completed directory."""
-        sel = self._get_selected_todo()
-        if not sel:
-            messagebox.showinfo("No Selection", "Please select a todo (task/bug) to mark complete.")
-            return
-        category, filename = sel
-        if category not in ('tasks', 'bugs', 'work_orders', 'notes'):
-            messagebox.showinfo("Invalid Selection", "Select a task or bug, not a category header.")
-            return
-        if not messagebox.askyesno("Mark Complete", "Mark this todo as complete?"):
-            return
-        try:
-            from pathlib import Path
-            todo_dir = TODOS_DIR / category
-            filepath = todo_dir / filename
-            if filepath.exists():
-                move_todo_to_completed(filepath)
-            self.refresh_todo_view()
-        except Exception as e:
-            log_message(f"SETTINGS: Error marking complete: {e}")
-            messagebox.showerror("Error", f"Failed to mark complete: {e}")
-
-    def todo_edit(self):
-        """Open edit dialog for selected todo file."""
-        sel = self._get_selected_todo()
-        if not sel:
-            messagebox.showinfo("No Selection", "Please select a todo to edit.")
-            return
-        category, filename = sel
-        if category not in ('tasks', 'bugs', 'work_orders', 'notes'):
-            messagebox.showinfo("Invalid Selection", "Select a task or bug to edit.")
-            return
-        try:
-            from pathlib import Path
-            todo_dir = TODOS_DIR / category
-            filepath = todo_dir / filename
-            if not filepath.exists():
-                messagebox.showerror("Error", "Todo file not found.")
-                return
-
-            # Load todo from file
-            todo_data = read_todo_file(filepath)
-
-            # Edit popup with priority + title + details
-            top = tk.Toplevel(self.root)
-            top.title('Edit ToDo')
-            frm = ttk.Frame(top, padding=8)
-            frm.pack(fill=tk.BOTH, expand=True)
-
-            ttk.Label(frm, text='Priority', style='CategoryPanel.TLabel').grid(row=0, column=0, sticky=tk.W)
-            pr = tk.StringVar(value=todo_data.get('priority', 'low'))
-
-            def setp(v):
-                pr.set(v)
-
-            btnf = ttk.Frame(frm)
-            btnf.grid(row=0, column=1, sticky=tk.W)
-            ttk.Button(btnf, text='High', style='Action.TButton', command=lambda: setp('high')).pack(side=tk.LEFT, padx=2)
-            ttk.Button(btnf, text='Medium', style='Action.TButton', command=lambda: setp('medium')).pack(side=tk.LEFT, padx=2)
-            ttk.Button(btnf, text='Low', style='Action.TButton', command=lambda: setp('low')).pack(side=tk.LEFT, padx=2)
-
-            ttk.Label(frm, text='Title', style='CategoryPanel.TLabel').grid(row=1, column=0, sticky=tk.W, pady=(6, 0))
-            title_var = tk.StringVar(value=todo_data.get('title', ''))
-            ent = ttk.Entry(frm, textvariable=title_var, width=50)
-            ent.grid(row=1, column=1, sticky=tk.EW, pady=(6, 0))
-
-            ttk.Label(frm, text='Details', style='CategoryPanel.TLabel').grid(row=2, column=0, sticky=tk.W, pady=(6, 0))
-            txt = scrolledtext.ScrolledText(frm, height=10, wrap=tk.WORD, font=('Arial', 9), bg='#1e1e1e', fg='#dcdcdc')
-            txt.grid(row=2, column=1, sticky=tk.NSEW, pady=(6, 0))
-            frm.columnconfigure(1, weight=1)
-            frm.rowconfigure(2, weight=1)
-            txt.insert(tk.END, todo_data.get('details', ''))
-
-            def save_edits():
-                try:
-                    new_title = (title_var.get() or '').strip()
-                    new_priority = pr.get()
-                    new_details = txt.get('1.0', tk.END).strip()
-
-                    if not new_title:
-                        messagebox.showwarning("Missing Title", "Title cannot be empty.", parent=top)
-                        return
-
-                    # Update file (may rename if title changed)
-                    update_todo_file(filepath, new_title, new_priority, new_details)
-
-                    self.refresh_todo_view()
-                    top.destroy()
-                except Exception as e:
-                    log_message(f"SETTINGS: Error saving edits: {e}")
-                    messagebox.showerror("Error", f"Failed to save: {e}", parent=top)
-
-            ttk.Button(frm, text='Save', style='Action.TButton', command=save_edits).grid(row=3, column=1, sticky=tk.E, pady=6)
-        except Exception as e:
-            log_message(f"SETTINGS: Error in todo_edit: {e}")
-            messagebox.showerror("Error", f"Failed to open editor: {e}")
-
-    def todo_delete(self):
-        """Delete selected todo file."""
-        sel = self._get_selected_todo()
-        if not sel:
-            messagebox.showinfo("No Selection", "Please select a todo to delete.")
-            return
-        category, filename = sel
-        # Allow deleting from all categories including completed
-        if category not in ('tasks', 'bugs', 'work_orders', 'notes', 'completed'):
-            messagebox.showinfo("Invalid Selection", "Select an item to delete.")
-            return
-        if not messagebox.askyesno("Confirm Delete", "Delete selected todo?"):
-            return
-        try:
-            from pathlib import Path
-            todo_dir = TODOS_DIR / category
-            filepath = todo_dir / filename
-            if filepath.exists():
-                delete_todo_file(filepath)
-            self.refresh_todo_view()
-        except Exception as e:
-            log_message(f"SETTINGS: Error deleting todo: {e}")
-            messagebox.showerror("Error", f"Failed to delete: {e}")
 
     def get_setting(self, key, default=None):
         """Get a setting value"""
@@ -3757,6 +2568,8 @@ class {class_name}:
             ("Models Tab", "models_tab_enabled"),
             ("Settings Tab", "settings_tab_enabled"),
             ("Custom Code Tab", "custom_code_tab_enabled"),
+            ("Map Tab", "map_tab_enabled"),
+            ("Ag Knowledge Tab", "ag_forge_tab_enabled"),
         ]
 
         for display_name, setting_key in known_tabs:
@@ -3777,6 +2590,7 @@ class {class_name}:
         reorder_frame.pack(fill=tk.X, padx=10, pady=10)
 
         modes = [
+            ("Static", "static"),
             ("D&D", "dnd"),
             ("Arrow Buttons", "arrow")
         ]
@@ -3792,77 +2606,17 @@ class {class_name}:
             )
             rb.pack(fill=tk.X, padx=10, pady=2, anchor=tk.W)
 
-        # Save button to persist the current tab order
-        ttk.Button(
-            reorder_frame,
-            text="💾 Save Tab Order",
-            command=self.save_tab_order_now,
-            style='Action.TButton'
-        ).pack(fill=tk.X, padx=10, pady=(8, 4))
-
-    def save_tab_order_now(self):
-        """Capture current notebook tab order and persist to settings.json."""
-        if not self.main_gui or not hasattr(self.main_gui, 'notebook') or not self.tab_instances:
-            messagebox.showerror("Error", "Cannot save tab order. Internal components not found.")
-            return
-
-        notebook = self.main_gui.notebook
-        # Build order from current notebook tabs
-        new_tab_order = []
-        for tab_id in notebook.tabs():
-            for name, info in self.tab_instances.items():
-                if str(info['frame']) == tab_id:
-                    new_tab_order.append(name)
-                    break
-
-        if not new_tab_order:
-            messagebox.showerror("Error", "Could not determine current tab order.")
-            return
-
-        # Also capture per-tab panel orders (headers)
-        panel_orders = {}
-        for tab_name, meta in self.tab_instances.items():
-            nb = None
-            inst = meta.get('instance')
-            for attr in (
-                'training_notebook',   # TrainingTab
-                'sub_notebook',        # CustomCodeTab
-                'settings_notebook',   # SettingsTab
-                'model_info_notebook', # ModelsTab
-                'models_notebook'      # Fallback
-            ):
-                nb = getattr(inst, attr, None) if inst is not None else None
-                if nb is not None:
-                    break
-            if nb is None:
-                continue
-            headers = []
-            try:
-                for tid in nb.tabs():
-                    try:
-                        headers.append(nb.tab(tid, 'text'))
-                    except Exception:
-                        pass
-            except Exception:
-                pass
-            if headers:
-                panel_orders[tab_name] = headers
-
-        # Update in-memory settings and persist
-        self.settings['tab_order'] = new_tab_order
-        if panel_orders:
-            self.settings['panel_orders'] = panel_orders
-        try:
-            self.save_settings_to_file()
-            messagebox.showinfo("Tab Order Saved", "Tab order saved. Use Quick Restart to apply.")
-        except Exception as e:
-            messagebox.showerror("Save Error", f"Failed to save tab order: {e}")
-
     def _on_tab_visibility_changed(self):
         """Callback when a tab visibility checkbox is toggled."""
         # Immediately save settings to persist the change
         self.save_settings_to_file()
         messagebox.showinfo("Tab Visibility Changed", "Tab visibility settings saved. Please Quick Restart the application to apply changes.")
+
+    def _on_right_click_toggle(self):
+        """Callback when the global right-click menu toggle changes."""
+        enabled = self.right_click_enabled.get()
+        log_message(f"SETTINGS: Right-click menus {'enabled' if enabled else 'disabled'} globally.")
+        self.save_settings_to_file()
 
     def _on_reorder_mode_changed(self):
         """Callback when the reorder mode is changed."""
@@ -3877,32 +2631,21 @@ class {class_name}:
                 self.move_left_button.pack_forget()
                 self.move_right_button.pack_forget()
 
-        # Only show guidance when not programmatically toggled
-        if not getattr(self, '_suppress_reorder_popup', False):
-            if mode in ('arrow', 'dnd'):
-                messagebox.showinfo(
-                    "Reorder Mode",
-                    f"Reorder mode set to '{mode}'.\n\nChanges are temporary until you click 'Save Tab Order'."
-                )
+        if mode == 'static':
+            self.save_settings_to_file()
+            messagebox.showinfo("Settings Saved", "Tab order and reordering mode have been saved.")
+        else:
+            messagebox.showinfo("Reorder Mode Changed", f"Reorder mode set to '{mode}'.\n\nTab order changes are now temporary.\nSelect 'Static' to save the current order.")
 
     def move_tab(self, direction):
         """Move the selected tab left or right in the order, dynamically."""
         log_message(f"SETTINGS: move_tab called with direction: {direction}")
-        if not self.selected_tree_item:
-            log_message("SETTINGS: move_tab aborted - nothing selected.")
-            messagebox.showwarning("No Selection", "Please select a tab or panel from the tree to move.")
+        if not self.selected_tree_item or self.selected_tree_item['type'] != 'tab':
+            log_message("SETTINGS: move_tab aborted - no tab selected.")
+            messagebox.showwarning("No Tab Selected", "Please select a tab from the tree to move.")
             return
 
-        if self.selected_tree_item.get('type') == 'panel_header':
-            # Delegate to panel move within the tab's notebook
-            return self._move_panel_within_tab(direction)
-
-        if self.selected_tree_item.get('type') != 'tab':
-            log_message("SETTINGS: move_tab aborted - selection is not a main tab.")
-            messagebox.showwarning("Wrong Selection", "Select a main tab header to reorder tabs.")
-            return
-
-        selected_tab_dir_name = self.selected_tree_item.get('tab_name') or self.selected_tree_item['path'].name
+        selected_tab_dir_name = self.selected_tree_item['path'].name
         log_message(f"SETTINGS: Selected tab for move: {selected_tab_dir_name}")
 
         if not self.main_gui or not hasattr(self.main_gui, 'notebook') or not self.tab_instances:
@@ -3958,69 +2701,19 @@ class {class_name}:
 
         # Refresh the tree to show the new order based on the in-memory settings
         self.refresh_tabs_tree()
-
-    def _move_panel_within_tab(self, direction):
-        """Move selected panel header left/right inside its parent tab's notebook."""
-        try:
-            tab_name = self.selected_tree_item.get('tab_name')
-            header = self.selected_tree_item.get('panel_header')
-            if not tab_name or not header:
-                raise ValueError("Missing tab/panel selection")
-
-            if not self.tab_instances or tab_name not in self.tab_instances:
-                messagebox.showerror("Error", "Cannot reorder panels. Tab instance not found.")
-                return
-
-            instance = self.tab_instances[tab_name]['instance']
-            notebook = None
-            for attr in (
-                'training_notebook',
-                'sub_notebook',
-                'settings_notebook',
-                'model_info_notebook',
-                'models_notebook'
-            ):
-                nb = getattr(instance, attr, None)
-                if nb is not None:
-                    notebook = nb
+        
+        # Restore selection
+        if selected_tab_dir_name:
+            # Find the item with the matching path/name in the tree
+            for item in self.tabs_tree.get_children():
+                # Values are (path_str, type)
+                values = self.tabs_tree.item(item, 'values')
+                if values and Path(values[0]).name == selected_tab_dir_name:
+                    self.tabs_tree.selection_set(item)
+                    self.tabs_tree.focus(item)
+                    # Force update of inspector (on_tree_select should trigger, but to be safe)
+                    self.on_tree_select(None) 
                     break
-            if notebook is None:
-                messagebox.showerror("Error", "Selected tab has no panels to reorder.")
-                return
-
-            tab_ids = notebook.tabs()
-            current_index = None
-            for idx, tid in enumerate(tab_ids):
-                try:
-                    if notebook.tab(tid, 'text') == header:
-                        current_index = idx
-                        break
-                except Exception:
-                    continue
-            if current_index is None:
-                messagebox.showerror("Error", "Could not locate selected panel in the tab.")
-                return
-
-            new_index = current_index
-            if direction == 'left':
-                if current_index > 0:
-                    new_index = current_index - 1
-                else:
-                    return
-            elif direction == 'right':
-                if current_index < len(tab_ids) - 1:
-                    new_index = current_index + 1
-                else:
-                    return
-
-            tab_id = tab_ids[current_index]
-            notebook.insert(new_index, tab_id)
-
-            # Refresh the tree to reflect the new order
-            self.refresh_tabs_tree()
-        except Exception as e:
-            log_message(f"SETTINGS ERROR: Panel move failed: {e}")
-            messagebox.showerror("Error", f"Failed to reorder panel: {e}")
 
     def refresh_settings_tab(self):
         """Refresh the settings tab - reloads settings from file."""
@@ -4044,21 +2737,45 @@ class {class_name}:
             log_message("SETTINGS: User initiated Quick Restart. (Method entered)")
             # Call save_settings_to_file directly. It handles its own success/error messages.
             self.save_settings_to_file()
-                
+
+            # --- PRE-RESTART STATE FLUSH ---
+            try:
+                logger_util.flush_ux_events_to_disk()
+                log_message("SETTINGS: Quick Restart — flushed UX events to disk")
+                # Mark version stable (user chose restart, not crash)
+                _vm = recovery_util.load_version_manifest()
+                _cur = _vm.get("active_version")
+                if _cur:
+                    recovery_util.mark_version_status(_cur, "stable")
+                    logger_util.log_successful_launch(_cur)
+                    log_message(f"SETTINGS: Quick Restart — marked version {_cur} stable")
+            except Exception as _fe:
+                log_message(f"SETTINGS: Pre-restart flush error (non-fatal): {_fe}")
+
             # --- RESTART LOGIC ---
+            # Launch a fresh instance (no --quick-restart flag so version gate runs normally).
+            # Leave changes as pending (defer) — same as "Exit without saving" in on_closing.
+            # Then cleanly shut down this process via main_gui._do_shutdown().
             try:
                 main_script_path = DATA_DIR / "interactive_trainer_gui_NEW.py"
                 if not main_script_path.exists():
                     main_script_path = Path(sys.argv[0])
-    
+
                 python_executable = sys.executable
-                
+
                 log_message(f"SETTINGS:   - Executable: {python_executable}")
                 log_message(f"SETTINGS:   - Script: {main_script_path}")
-    
-                # Replace the current process with a new one
-                os.execl(python_executable, python_executable, str(main_script_path))
-    
+
+                import subprocess
+                subprocess.Popen([python_executable, str(main_script_path)])
+                log_message("SETTINGS: Quick Restart — launched fresh instance, shutting down current process")
+
+                # Cleanly shut down the current Tk process
+                if self.main_gui and hasattr(self.main_gui, '_do_shutdown'):
+                    self.main_gui._do_shutdown()
+                else:
+                    self.parent.winfo_toplevel().destroy()
+
             except Exception as e:
                 messagebox.showerror("Restart Failed", f"Could not restart the application: {e}")
                 log_message(f"SETTINGS ERROR: Restart failed: {e}")
@@ -4269,6 +2986,7 @@ class {class_name}:
         """Create the live debug feed tab with log history viewer."""
         parent.columnconfigure(0, weight=1)
         parent.rowconfigure(2, weight=1) # Row 0 for header, Row 1 for controls, Row 2 for log display
+        parent.rowconfigure(3, weight=0) # Row 3 for action panel (fixed height)
 
         # Header
         header = ttk.Frame(parent)
@@ -4281,7 +2999,7 @@ class {class_name}:
         controls_frame.columnconfigure(1, weight=1)
 
         ttk.Label(controls_frame, text="View Log History:", style='Config.TLabel').grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
-        
+
         self.log_file_var = tk.StringVar()
         self.log_file_combobox = ttk.Combobox(
             controls_frame,
@@ -4302,53 +3020,402 @@ class {class_name}:
         )
         self.debug_output.grid(row=2, column=0, sticky='nsew', padx=10, pady=(0, 10))
 
+        # #[Mark:PHASE_5_4_ACTION_PANEL] - Action panel for enriched changes
+        self.create_action_panel(parent)
+
         # Populate combobox and start polling
         self.populate_log_file_combobox()
         self.start_log_polling()
 
+    def create_action_panel(self, parent):
+        """
+        Creates the action panel at the bottom of Backups & Logs tab.
+        Shows latest enriched changes with risk coloring and action buttons.
+        #[Mark:PHASE_5_4_ACTION_PANEL_BUILD]
+        """
+        # Action panel frame
+        action_panel = ttk.Frame(parent, relief=tk.SUNKEN, height=220)
+        action_panel.grid(row=3, column=0, sticky='ew', padx=10, pady=(10, 10))
+        action_panel.grid_propagate(False)
+        action_panel.columnconfigure(0, weight=1)
+        action_panel.columnconfigure(1, weight=0)
+
+        # Left: Latest Changes List
+        list_frame = ttk.LabelFrame(action_panel, text="Latest Changes", padding=5)
+        list_frame.grid(row=0, column=0, sticky='nsew', padx=(0, 5))
+        list_frame.columnconfigure(0, weight=1)
+        list_frame.rowconfigure(0, weight=1)
+
+        # Treeview for changes (organized by file) - no height limit, fills available space
+        self.changes_tree = ttk.Treeview(
+            list_frame, selectmode='browse',
+            columns=('event_id', 'time', 'verb', 'tab', 'wherein'),
+            show='tree headings'
+        )
+        self.changes_tree.grid(row=0, column=0, sticky='nsew')
+
+        # Configure columns
+        self.changes_tree.column('#0', width=260, anchor='w')
+        self.changes_tree.column('event_id', width=0, anchor='w', stretch=False)  # Hidden storage
+        self.changes_tree.column('time', width=80, anchor='w')
+        self.changes_tree.column('verb', width=55, anchor='w')
+        self.changes_tree.column('tab', width=100, anchor='w')
+        self.changes_tree.column('wherein', width=160, anchor='w')
+        self.changes_tree.heading('#0', text='Event / File', anchor='w')
+        self.changes_tree.heading('event_id', text='ID', anchor='w')
+        self.changes_tree.heading('time', text='Time', anchor='w')
+        self.changes_tree.heading('verb', text='Type', anchor='w')
+        self.changes_tree.heading('tab', text='Owning Tab', anchor='w')
+        self.changes_tree.heading('wherein', text='Wherein', anchor='w')
+
+        # Scrollbar for treeview
+        scrollbar = ttk.Scrollbar(list_frame, command=self.changes_tree.yview)
+        scrollbar.grid(row=0, column=1, sticky='ns')
+        self.changes_tree.config(yscrollcommand=scrollbar.set)
+
+        # Bind tree selection event
+        self.changes_tree.bind('<<TreeviewSelect>>', self.on_change_tree_select)
+
+        # Store selected event_id for button handlers
+        self.selected_event_id = None
+
+        # Status label + manual refresh button (below tree)
+        status_frame = ttk.Frame(list_frame)
+        status_frame.grid(row=1, column=0, columnspan=2, sticky='ew', padx=5, pady=(5, 0))
+        self.changes_status_label = ttk.Label(status_frame, text="Scroll to see all files →", font=('Arial', 8))
+        self.changes_status_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        ttk.Button(status_frame, text="🔄 Refresh", command=self.refresh_changes_list, width=8).pack(side=tk.RIGHT)
+
+        # Right: Action Buttons
+        button_frame = ttk.Frame(action_panel)
+        button_frame.grid(row=0, column=1, sticky='n', padx=(5, 0))
+
+        ttk.Button(
+            button_frame,
+            text="↶ Undo\nChange",
+            command=self.on_undo_selected_change,
+            width=12
+        ).pack(pady=5)
+
+        ttk.Button(
+            button_frame,
+            text="🔍 View\nBlame",
+            command=self.on_view_blame,
+            width=12
+        ).pack(pady=5)
+
+        ttk.Button(
+            button_frame,
+            text="⚠ Risk\nDetail",
+            command=self.on_show_risk,
+            width=12
+        ).pack(pady=5)
+
+        # Populate initial list
+        self.refresh_changes_list()
+
+        # Start auto-refresh polling
+        self.start_changes_polling()
+
+    def refresh_changes_list(self):
+        """Populate changes tree with per-file grouping of enriched events."""
+        # Clear the tree
+        for item in self.changes_tree.get_children():
+            self.changes_tree.delete(item)
+
+        try:
+            from pathlib import Path
+            from datetime import datetime
+            version_manifest_path = Path(__file__).parent.parent.parent / "backup" / "version_manifest.json"
+            if not version_manifest_path.exists():
+                self.changes_tree.insert('', 'end', text="No version manifest found", values=('', ''))
+                return
+
+            import json, time
+            # Retry once on JSON parse error (race with concurrent atomic save)
+            for _attempt in range(2):
+                try:
+                    with open(version_manifest_path, 'r') as f:
+                        self.current_manifest = json.load(f)
+                    break
+                except json.JSONDecodeError:
+                    if _attempt == 0:
+                        time.sleep(0.3)
+                    else:
+                        self.changes_tree.insert('', 'end', text="Manifest temporarily unreadable — retry in a moment", values=('', ''))
+                        return
+
+            # Get enriched changes
+            enriched = self.current_manifest.get("enriched_changes", {})
+
+            if not enriched:
+                self.changes_tree.insert('', 'end', text="No changes recorded yet", values=('', ''))
+                return
+
+            # Group events by file
+            file_events = {}
+            for event_id, change in enriched.items():
+                file_path = change.get('file', 'Unknown')
+                if file_path not in file_events:
+                    file_events[file_path] = []
+                file_events[file_path].append((event_id, change))
+
+            # Sort files by most recent event timestamp (newest first)
+            def get_latest_timestamp(file_path):
+                events = file_events[file_path]
+                timestamps = []
+                for _, change in events:
+                    ts = change.get('timestamp', '')
+                    if ts:
+                        timestamps.append(ts)
+                return max(timestamps) if timestamps else ''
+            sorted_files = sorted(file_events.keys(), key=get_latest_timestamp, reverse=True)
+
+            # Build owning-tab lookup cache: file basename → tab name
+            _tab_cache = {}
+            for _tname, _treg in logger_util.TAB_REGISTRY.items():
+                _src = _treg.get('source_file', '') or ''
+                if _src:
+                    import os as _os
+                    _tab_cache[_os.path.basename(_src)] = _tname
+
+            for file_path in sorted_files:
+                events = file_events[file_path]
+                # Sort events by event ID (newest first)
+                events.sort(key=lambda x: x[0], reverse=True)
+
+                # Resolve owning tab for this file
+                file_basename = file_path.split('/')[-1] if '/' in file_path else file_path
+                owning_tab_name = _tab_cache.get(file_basename, '—')
+
+                # Insert file node
+                file_short = file_basename
+                file_node_text = f"📁 {file_short} [{len(events)} events]"
+                try:
+                    file_node = self.changes_tree.insert('', 'end', text=file_node_text,
+                                                         values=('', '', '', owning_tab_name, ''),
+                                                         tags=('file_node',))
+                except Exception as file_error:
+                    logger_util.log_message(f"SETTINGS_TAB: ERROR inserting file node for {file_path}: {file_error}")
+                    continue
+
+                # Insert event nodes under file
+                for event_id, change in events:
+                    try:
+                        risk = change.get('risk_level', 'UNKNOWN')
+                        risk_symbol = {'CRITICAL': '🔴', 'HIGH': '🟠', 'MEDIUM': '🟡', 'LOW': '🟢'}.get(risk, '⚪')
+                        timestamp = change.get('timestamp', 'N/A')
+                        verb = change.get('verb', 'unknown')
+
+                        # Format time for display
+                        try:
+                            dt = datetime.fromisoformat(timestamp)
+                            time_str = dt.strftime('%H:%M:%S')
+                        except:
+                            time_str = 'N/A'
+
+                        # Wherein: explicit field, or construct from classes/lines if present
+                        wherein = change.get('wherein', '')
+                        if not wherein:
+                            classes = change.get('classes', [])
+                            lines = change.get('lines', [])
+                            if classes:
+                                wherein = f"∈ {classes[0]}"
+                                if lines:
+                                    wherein += f":{lines[0]}"
+                            elif lines:
+                                wherein = f"line {lines[0]}"
+
+                        event_text = f"{risk_symbol} {event_id}"
+                        event_node = self.changes_tree.insert(file_node, 'end', text=event_text,
+                                                              values=(event_id, time_str, verb, owning_tab_name, wherein),
+                                                              tags=('event_node',))
+                    except Exception as e:
+                        logger_util.log_message(f"SETTINGS_TAB: Error formatting event {event_id}: {e}")
+                        continue
+
+            # Expand all file nodes so events are visible
+            for item in self.changes_tree.get_children():
+                self.changes_tree.item(item, open=True)
+
+            # Update status label
+            self.changes_status_label.config(
+                text=f"{len(enriched)} events across {len(file_events)} files"
+            )
+
+        except Exception as e:
+            logger_util.log_message(f"SETTINGS_TAB: Error in refresh_changes_list: {e}")
+            import traceback
+            logger_util.log_message(f"SETTINGS_TAB: Traceback: {traceback.format_exc()}")
+            self.changes_tree.insert('', 'end', text=f"Error loading changes: {str(e)}", values=('', '', '', ''))
+
+    def on_change_tree_select(self, event=None):
+        """Handle tree selection - enable undo only for event nodes."""
+        try:
+            selection = self.changes_tree.selection()
+            if not selection:
+                self.selected_event_id = None
+                return
+
+            item = selection[0]
+            tags = self.changes_tree.item(item, 'tags')
+            values = self.changes_tree.item(item, 'values')
+
+            if 'event_node' in tags and values:
+                # Event node selected - extract event_id from first value
+                self.selected_event_id = values[0]
+            else:
+                # File node selected
+                self.selected_event_id = None
+
+        except Exception as e:
+            logger_util.log_message(f"SETTINGS_TAB: Error in on_change_tree_select: {e}")
+            self.selected_event_id = None
+
+    def _extract_event_id(self, selection_index):
+        """Extract event_id from listbox entry text."""
+        try:
+            entry_text = self.changes_listbox.get(selection_index)
+            # Format: "🔴 #[Event:0001] | file | verb | feature"
+            # Split by | and extract the event_id from first part
+            parts = entry_text.split('|')
+            if parts:
+                event_part = parts[0].strip()
+                # Extract event_id like "#[Event:0001]"
+                import re
+                match = re.search(r'#\[Event:\d+\]', event_part)
+                if match:
+                    return match.group(0)
+            return None
+        except Exception as e:
+            logger_util.log_message(f"SETTINGS_TAB: Error extracting event_id: {e}")
+            return None
+
+    def on_undo_selected_change(self):
+        """Handle undo button click - launch unified undo dialog."""
+        if not self.selected_event_id:
+            messagebox.showwarning("No Selection", "Please select a change to undo")
+            return
+
+        event_id = self.selected_event_id
+
+        try:
+            # Import and show undo dialog
+            from .undo_changes import UndoChangesDialog
+
+            logger_util.log_message(f"SETTINGS_TAB: Opening undo dialog for {event_id}")
+            dialog = UndoChangesDialog(self.parent, event_id, self.current_manifest)
+
+            # Refresh list after undo
+            if dialog.result:
+                logger_util.log_message(f"SETTINGS_TAB: Undo completed, refreshing list")
+                self.refresh_changes_list()
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to open undo dialog: {str(e)}")
+            logger_util.log_message(f"SETTINGS_TAB: Error opening undo dialog: {e}")
+
+    def on_view_blame(self):
+        """Handle view blame button click - opens undo dialog with Blame & Risk tab."""
+        if not self.selected_event_id:
+            messagebox.showwarning("No Selection", "Please select a change to analyze")
+            return
+        self._open_undo_dialog_for_event(self.selected_event_id, initial_tab="blame_risk")
+
+    def on_show_risk(self):
+        """Handle show risk button click - opens undo dialog with Blame & Risk tab."""
+        if not self.selected_event_id:
+            messagebox.showwarning("No Selection", "Please select a change to analyze")
+            return
+        self._open_undo_dialog_for_event(self.selected_event_id, initial_tab="blame_risk")
+
+    def _open_undo_dialog_for_event(self, event_id, initial_tab=None):
+        """Open the unified undo dialog for a given event."""
+        try:
+            from .undo_changes import UndoChangesDialog
+            dialog = UndoChangesDialog(self.parent, event_id, self.current_manifest, initial_tab=initial_tab)
+            if dialog.result:
+                self.refresh_changes_list()
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to open dialog: {str(e)}")
+            logger_util.log_message(f"SETTINGS_TAB: Error opening dialog for {event_id}: {e}")
+
     def populate_log_file_combobox(self):
-        """Populates the combobox with available log files, sorting them and labeling the current session's log as 'Live Log'."""
-        log_dir = DATA_DIR / "DeBug"
-        self.log_file_paths.clear() # Clear previous mappings
+        """Populates the combobox with log files from BOTH DeBug directories.
+        Scans:
+          1. Trainer/DeBug/  — logger_util live logs (primary since ~Feb 17)
+          2. Trainer/Data/DeBug/ — legacy logs + startup wrapper + training debug
+        Sections the dropdown: Live Log first, then primary, separator, legacy.
+        """
+        self.log_file_paths.clear()
 
-        if not log_dir.exists():
+        # Two log directories: primary (logger_util) and legacy (Data/DeBug)
+        from pathlib import Path as _P
+        _primary_dir = _P(logger_util.get_log_file_path()).parent if logger_util.get_log_file_path() else None
+        _legacy_dir = DATA_DIR / "DeBug"
+
+        # Gather files from both dirs
+        _primary_files = []
+        _legacy_files = []
+        if _primary_dir and _primary_dir.exists():
+            _primary_files = glob.glob(str(_primary_dir / 'debug_log_*.txt'))
+        if _legacy_dir.exists():
+            _legacy_files = glob.glob(str(_legacy_dir / 'debug_log_*.txt'))
+            # Also include startup wrapper logs
+            _legacy_files += glob.glob(str(_legacy_dir / 'startup_wrapper_temp_*.log'))
+
+        # Deduplicate if dirs happen to be the same
+        _primary_set = set(_primary_files)
+        _legacy_files = [f for f in _legacy_files if f not in _primary_set]
+
+        _primary_files.sort(key=os.path.getctime, reverse=True)
+        _legacy_files.sort(key=os.path.getctime, reverse=True)
+
+        if not _primary_files and not _legacy_files:
             self.log_file_combobox['values'] = []
             self.log_file_var.set("No logs found")
             return
 
-        list_of_files = glob.glob(str(log_dir / 'debug_log_*.txt'))
-        if not list_of_files:
-            self.log_file_combobox['values'] = []
-            self.log_file_var.set("No logs found")
-            return
-
-        list_of_files.sort(key=os.path.getctime, reverse=True)
-        
         display_names = []
-        current_session_log_path = logger_util.get_log_file_path() # Get the path of the current session's log
+        current_session_log_path = logger_util.get_log_file_path()
 
-        for f_path in list_of_files:
+        # Section 1: Primary logs (Live + recent)
+        for f_path in _primary_files:
             if str(f_path) == current_session_log_path:
-                display_name = "Live Log"
+                display_name = "★ Live Log"
             else:
                 display_name = os.path.basename(f_path)
             display_names.append(display_name)
             self.log_file_paths[display_name] = str(f_path)
 
+        # Section separator + Legacy logs
+        if _legacy_files:
+            sep_name = "── Data/DeBug (legacy + startup) ──"
+            display_names.append(sep_name)
+            self.log_file_paths[sep_name] = ""  # Non-selectable marker
+
+            for f_path in _legacy_files[:30]:  # Cap legacy display
+                display_name = f"[legacy] {os.path.basename(f_path)}"
+                display_names.append(display_name)
+                self.log_file_paths[display_name] = str(f_path)
+
         self.log_file_combobox['values'] = display_names
-        
-        # Select 'Live Log' by default if it exists, otherwise the latest file
-        if "Live Log" in display_names:
-            self.log_file_var.set("Live Log")
+
+        # Select Live Log by default
+        if "★ Live Log" in display_names:
+            self.log_file_var.set("★ Live Log")
         elif display_names:
             self.log_file_var.set(display_names[0])
-        
-        self.on_log_file_selected() # Load the selected log
+
+        self.on_log_file_selected()
 
     def on_log_file_selected(self, event=None):
         """Handles selection of a log file from the combobox, displaying its content and managing polling."""
         selected_display_name = self.log_file_var.get()
         if not selected_display_name or selected_display_name == "No logs found":
+            return
+        # Skip separator entries
+        if selected_display_name.startswith("──"):
             return
 
         # Stop live polling initially
@@ -4392,7 +3459,13 @@ class {class_name}:
             self.debug_output.config(state=tk.DISABLED)
 
         # If the selected file is the current session's log, restart live polling
-        if self.current_log_file == logger_util.get_log_file_path():
+        # Compare resolved paths to handle symlinks/relative mismatches
+        try:
+            _is_live = (Path(self.current_log_file).resolve()
+                       == Path(logger_util.get_log_file_path()).resolve())
+        except Exception:
+            _is_live = self.current_log_file == logger_util.get_log_file_path()
+        if _is_live:
             self.start_log_polling() # Restart polling for the live log
 
     # --- Evaluation Policy UI ---
@@ -4434,31 +3507,65 @@ class {class_name}:
             self.parent.after_cancel(self.log_poll_job)
             self.log_poll_job = None
 
+    def start_changes_polling(self):
+        """Start periodic polling of the version manifest for changes."""
+        if self.changes_poll_job:
+            self.parent.after_cancel(self.changes_poll_job)
+        self.poll_changes_list()
+
+    def stop_changes_polling(self):
+        """Stop periodic polling of the version manifest."""
+        if self.changes_poll_job:
+            self.parent.after_cancel(self.changes_poll_job)
+            self.changes_poll_job = None
+
+    def poll_changes_list(self):
+        """Check if manifest changed and refresh the changes tree if so."""
+        try:
+            from pathlib import Path
+            version_manifest_path = Path(__file__).parent.parent.parent / "backup" / "version_manifest.json"
+
+            if version_manifest_path.exists():
+                current_mtime = version_manifest_path.stat().st_mtime
+                # Only refresh if modification time changed
+                if self.last_manifest_mtime is None or current_mtime != self.last_manifest_mtime:
+                    self.last_manifest_mtime = current_mtime
+                    self.refresh_changes_list()
+        except Exception as e:
+            logger_util.log_message(f"SETTINGS_TAB: Error in poll_changes_list: {e}")
+
+        # Schedule next poll (every 8 seconds)
+        self.changes_poll_job = self.parent.after(8000, self.poll_changes_list)
+
     def poll_log_file(self):
         """Checks the current log file for new content and updates the display. Only polls if viewing the live log."""
-        # Only poll if the currently viewed log is the live log
-        if self.current_log_file != logger_util.get_log_file_path():
-            self.log_poll_job = self.parent.after(2000, self.poll_log_file) # Keep scheduling to re-check if it becomes live
+        # Only poll if the currently viewed log is the live log (resolve paths for cross-dir match)
+        try:
+            _is_live = (Path(self.current_log_file).resolve()
+                       == Path(logger_util.get_log_file_path()).resolve())
+        except Exception:
+            _is_live = self.current_log_file == logger_util.get_log_file_path()
+        if not _is_live:
+            self.log_poll_job = self.parent.after(2000, self.poll_log_file)
             return
 
-        log_dir = DATA_DIR / "DeBug"
-        list_of_files = glob.glob(str(log_dir / 'debug_log_*.txt'))
+        # Use the actual live log directory (from logger_util), not DATA_DIR
+        _live_dir = Path(logger_util.get_log_file_path()).parent
+        list_of_files = glob.glob(str(_live_dir / 'debug_log_*.txt'))
         if not list_of_files:
             self.debug_output.config(state=tk.NORMAL)
             self.debug_output.delete(1.0, tk.END)
             self.debug_output.insert(tk.END, "No log files found in DeBug directory.")
             self.debug_output.config(state=tk.DISABLED)
-            self.log_poll_job = self.parent.after(2000, self.poll_log_file) # Keep polling
+            self.log_poll_job = self.parent.after(2000, self.poll_log_file)
             return
 
         # Ensure we are always polling the actual latest file if 'Live Log' is selected
         actual_latest_file = max(list_of_files, key=os.path.getctime)
         if self.current_log_file != actual_latest_file:
-            # This should ideally not happen if on_log_file_selected correctly sets current_log_file to the live one
-            # But as a safeguard, if the live log file changes (e.g., app restart), update.
             self.current_log_file = actual_latest_file
             self.last_read_position = 0
-            self.log_file_var.set("Live Log") # Ensure combobox shows Live Log
+            self.log_file_var.set("★ Live Log")
             self.debug_output.config(state=tk.NORMAL)
             self.debug_output.delete(1.0, tk.END)
             self.debug_output.insert(tk.END, f"--- Switched to live log: {os.path.basename(actual_latest_file)} ---\n\n")
@@ -4505,7 +3612,7 @@ class {class_name}:
 
         canvas.bind("<Configure>", lambda e: canvas.itemconfig(canvas_window, width=e.width))
 
-        # Header + Blueprint selector toolbar
+        # Header
         header_section = ttk.Frame(content_frame)
         header_section.pack(fill=tk.X, padx=10, pady=10)
         ttk.Label(
@@ -4513,233 +3620,13 @@ class {class_name}:
             text="🗺️ OpenCode Trainer System Architecture",
             font=("Arial", 14, "bold"),
             foreground='#4db8ff'
-        ).grid(row=0, column=0, columnspan=4, sticky=tk.W)
+        ).pack(anchor=tk.W)
         ttk.Label(
             header_section,
             text="Complete End-to-End Integrated Training Pipeline",
             font=("Arial", 10),
             foreground='#888888'
-        ).grid(row=1, column=0, columnspan=4, sticky=tk.W, pady=(0,4))
-
-        # Blueprint selector row
-        header_section.columnconfigure(1, weight=1)
-        ttk.Label(header_section, text='Blueprint:', style='CategoryPanel.TLabel').grid(row=2, column=0, sticky=tk.W, padx=(0,6))
-        self.bp_select_var = tk.StringVar()
-        self.bp_selector = ttk.Combobox(header_section, textvariable=self.bp_select_var, state='readonly')
-        self.bp_selector.grid(row=2, column=1, sticky=tk.EW)
-        ttk.Button(header_section, text='Update Blueprint', style='Select.TButton', command=lambda: self._clone_increment_blueprint()).grid(row=2, column=2, padx=6)
-        ttk.Button(header_section, text='Edit', style='Action.TButton', command=lambda: self._open_blueprint_editor()).grid(row=2, column=3)
-
-        # Blueprint preview area
-        preview_frame = ttk.LabelFrame(content_frame, text='📄 Blueprint Preview', style='TLabelframe')
-        preview_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0,10))
-        preview_frame.columnconfigure(0, weight=1)
-        preview_frame.rowconfigure(0, weight=1)
-        self.bp_preview = scrolledtext.ScrolledText(preview_frame, wrap=tk.WORD, font=("Arial", 9), bg="#1e1e1e", fg="#dcdcdc")
-        self.bp_preview.grid(row=0, column=0, sticky=tk.NSEW)
-
-        # Helper methods for blueprints
-        def _registry_path():
-            return Path('extras/blueprints/blueprint_registry.txt')
-
-        def _list_blueprints_from_fs():
-            base = Path('extras/blueprints')
-            files = []
-            try:
-                for p in sorted(base.glob('Trainer_Blue_Print_*.txt')):
-                    files.append(p.name)
-            except Exception:
-                pass
-            return files
-
-        def _read_registry():
-            rp = _registry_path()
-            if rp.exists():
-                try:
-                    return [ln.strip() for ln in rp.read_text().splitlines() if ln.strip() and not ln.strip().startswith('#')]
-                except Exception:
-                    return []
-            # bootstrap registry with FS scan
-            return _list_blueprints_from_fs()
-
-        def _write_registry(names):
-            try:
-                Path('extras/blueprints').mkdir(parents=True, exist_ok=True)
-                _registry_path().write_text('\n'.join(names) + '\n')
-            except Exception:
-                pass
-
-        def _set_preview(text):
-            try:
-                self.bp_preview.config(state=tk.NORMAL)
-                self.bp_preview.delete('1.0', tk.END)
-                self.bp_preview.insert(tk.END, text)
-                self.bp_preview.config(state=tk.DISABLED)
-            except Exception:
-                pass
-
-        def _load_selected_into_preview():
-            sel = self.bp_select_var.get().strip()
-            if not sel:
-                _set_preview('')
-                return
-            path = Path('extras/blueprints')/sel
-            try:
-                txt = path.read_text()
-            except Exception as e:
-                txt = f"Failed to load {path}: {e}"
-            _set_preview(txt)
-
-        def _parse_version_from_name(name):
-            import re
-            m = re.search(r'v(\d+)\.(\d+)', name)
-            if not m:
-                return None
-            return int(m.group(1)), int(m.group(2))
-
-        def _bump_minor(v):
-            if not v:
-                return (2, 1)
-            return (v[0], v[1] + 1)
-
-        def _update_content_version(text, new_ver_tuple):
-            new_ver = f"{new_ver_tuple[0]}.{new_ver_tuple[1]}"
-            lines = text.splitlines()
-            out = []
-            from datetime import date
-            today = date.today().isoformat()
-            for ln in lines:
-                if ln.strip().startswith('Version:'):
-                    out.append(f"  Version: {new_ver}")
-                elif 'Blueprint v' in ln:
-                    # e.g., "OpenCode Trainer System - Blueprint v2.0"
-                    import re
-                    out.append(re.sub(r'Blueprint v\d+\.\d+', f'Blueprint v{new_ver}', ln))
-                elif ln.strip().startswith('Date:'):
-                    out.append(f"  Date: {today}")
-                else:
-                    out.append(ln)
-            return '\n'.join(out) + ('\n' if text.endswith('\n') else '')
-
-        def _ensure_registry_seeded():
-            names = _read_registry()
-            if not names:
-                names = _list_blueprints_from_fs()
-            if not names:
-                # create seed with v2.0 if missing
-                seed = 'Trainer_Blue_Print_v2.0.txt'
-                if (Path('extras/blueprints')/seed).exists():
-                    names = [seed]
-            _write_registry(names)
-            return names
-
-        def _refresh_selector(select_name=None):
-            names = _ensure_registry_seeded()
-            self.bp_selector['values'] = names
-            # default to last entry if none selected
-            if select_name and select_name in names:
-                self.bp_select_var.set(select_name)
-            elif not self.bp_select_var.get() and names:
-                self.bp_select_var.set(names[-1])
-            _load_selected_into_preview()
-
-        # Bind events and expose handlers on self
-        self._refresh_blueprint_selector = _refresh_selector
-        self._load_blueprint_into_preview = _load_selected_into_preview
-        self._read_blueprint_registry = _read_registry
-        self._write_blueprint_registry = _write_registry
-        self._parse_bp_version = _parse_version_from_name
-        self._bump_bp_minor = _bump_minor
-        self._update_content_version = _update_content_version
-
-        try:
-            self.bp_selector.bind('<<ComboboxSelected>>', lambda e: _load_selected_into_preview())
-        except Exception:
-            pass
-
-        # Public methods: clone/update and editor
-        def _clone_increment_blueprint():
-            names = _read_registry()
-            sel = self.bp_select_var.get().strip() or (names[-1] if names else '')
-            if not sel:
-                messagebox.showinfo('Update Blueprint', 'No blueprint selected.')
-                return
-            src = Path('extras/blueprints')/sel
-            if not src.exists():
-                messagebox.showerror('Update Blueprint', f'Source file not found: {src}')
-                return
-            v = _parse_version_from_name(sel)
-            new_v = _bump_minor(v)
-            base = 'Trainer_Blue_Print'
-            new_name = f"{base}_v{new_v[0]}.{new_v[1]}.txt"
-            dst = Path('extras/blueprints')/new_name
-            if dst.exists():
-                messagebox.showerror('Update Blueprint', f'Target exists: {dst.name}')
-                return
-            try:
-                text = src.read_text()
-                updated = _update_content_version(text, new_v)
-                dst.write_text(updated)
-            except Exception as e:
-                messagebox.showerror('Update Blueprint', f'Failed to clone: {e}')
-                return
-            # Update registry
-            names.append(new_name)
-            _write_registry(names)
-            # Refresh selector and preview to new file
-            _refresh_selector(select_name=new_name)
-            messagebox.showinfo('Update Blueprint', f'Created {new_name}')
-
-        def _open_blueprint_editor():
-            sel = self.bp_select_var.get().strip()
-            if not sel:
-                messagebox.showinfo('Edit Blueprint', 'No blueprint selected.')
-                return
-            path = Path('extras/blueprints')/sel
-            top = tk.Toplevel(self.root); top.title(f'Edit: {sel}')
-            frm = ttk.Frame(top, padding=8); frm.pack(fill=tk.BOTH, expand=True)
-            frm.columnconfigure(0, weight=1); frm.rowconfigure(0, weight=1)
-            txt = scrolledtext.ScrolledText(frm, wrap=tk.WORD, font=("Arial", 9), bg='#1e1e1e', fg='#dcdcdc')
-            txt.grid(row=0, column=0, sticky=tk.NSEW)
-            btns = ttk.Frame(frm); btns.grid(row=1, column=0, sticky=tk.E)
-            def _save():
-                try:
-                    path.write_text(txt.get('1.0', tk.END))
-                    # refresh preview
-                    _load_selected_into_preview()
-                    messagebox.showinfo('Save', 'Blueprint saved.')
-                except Exception as e:
-                    messagebox.showerror('Save Failed', str(e))
-            def _copy():
-                try:
-                    self.root.clipboard_clear()
-                    self.root.clipboard_append(txt.get('1.0', tk.END))
-                    messagebox.showinfo('Copied', 'Blueprint copied to clipboard.')
-                except Exception:
-                    pass
-            ttk.Button(btns, text='Copy to Clipboard', style='Select.TButton', command=_copy).pack(side=tk.RIGHT, padx=4)
-            ttk.Button(btns, text='Save', style='Action.TButton', command=_save).pack(side=tk.RIGHT, padx=4)
-            try:
-                txt.insert(tk.END, path.read_text())
-            except Exception as e:
-                txt.insert(tk.END, f'Failed to open {path}: {e}')
-
-        # Attach methods to instance for button callbacks
-        self._clone_increment_blueprint = _clone_increment_blueprint
-        self._open_blueprint_editor = _open_blueprint_editor
-
-        # Seed registry file if missing and load selector
-        try:
-            Path('extras/blueprints').mkdir(parents=True, exist_ok=True)
-            # Ensure registry includes v2.0 at least
-            reg = _ensure_registry_seeded()
-            if not reg:
-                # create registry pointing to v2.0 if exists
-                if (Path('extras/blueprints')/'Trainer_Blue_Print_v2.0.txt').exists():
-                    _write_registry(['Trainer_Blue_Print_v2.0.txt'])
-            self._refresh_blueprint_selector()
-        except Exception:
-            pass
+        ).pack(anchor=tk.W)
 
         # Overview Section
         overview_section = ttk.LabelFrame(content_frame, text="📋 System Overview", style='TLabelframe')
@@ -4961,42 +3848,6 @@ JSONL Format (training data):
         )
         dataflow_label.pack(padx=10, pady=10, anchor=tk.W)
 
-        # Development Blueprint v2 Section (Internal)
-        dev_section = ttk.LabelFrame(content_frame, text="🧭 Development Blueprint (v2)", style='TLabelframe')
-        dev_section.pack(fill=tk.X, padx=10, pady=10)
-
-        dev_text = """SCOPE & STATUS (Internal Artifact)
-
-COMPLETED IN V2
-• Temperature Controls: Legacy header controls removed; Manual/Auto persisted; bottom indicator authoritative and accurate; metadata includes temp_mode; Quick View shows Temp Mode.
-• Conversations QoL: Rename Chat (Chat + Projects); Projects bottom indicators de-duplicated.
-• ToDo v2: Categories (Tasks, Bugs, Work-Orders, Notes, Completed); priority (High/Medium/Low) with colors; creation flow (Category→Priority→Title→Details); inline edit; Mark Complete → green Completed.
-
-IN FLIGHT
-• Agents Panel: Receive selections from Collections; display, select, and persist agent sets.
-• Orchestrator Wiring: Agent types bound to type-variant training pipeline; expose tool chain controls; log telemetry.
-• Dataset Auto-Generation: Profiles per type variant; synthetic generation with provenance; versioned storage.
-• Evaluation Suites: Registry, schema-aware checks, multi-metric scoring; trend and baseline compare.
-• End-to-End Pipeline: Agents → Profiles → Training → Eval → Compare; resumable runs and artifact indexing.
-
-REMOVED (REDUNDANT)
-• Legacy temperature header label/slider/icon (functional duplicate of Quick Actions popup + indicator).
-
-NOTES
-• UI state keys: extend the indicator state-key pattern used for temperature to other indicators to avoid duplication across tabs.
-• Docs: See extras/blueprints/Trainer_Blue_Print_v2.0.txt for full external blueprint; this section reflects the GUI-internal dev plan.
-"""
-
-        dev_label = ttk.Label(
-            dev_section,
-            text=dev_text,
-            font=("Arial", 9),
-            foreground='#b8e2ff',
-            justify=tk.LEFT,
-            wraplength=700
-        )
-        dev_label.pack(padx=10, pady=10, anchor=tk.W)
-
     def create_help_tab(self, parent):
         """Create Help & Guide tab"""
         parent.columnconfigure(0, weight=1)
@@ -5120,21 +3971,6 @@ BEST PRACTICES:
 • Disable for production use after sufficient data collected
 • Use diverse tasks to cover multiple tool types
 • Review Models Tab regularly to check skill improvement
-
-AUTO‑TRAINING (Hands‑Free, Custom Code → Training → Models):
-• Quick Actions (⚙️) → 🏋️ Training Mode ON (button turns green)
-• Failures/refusals generate strict JSONL automatically (Tools/auto_runtime_*.jsonl)
-• Training tab auto‑selects dataset and saves profile
-• If auto‑start is ON (Settings → Training), training begins immediately
-• Progress popup shows run/percent; “View Logs” focuses Runner
-• After training complete, export + re‑eval can run automatically (Models tab handler)
-• Per‑chat Tools: ⚙️ → 🔧 lets you override tool set for this chat (diff summary printed in Chat)
-
-FAILURE MODES & FIXES:
-• Mount failed: Ensure a model is selected (right panel) and Ollama is reachable; errors show stderr/stdout in Chat.
-• No dataset generated: Most recent interaction had no failing/ refusal cases — try a task that exercises tools or enable more tools.
-• No re‑eval context: The system applies a strict fallback (suite/prompt/schema) based on variant type.
-• Pane resizing: If panes disappear, lock widths (🔒) to persist defaults and disable drag.
 
 DATA PRIVACY:
 All data stays local on your machine. Nothing is sent externally."""

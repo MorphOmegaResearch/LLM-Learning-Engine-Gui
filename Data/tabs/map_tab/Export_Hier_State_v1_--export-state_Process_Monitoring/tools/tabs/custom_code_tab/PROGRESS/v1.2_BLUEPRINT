@@ -1,0 +1,413 @@
+ OPENCODE v1.2 - COMPLETE SYSTEM FLOW TREE
+
+  ══════════════════════════════════════════════════════════════════════════
+  ══
+                            PRIORITY 0: INITIALIZATION
+  ══════════════════════════════════════════════════════════════════════════
+  ══
+
+  ┌─── SYSTEM BOOT ───┐
+  │                   │
+  ├─→ [1] Load Configuration (config.py)
+  │   ├─→ config.yaml (user settings)
+  │   ├─→ Runtime profiles (resource limits)
+  │   ├─→ Tool enablement list
+  │   └─→ System prompt template
+  │
+  ├─→ [2] Initialize Core Managers
+  │   ├─→ OllamaClient (model connection)
+  │   │   └─→ Set keep_alive: 5m (model caching)
+  │   ├─→ ToolManager (21+ tools)
+  │   │   └─→ Instantiate all enabled tools
+  │   ├─→ ConversationHistory (session memory)
+  │   │   ├─→ ConversationState (resource tracking)
+  │   │   └─→ Load/create session file
+  │   └─→ ProjectStore (RAG storage)
+  │
+  └─→ [3] Launch Interactive Mode
+      └─→ Display TUI, await user input
+
+
+  ══════════════════════════════════════════════════════════════════════════
+  ══
+                       PRIORITY 1: REQUEST PROCESSING PIPELINE
+  ══════════════════════════════════════════════════════════════════════════
+  ══
+
+  USER INPUT
+      ↓
+  ┌─→ [A] ROUTING & CLASSIFICATION (router.py)
+  │   │
+  │   ├─→ Intent Detection
+  │   │   ├─→ Keywords: greetings → CHAT
+  │   │   ├─→ Keywords: file, search, run → TOOL
+  │   │   ├─→ Keywords: explain, how → STRUCTURED
+  │   │   ├─→ Keywords: analyze, complex → REASONING
+  │   │   └─→ Patterns: code blocks → RECALL
+  │   │
+  │   ├─→ Lane Selection
+  │   │   ├─→ Lane.RECALL (retrieve past solutions)
+  │   │   ├─→ Lane.STANDARD (general conversation)
+  │   │   ├─→ Lane.STRUCTURED (explanations)
+  │   │   ├─→ Lane.REASONING (complex analysis)
+  │   │   └─→ Lane.TOOL_USE (execute tools)
+  │   │
+  │   └─→ Confidence Score (0.0-1.0)
+  │       └─→ Determines if override needed
+  │
+  ├─→ [B] COMPLEXITY ANALYSIS (complexity_analyzer.py)
+  │   │
+  │   ├─→ Calculate Complexity Score
+  │   │   ├─→ Length penalty (long = complex)
+  │   │   ├─→ Nesting detection (brackets, indents)
+  │   │   ├─→ Technical term count
+  │   │   ├─→ Reference complexity (@, imports)
+  │   │   └─→ Output: 0.0-1.0 score
+  │   │
+  │   └─→ Recommend Resources
+  │       ├─→ 0.0-0.3 → 25% (MINIMAL)
+  │       ├─→ 0.3-0.5 → 40% (LOW)
+  │       ├─→ 0.5-0.7 → 55% (MODERATE)
+  │       └─→ 0.7+ → 75% (AGGRESSIVE)
+  │
+  ├─→ [C] RESOURCE ALLOCATION (runtime_profiles.py + conversation_state.py)
+  │   │
+  │   ├─→ Get Conversation Floor
+  │   │   ├─→ Track: turn_count, tool_calls, peak_complexity
+  │   │   ├─→ Floor increases gradually (never decreases!)
+  │   │   └─→ After 3 turns: min 35%, 5 turns: 40%, etc.
+  │   │
+  │   ├─→ Get Context Minimum
+  │   │   ├─→ <100 words → 25%
+  │   │   ├─→ 100-200 → 35%
+  │   │   ├─→ 200-400 → 50%
+  │   │   ├─→ 400-600 → 60%
+  │   │   └─→ >1000 → 65%
+  │   │
+  │   ├─→ Combine: max(complexity, floor, context)
+  │   │   └─→ CRITICAL: Never decrease resources mid-session
+  │   │
+  │   ├─→ Tool Boost (if TOOL_USE lane)
+  │   │   └─→ Force minimum 75% for tool operations
+  │   │
+  │   └─→ Apply Resource Profile
+  │       ├─→ 25% MINIMAL: 3072 ctx, 1 thread
+  │       ├─→ 50% LOW: 5120 ctx, 2 threads
+  │       ├─→ 60% MODERATE: 6554 ctx, 3 threads
+  │       └─→ 75% AGGRESSIVE: 8192 ctx, 4+ threads
+  │
+  └─→ [D] CONTEXT BUILDING (ConversationHistory.get_context())
+      │
+      ├─→ Load Last 5 Conversation Entries
+      │   ├─→ Include: user_input
+      │   ├─→ Include: tool_calls results
+      │   │   └─→ Format: "✓ tool_name: output (150 char max)"
+      │   └─→ Exclude: full assistant responses (avoid bias)
+      │
+      ├─→ Add Session Summary (if available)
+      │   └─→ Compressed bullets of recent topics
+      │
+      └─→ Build Context String
+          └─→ Output: "User: X\n[Tool results: ...]\nUser: Y"
+
+
+  ══════════════════════════════════════════════════════════════════════════
+  ══
+                    PRIORITY 2: TOOL ORCHESTRATION (if needed)
+  ══════════════════════════════════════════════════════════════════════════
+  ══
+
+  ┌─→ [E] TOOL CALL DETECTION (format_translator.py)
+  │   │
+  │   ├─→ Parse Model Response
+  │   │   ├─→ Detect JSON: {"type":"tool_call",...}
+  │   │   ├─→ Detect Python: tool_name(args)
+  │   │   ├─→ Detect Gemma: <tool_call>{...}</tool_call>
+  │   │   └─→ Normalize to standard format
+  │   │
+  │   └─→ Extract Tool Name + Args
+  │       └─→ Pass to validation
+  │
+  ├─→ [F] SCHEMA VALIDATION (tool_schema_validator.py)
+  │   │
+  │   ├─→ Check Tool Exists
+  │   │   └─→ If unknown: warn but allow (permissive mode)
+  │   │
+  │   ├─→ Validate Parameters
+  │   │   ├─→ Required params present?
+  │   │   ├─→ Case-insensitive matching
+  │   │   ├─→ Fuzzy match for typos (difflib)
+  │   │   └─→ Filter hallucinated params
+  │   │
+  │   ├─→ Track Rejections
+  │   │   └─→ Save to logs/validation/parameter_rejections.json
+  │   │
+  │   └─→ Return: (is_valid, warnings, filtered_args)
+  │       └─→ Always execute (even with warnings)
+  │
+  ├─→ [G] ORCHESTRATOR VALIDATION (tool_orchestrator.py)
+  │   │
+  │   ├─→ Check Tool Availability
+  │   │   └─→ In ToolManager.get_available_tools()?
+  │   │
+  │   ├─→ Assess Risk Level
+  │   │   ├─→ SAFE: file_read, grep_search
+  │   │   ├─→ MEDIUM: file_write, file_edit
+  │   │   ├─→ HIGH: file_delete, bash_execute
+  │   │   └─→ CRITICAL: destructive operations
+  │   │
+  │   ├─→ Request Confirmation (if needed)
+  │   │   └─→ confirmation_gate() for MEDIUM+ risk
+  │   │
+  │   └─→ Build ToolOperation
+  │       └─→ {tool_name, operation, parameters, risk}
+  │
+  ├─→ [H] TOOL EXECUTION (tools.py via ToolManager)
+  │   │
+  │   ├─→ Execute Tool
+  │   │   ├─→ Call: tool.execute(**parameters)
+  │   │   ├─→ Monitor: resource usage
+  │   │   ├─→ Timeout: per tool settings
+  │   │   └─→ Capture: output, errors
+  │   │
+  │   ├─→ Format Result
+  │   │   ├─→ file_search: Add "Found X files" summary
+  │   │   ├─→ file_read: Add line/char count
+  │   │   ├─→ bash_execute: Add exit code
+  │   │   └─→ All: Add next_action_hint
+  │   │
+  │   └─→ Return ToolResult
+  │       └─→ {success, output, error, metadata}
+  │
+  ├─→ [I] AUTO-CHAINING (if applicable)
+  │   │
+  │   ├─→ Detect Safe Chain
+  │   │   ├─→ file_search → file_read (if 1 result)
+  │   │   └─→ directory_list → file_read (if 1 file)
+  │   │
+  │   ├─→ Execute Follow-up Automatically
+  │   │   └─→ Saves 1 model call!
+  │   │
+  │   └─→ Combine Results
+  │       └─→ Return both: search result + file contents
+  │
+  └─→ [J] TOOL RESULT STORAGE
+      │
+      ├─→ Add to ConversationEntry.tool_calls
+      │   └─→ [{tool, parameters, success, output, error}]
+      │
+      └─→ Format for Model
+          └─→ Pass combined results to next step
+
+
+  ══════════════════════════════════════════════════════════════════════════
+  ══
+                        PRIORITY 3: MODEL GENERATION
+  ══════════════════════════════════════════════════════════════════════════
+  ══
+
+  ┌─→ [K] PROMPT PREPARATION
+  │   │
+  │   ├─→ Load System Prompt (interactive._get_dynamic_system_prompt())
+  │   │   ├─→ Base prompt from config.yaml
+  │   │   ├─→ Inject {working_dir}
+  │   │   └─→ Currently: 1667 chars (~417 tokens)
+  │   │
+  │   ├─→ Build Messages Array
+  │   │   ├─→ {role: "system", content: system_prompt}
+  │   │   ├─→ {role: "user", content: context + current_input}
+  │   │   └─→ If tool results: add tool result message
+  │   │
+  │   └─→ Add Tool Schemas (if native tools supported)
+  │       └─→ Currently: model doesn't support, use prompt-based
+  │
+  ├─→ [L] OLLAMA GENERATION (ollama_client.py)
+  │   │
+  │   ├─→ Build Payload
+  │   │   ├─→ model: config.model.name
+  │   │   ├─→ messages: prepared above
+  │   │   ├─→ stream: true
+  │   │   ├─→ keep_alive: "5m" (CRITICAL!)
+  │   │   └─→ options: {temp, tokens, threads, ctx}
+  │   │
+  │   ├─→ Send Request
+  │   │   └─→ POST http://localhost:11434/api/chat
+  │   │
+  │   ├─→ Stream Response
+  │   │   ├─→ Read line by line
+  │   │   ├─→ Parse JSON chunks
+  │   │   ├─→ Extract token content
+  │   │   └─→ Display to user (live streaming)
+  │   │
+  │   └─→ Return Complete Response
+  │       └─→ Assembled from all chunks
+  │
+  └─→ [M] RESPONSE PROCESSING
+      │
+      ├─→ Check for Tool Calls
+      │   └─→ If found: loop back to [E] Tool Detection
+      │
+      ├─→ Check for Decisions
+      │   ├─→ {"type":"decision","mode":"THINK",...}
+      │   └─→ Grant thinktime, re-invoke
+      │
+      └─→ Extract Final Text
+          └─→ Remove JSON/tool artifacts
+
+
+  ══════════════════════════════════════════════════════════════════════════
+  ══
+                    PRIORITY 4: QUALITY & RECOVERY (optional)
+  ══════════════════════════════════════════════════════════════════════════
+  ══
+
+  ┌─→ [N] QUALITY ASSESSMENT (quality_manager.py)
+  │   │
+  │   ├─→ Detect Weak Responses
+  │   │   ├─→ Too short (<20 chars)
+  │   │   ├─→ Repetitive
+  │   │   ├─→ Off-topic
+  │   │   └─→ Hallucinated facts
+  │   │
+  │   ├─→ Calculate Quality Score
+  │   │   └─→ 0.0 (bad) to 1.0 (good)
+  │   │
+  │   └─→ Trigger Recovery (if needed)
+  │       ├─→ Retry with adjusted params
+  │       ├─→ Switch to fallback model
+  │       └─→ Request clarification
+  │
+  └─→ [O] PERFORMANCE LOGGING (model_performance_logger.py)
+      │
+      ├─→ Log Metrics
+      │   ├─→ Token speed (tok/sec)
+      │   ├─→ Quality score
+      │   ├─→ Resource usage
+      │   └─→ Latency
+      │
+      └─→ Identify Patterns
+          └─→ Save for future optimization
+
+
+  ══════════════════════════════════════════════════════════════════════════
+  ══
+                    PRIORITY 5: MEMORY & STATE UPDATE
+  ══════════════════════════════════════════════════════════════════════════
+  ══
+
+  ┌─→ [P] CONVERSATION UPDATE (ConversationHistory.add_entry())
+  │   │
+  │   ├─→ Create ConversationEntry
+  │   │   ├─→ timestamp
+  │   │   ├─→ user_input
+  │   │   ├─→ assistant_response
+  │   │   ├─→ tool_calls: [results]
+  │   │   └─→ metadata: {route, complexity, resources}
+  │   │
+  │   ├─→ Update Conversation State
+  │   │   ├─→ Increment turn_count
+  │   │   ├─→ Update tool_calls_made
+  │   │   ├─→ Track peak_complexity
+  │   │   └─→ Raise minimum_resources floor
+  │   │
+  │   ├─→ Update Session Summary
+  │   │   └─→ Compress to bullets for context
+  │   │
+  │   └─→ Save to Session File
+  │       └─→ logs/sessions/{model}/session_{id}.json
+  │
+  └─→ [Q] PROJECT STORE (project_store.py)
+      │
+      ├─→ Log Conversation (RAG prep)
+      │   ├─→ role: user/assistant
+      │   ├─→ content: input/response
+      │   └─→ metadata: session, model, timestamp
+      │
+      └─→ Store for Future RAG Retrieval
+          └─→ Enable context from past sessions
+
+
+  ══════════════════════════════════════════════════════════════════════════
+  ══
+                      PRIORITY 6: SPECIAL WORKFLOWS
+  ══════════════════════════════════════════════════════════════════════════
+  ══
+
+  [R] EXPERIMENT WORKFLOW (/coding commands)
+      │
+      ├─→ /coding new [name]
+      │   └─→ Create experiments/exp_{timestamp}_{name}/
+      │       ├─→ code/ (scripts)
+      │       ├─→ output/ (results)
+      │       └─→ README.md
+      │
+      ├─→ /coding open <name>
+      │   └─→ Set active experiment in .state.json
+      │
+      ├─→ /coding gen <file> [code]
+      │   └─→ Write to active_experiment/code/
+      │
+      └─→ /coding run <file>
+          └─→ Execute: python active_experiment/code/{file}
+
+  [S] PRE-RAG OPTIMIZATION (pre_rag_optimizer.py)
+      │
+      ├─→ Retrieve Relevant Context
+      │   └─→ Query project_store for similar past queries
+      │
+      ├─→ Score Relevance
+      │   └─→ Rank results by similarity
+      │
+      └─→ Compress Context
+          └─→ Fit within token budget
+
+
+  ══════════════════════════════════════════════════════════════════════════
+  ══
+                           CRITICAL DEPENDENCIES
+  ══════════════════════════════════════════════════════════════════════════
+  ══
+
+  [BLOCKING RELATIONSHIPS]
+
+  config.py ────┬──→ All components (need config first)
+                │
+  OllamaClient ─┴──→ Model generation [L] (requires model connection)
+                
+  ToolManager ──┬──→ Tool execution [H]
+                └──→ Orchestrator [G]
+
+  ConversationState ──→ Resource allocation [C] (provides floor)
+
+  ConversationHistory ──→ Context building [D] (provides memory)
+                      └──→ Memory update [P]
+
+  router.py ──→ Determines entire flow (CHAT vs TOOL vs REASONING)
+
+  [PERFORMANCE CRITICAL PATH]
+
+  User Input → Router [A] → Complexity [B] → Allocation [C] → Generation [L]
+                                                                  │
+                                                                  └─→ 
+  Response
+
+  [MEMORY CRITICAL PATH]  
+
+  Tool Execution [H] → Tool Storage [J] → Conv Update [P] → Context Build 
+  [D]
+                                                                  │
+                                                                  └─→ Next 
+  Request
+                                                                      
+  (remembers!)
+
+  ══════════════════════════════════════════════════════════════════════════
+  ══
+
+  This flow tree shows:
+  - Priority levels (0-6, boot to special features)
+  - All components and their relationships
+  - Decision points (routing, validation, etc.)
+  - Data flow (→ arrows show direction)
+  - Critical dependencies (what blocks what)
+  - Memory loop (how tool results get remembered)

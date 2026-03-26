@@ -1,0 +1,20 @@
+\b(hello|hi|hey)\b
+\b(good morning|morning)\b
+\b(good afternoon|afternoon)\b
+\b(good evening|evening)\b
+\b(howdy|yo|sup)\b
+\b(what's up|what is up)\b
+\b(how's it going|how is it going)\b
+\b(how are you|how're you)\b
+\b(nice to see you|good to see you)\b
+\b(long time no see)\b
+\b(what's good)\b
+\b(how have you been)\b
+\b(what's crackin')\b
+\b(good to see you again)\b
+\b(how are things)\b
+\b(nice to meet you)\b
+\b(pleased to meet you)\b
+\b(g'day)\b
+\b(top of the morning to you)\b
+\b(what's happening)\b

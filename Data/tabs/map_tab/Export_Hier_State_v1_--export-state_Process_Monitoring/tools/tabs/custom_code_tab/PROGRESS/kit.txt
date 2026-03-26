@@ -1,0 +1,64 @@
+
+Handle_slash_command: line 2145 : "/commands"
+handle_direct_command:lines 2200
+
+Tool Management (Medium Value)
+
+  Current OpenCode:
+  # tools.py - Custom tool system
+  class FileReadTool(BaseTool):
+      async def execute(self, file_path: str) -> ToolResult:
+          # Custom implementation
+
+-----
+
+Agent Loop (Low Value)
+
+  Current OpenCode:
+  # interactive.py - Custom multi-turn loop
+  for follow_up_turn in range(4):
+      follow_up_call = translate_tool_call(response)
+      if not follow_up_call:
+          break
+      result = await _safe_execute_tool(...)
+      response = await _call_model_with_tool_result(...)
+------
+
+ Format Translation (LOW VALUE )
+
+  Current OpenCode:
+  # format_translator.py - Custom regex parsing
+  class FormatTranslator:
+      def translate(self, response: str):
+          # Regex for 5+ different formats
+          # Python functions, JSON, Gemma XML, etc.
+--------
+Conversation Memory (Medium Value)
+
+  Current OpenCode:
+  # history.py - Custom conversation tracking
+  class ConversationHistory:
+      def add_message(self, role, content):
+          self.messages.append({"role": role, "content": content})
+-----------
+Prompt Templates (LOW Value)
+
+  Current OpenCode:
+  # Custom system prompts with {available_tools} placeholder
+  system_prompt = config.system_prompt.replace('{available_tools}',
+  tool_list)
+
+----------
+Chain Orchestration (Medium-High Value )
+
+  Current OpenCode:
+  # tool_orchestrator.py - Custom chain execution
+  async def execute_tool_chain(self, chain: ToolChain):
+      for operation in chain.operations:
+          result = await self.execute_operation(operation)
+          if not result.success:
+              break
+
+
+-------------
+

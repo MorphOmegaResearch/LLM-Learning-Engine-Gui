@@ -1,0 +1,10 @@
+The cow is a mammal.
+The cow environment is land.
+The cow magnitude is large.
+The cow material is organic.
+The cow cost is 2000.
+The whale is a mammal.
+The whale environment is ocean.
+The whale magnitude is massive.
+The whale material is organic.
+The whale cost is unknown.

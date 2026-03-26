@@ -1,0 +1,81 @@
+{
+    "integrity": {
+        "verified_hash": "c001f3750012543b59384e5a953a7101f3f4c688325a66a1a473849767664321",
+        "last_verified": "2026-01-26 16:39:12",
+        "file_hashes": {},
+        "config_baseline": {
+            "known_apis": [],
+            "allow": [],
+            "alias": [],
+            "server": []
+        }
+    },
+    "security": {
+        "known_apis": [
+            "api.openai.com",
+            "anthropic.com",
+            "googleapis.com",
+            "github.com",
+            "huggingface.co",
+            "pypi.org",
+            "localhost",
+            "127.0.0.1",
+            "duckduckgo.com",
+            "ddg.gg",
+            "example.com"
+        ],
+        "suspicious_keywords": [
+            "telemetry",
+            "analytics",
+            "tracking",
+            "mixpanel",
+            "segment.io",
+            "sentry",
+            "crashlytics",
+            "eval(",
+            "exec(",
+            "base64.b64decode"
+        ],
+        "allow": [],
+        "alias": [],
+        "server": []
+    },
+    "user_prefs": {
+        "theme": "dark",
+        "show_line_numbers": true,
+        "refresh_rate": 2000,
+        "window_geometry": "1280x800",
+        "hier_colors": {
+            "Import": "#c586c0",
+            "Class": "#ffd93d",
+            "Function": "#6bcb77",
+            "Method": "#4d96ff",
+            "Variable": "#9cdcfe",
+            "String/IP": "#ce9178",
+            "File": "#ffffff"
+        },
+        "context_menu_actions": [
+            {
+                "label": "Route to Editor",
+                "action": "route_to_editor"
+            },
+            {
+                "label": "Route to Hier-View",
+                "action": "route_to_hier"
+            },
+            {
+                "label": "Deep Inspect",
+                "action": "inspect_current_file"
+            },
+            {
+                "label": "Quick Scan",
+                "action": "run_security_scan"
+            }
+        ],
+        "inspection_config": {
+            "auto_open": true,
+            "show_all_strings": false,
+            "highlight_risks": true
+        }
+    }
+}

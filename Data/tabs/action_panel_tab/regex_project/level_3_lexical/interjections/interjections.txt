@@ -1,0 +1,10 @@
+\b(oh|ah|ooh|aah)\b
+\b(wow|whoa|yikes)\b
+\b(ouch|ow|yowch)\b
+\b(uh-oh|oops|whoops)\b
+\b(yay|hooray|yippee)\b
+\b(shh|hush)\b
+\b(phew|whew)\b
+\b(ugh|yuck|ew)\b
+\b(hmm|er|um)\b
+\b(aha|eureka)\b

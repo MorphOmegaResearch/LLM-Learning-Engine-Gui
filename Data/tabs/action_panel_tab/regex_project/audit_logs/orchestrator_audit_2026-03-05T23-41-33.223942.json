@@ -1,0 +1,1463 @@
+{
+  "timestamp": "2026-03-05T23-41-33.223942",
+  "code_issues": [
+    {
+      "severity": "high",
+      "category": "integration",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:0:imports",
+      "description": "Missing import: InteractionResolver from interaction_resolver",
+      "suggestion": "Add: from interaction_resolver import InteractionResolver",
+      "confidence": 0.9,
+      "code_excerpt": "# Missing import detected"
+    },
+    {
+      "severity": "high",
+      "category": "integration",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:0:imports",
+      "description": "Missing import: RealizationEngine from realization_engine",
+      "suggestion": "Add: from realization_engine import RealizationEngine",
+      "confidence": 0.9,
+      "code_excerpt": "# Missing import detected"
+    },
+    {
+      "severity": "low",
+      "category": "integration",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:0:imports",
+      "description": "Missing import: KnowledgeManager from orchestrator (self)",
+      "suggestion": "Add: from orchestrator (self) import KnowledgeManager",
+      "confidence": 0.9,
+      "code_excerpt": "# Missing import detected"
+    },
+    {
+      "severity": "high",
+      "category": "integration",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:0:imports",
+      "description": "Missing import: BackupManager from version_manager",
+      "suggestion": "Add: from version_manager import BackupManager",
+      "confidence": 0.9,
+      "code_excerpt": "# Missing import detected"
+    },
+    {
+      "severity": "high",
+      "category": "integration",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:0:imports",
+      "description": "Missing import: JournalSystem from version_manager",
+      "suggestion": "Add: from version_manager import JournalSystem",
+      "confidence": 0.9,
+      "code_excerpt": "# Missing import detected"
+    },
+    {
+      "severity": "high",
+      "category": "integration",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:0:imports",
+      "description": "Missing import: ConversationalTrainer from conversational_trainer",
+      "suggestion": "Add: from conversational_trainer import ConversationalTrainer",
+      "confidence": 0.9,
+      "code_excerpt": "# Missing import detected"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:26:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:1327:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:1786:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "if \"entities_mentioned\" in entry:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:2212:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:2449:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:2611:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:2649:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:2684:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:2748:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:2839:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:2931:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:3195:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:3227:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:3353:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:3458:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:3492:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:3556:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:3585:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:3671:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:3845:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:3951:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:3967:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:4129:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:4148:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "medium",
+      "category": "error_handling",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:4190:try",
+      "description": "Try block without except/finally",
+      "suggestion": "Add proper exception handling with specific exceptions",
+      "confidence": 0.8,
+      "code_excerpt": "try:"
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:307:get_path",
+      "description": "Missing docstring for FunctionDef 'get_path'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:313:KnowledgeManager",
+      "description": "Missing docstring for ClassDef 'KnowledgeManager'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:367:AutoIngestor",
+      "description": "Missing docstring for ClassDef 'AutoIngestor'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:421:GratificationTracker",
+      "description": "Missing docstring for ClassDef 'GratificationTracker'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:432:UnresolvedQuestionPool",
+      "description": "Missing docstring for ClassDef 'UnresolvedQuestionPool'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:450:NovelStoryGenerator",
+      "description": "Missing docstring for ClassDef 'NovelStoryGenerator'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:473:DreamState",
+      "description": "Missing docstring for ClassDef 'DreamState'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:498:TokenLogger",
+      "description": "Missing docstring for ClassDef 'TokenLogger'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:525:SystemMonitor",
+      "description": "Missing docstring for ClassDef 'SystemMonitor'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:557:TimeStateEngine",
+      "description": "Missing docstring for ClassDef 'TimeStateEngine'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:592:ReasoningLogger",
+      "description": "Missing docstring for ClassDef 'ReasoningLogger'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:612:InteractionTypeLearner",
+      "description": "Missing docstring for ClassDef 'InteractionTypeLearner'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:645:PersonaGuard",
+      "description": "Missing docstring for ClassDef 'PersonaGuard'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:673:DialogueModeTracker",
+      "description": "Missing docstring for ClassDef 'DialogueModeTracker'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:684:AltruismManager",
+      "description": "Missing docstring for ClassDef 'AltruismManager'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:746:CreativeActivityEngine",
+      "description": "Missing docstring for ClassDef 'CreativeActivityEngine'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:818:MetacognitiveOrchestrator",
+      "description": "Missing docstring for ClassDef 'MetacognitiveOrchestrator'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:4076:main",
+      "description": "Missing docstring for FunctionDef 'main'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:4303:run_tests",
+      "description": "Missing docstring for FunctionDef 'run_tests'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:64:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:99:to_dict",
+      "description": "Missing docstring for FunctionDef 'to_dict'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:106:from_dict",
+      "description": "Missing docstring for FunctionDef 'from_dict'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:118:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:215:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:314:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:320:save_concept",
+      "description": "Missing docstring for FunctionDef 'save_concept'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:344:get_concept",
+      "description": "Missing docstring for FunctionDef 'get_concept'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:347:check_consistency",
+      "description": "Missing docstring for FunctionDef 'check_consistency'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:368:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:375:get_top_candidate",
+      "description": "Missing docstring for FunctionDef 'get_top_candidate'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:381:mark_learned",
+      "description": "Missing docstring for FunctionDef 'mark_learned'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:393:capture_unknowns",
+      "description": "Missing docstring for FunctionDef 'capture_unknowns'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:422:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:425:check",
+      "description": "Missing docstring for FunctionDef 'check'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:433:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:439:add",
+      "description": "Missing docstring for FunctionDef 'add'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:451:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:455:generate",
+      "description": "Missing docstring for FunctionDef 'generate'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:474:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:478:analyze",
+      "description": "Missing docstring for FunctionDef 'analyze'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:499:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:505:log_interaction",
+      "description": "Missing docstring for FunctionDef 'log_interaction'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:526:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:531:get_signals",
+      "description": "Missing docstring for FunctionDef 'get_signals'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:558:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:562:get_fatigue_factor",
+      "description": "Missing docstring for FunctionDef 'get_fatigue_factor'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:573:update_interaction_time",
+      "description": "Missing docstring for FunctionDef 'update_interaction_time'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:576:get_routine_match",
+      "description": "Missing docstring for FunctionDef 'get_routine_match'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:585:get_output_cadence",
+      "description": "Missing docstring for FunctionDef 'get_output_cadence'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:593:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:599:log_thought",
+      "description": "Missing docstring for FunctionDef 'log_thought'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:613:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:619:learn_type",
+      "description": "Missing docstring for FunctionDef 'learn_type'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:646:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:662:validate",
+      "description": "Missing docstring for FunctionDef 'validate'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:674:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:677:determine_mode",
+      "description": "Missing docstring for FunctionDef 'determine_mode'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:685:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:688:calculate",
+      "description": "Missing docstring for FunctionDef 'calculate'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:700:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:709:boost_weight",
+      "description": "Missing docstring for FunctionDef 'boost_weight'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:718:get_weight",
+      "description": "Missing docstring for FunctionDef 'get_weight'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:723:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:729:suggest",
+      "description": "Missing docstring for FunctionDef 'suggest'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:747:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:751:run_simulation",
+      "description": "Missing docstring for FunctionDef 'run_simulation'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:778:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:781:resolve_unknowns",
+      "description": "Missing docstring for FunctionDef 'resolve_unknowns'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:819:__init__",
+      "description": "Missing docstring for FunctionDef '__init__'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:901:add_thought",
+      "description": "Missing docstring for FunctionDef 'add_thought'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:904:_load_state",
+      "description": "Missing docstring for FunctionDef '_load_state'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:971:_save_state",
+      "description": "Missing docstring for FunctionDef '_save_state'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:994:process_interaction",
+      "description": "Missing docstring for FunctionDef 'process_interaction'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:1015:_execute_single_interaction",
+      "description": "Missing docstring for FunctionDef '_execute_single_interaction'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:1653:_contains_pronoun",
+      "description": "Missing docstring for FunctionDef '_contains_pronoun'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:1660:_update_active_domain",
+      "description": "Missing docstring for FunctionDef '_update_active_domain'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:1683:_update_active_persona",
+      "description": "Missing docstring for FunctionDef '_update_active_persona'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:1692:_update_entity_stack",
+      "description": "Missing docstring for FunctionDef '_update_entity_stack'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:1863:_check_sequential_similarity",
+      "description": "Missing docstring for FunctionDef '_check_sequential_similarity'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:1874:_calculate_understanding_stats",
+      "description": "Missing docstring for FunctionDef '_calculate_understanding_stats'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:1997:_handle_situation_command",
+      "description": "Missing docstring for FunctionDef '_handle_situation_command'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:2033:_activate_random_situation",
+      "description": "Missing docstring for FunctionDef '_activate_random_situation'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:2039:_handle_scheduled_dream",
+      "description": "Missing docstring for FunctionDef '_handle_scheduled_dream'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:2080:_handle_teach",
+      "description": "Missing docstring for FunctionDef '_handle_teach'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:2169:_format_token_output",
+      "description": "Missing docstring for FunctionDef '_format_token_output'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "documentation",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:1704:is_property_value",
+      "description": "Missing docstring for FunctionDef 'is_property_value'",
+      "suggestion": "Add a docstring describing the purpose and usage",
+      "confidence": 0.9,
+      "code_excerpt": null
+    },
+    {
+      "severity": "low",
+      "category": "structure",
+      "location": "/home/commander/Trainer/Data/tabs/action_panel_tab/regex_project/orchestrator.py:50:ConversationState",
+      "description": "Class ConversationState missing __init__ method",
+      "suggestion": "Add __init__ method to initialize class properties",
+      "confidence": 0.7,
+      "code_excerpt": null
+    }
+  ],
+  "orchestrator_state": {
+    "class_initialized": true,
+    "components_loaded": [
+      "datetime",
+      "enum",
+      "typing",
+      "pathlib",
+      "interaction_resolver",
+      "realization_engine",
+      "gap_analyzer",
+      "weight_tuner",
+      "activity_integration_bridge",
+      "version_manager",
+      "conversational_trainer",
+      "grounded_suggest_engine",
+      "moe_plan_engine",
+      "unified_context_index",
+      "omega_bridge",
+      "temporal_narrative_engine",
+      "init_chain_tracer",
+      "roadmap_computer",
+      "llama_cpp",
+      "lineage_tracker",
+      "script_discovery_handler",
+      "argparse",
+      "json",
+      "os",
+      "sys",
+      "random",
+      "re",
+      "Enum",
+      "Dict",
+      "Path",
+      "InteractionResolver",
+      "RealizationEngine",
+      "GapAnalyzer",
+      "ActionWeightTuner",
+      "for",
+      "BackupManager",
+      "time",
+      "ConversationalTrainer",
+      "subprocess",
+      "tempfile",
+      "traceback",
+      "GroundedSuggestEngine",
+      "MoEPlanEngine",
+      "MorphDatasetExporter",
+      "get_index",
+      "OmegaBridge",
+      "TemporalNarrativeEngine",
+      "InitChainTracer",
+      "RoadmapComputer",
+      "OsToolkitGroundingBridge",
+      "Llama",
+      "get_tracker",
+      "hashlib",
+      "JournalSystem",
+      "MorphTeachingBridge",
+      "get_unified_help"
+    ],
+    "missing_imports": [],
+    "runtime_errors": [],
+    "method_coverage": {
+      "ConversationFlowManager": 7,
+      "ResponseBuilder": 11,
+      "EpistemicFeedbackLoop": 7,
+      "KnowledgeManager": 4,
+      "AutoIngestor": 4,
+      "GratificationTracker": 2,
+      "UnresolvedQuestionPool": 2,
+      "NovelStoryGenerator": 2,
+      "DreamState": 2,
+      "TokenLogger": 2,
+      "SystemMonitor": 2,
+      "TimeStateEngine": 5,
+      "ReasoningLogger": 2,
+      "InteractionTypeLearner": 2,
+      "PersonaGuard": 2,
+      "DialogueModeTracker": 2,
+      "AltruismManager": 2,
+      "FormatManager": 3,
+      "ActivitySuggestionEngine": 2,
+      "CreativeActivityEngine": 2,
+      "ThoughtEngine": 2,
+      "MetacognitiveOrchestrator": 35
+    },
+    "pattern_references": {
+      "level_2_morphology": 2,
+      "level_3_lexical": 3,
+      "level_4_syntax": 4,
+      "level_5_semantics": 2,
+      "level_6_pragmatics": 4,
+      "domain_academic": 7,
+      "domain_technical": 8,
+      "domain_informal": 3,
+      "entities_temporal": 3,
+      "entities_numerical": 1,
+      "entities_properties": 2
+    }
+  },
+  "pattern_matches": [
+    {
+      "line_num": 183,
+      "pattern_name": "re.sub call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 270,
+      "pattern_name": "level_3_lexical",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 271,
+      "pattern_name": "level_4_syntax",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 272,
+      "pattern_name": "level_5_semantics",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 273,
+      "pattern_name": "level_6_pragmatics",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 274,
+      "pattern_name": "domain_technical",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 275,
+      "pattern_name": "entities_temporal",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 276,
+      "pattern_name": "entities_properties",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 403,
+      "pattern_name": "level_3_lexical",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 403,
+      "pattern_name": "domain_technical",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 403,
+      "pattern_name": "domain_academic",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 403,
+      "pattern_name": "entities_temporal",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 544,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 550,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 668,
+      "pattern_name": "re.compile call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 807,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 998,
+      "pattern_name": "re.split call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 1042,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 1063,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 1064,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 1115,
+      "pattern_name": "level_5_semantics",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1172,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 1177,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 1195,
+      "pattern_name": "level_6_pragmatics",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1196,
+      "pattern_name": "level_6_pragmatics",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1439,
+      "pattern_name": "domain_technical",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1439,
+      "pattern_name": "domain_academic",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1440,
+      "pattern_name": "domain_academic",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1656,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 1676,
+      "pattern_name": "domain_technical",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1676,
+      "pattern_name": "domain_academic",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1686,
+      "pattern_name": "domain_academic",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1687,
+      "pattern_name": "domain_technical",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1707,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 1718,
+      "pattern_name": "re.split call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 1733,
+      "pattern_name": "level_4_syntax",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1733,
+      "pattern_name": "domain_technical",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1733,
+      "pattern_name": "domain_academic",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1733,
+      "pattern_name": "entities_properties",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1733,
+      "pattern_name": "entities_temporal",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 1934,
+      "pattern_name": "level_4_syntax",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 2010,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 2041,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 2042,
+      "pattern_name": "re.search call",
+      "matched": true,
+      "confidence": 0.8
+    },
+    {
+      "line_num": 2179,
+      "pattern_name": "level_4_syntax",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 2179,
+      "pattern_name": "level_6_pragmatics",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 2233,
+      "pattern_name": "level_3_lexical",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 2318,
+      "pattern_name": "domain_academic",
+      "matched": true,
+      "confidence": 1.0
+    },
+    {
+      "line_num": 2319,
+      "pattern_name": "domain_technical",
+      "matched": true,
+      "confidence": 1.0
+    }
+  ]
+}

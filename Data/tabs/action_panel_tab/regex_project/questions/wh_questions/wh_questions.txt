@@ -1,0 +1,12 @@
+\b(what are you doing|what're you doing)\b
+\b(how is your day|how's your day)\b
+\b(what is this|what's this)\b
+\b(where are you from|where're you from)\b
+\b(what time is it)\b
+\b(what do you mean)\b
+\b(what is your name|what's your name)\b
+\b(how old are you)\b
+\b(what is going on)\b
+\b(what's the matter)\b
+\b(what's the weather like)\b
+\b(what are you talking about)\b

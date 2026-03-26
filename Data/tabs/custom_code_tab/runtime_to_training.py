@@ -137,84 +137,6 @@ class RuntimeToTrainingConverter:
         except Exception as e:
             raise RuntimeError(f"Failed to convert runtime data: {e}")
 
-    # --- Strict JSONL writer for runtime batches (MVP) -----------------
-    @staticmethod
-    def write_strict_runtime_jsonl(
-        *,
-        model_tag: str,
-        variant_id: str,
-        assigned_type: str | None,
-        user_input: str,
-        tool_calls: list,
-        tool_results: list,
-        output_dir: Optional[Path] = None,
-        include_success: bool = False
-    ) -> tuple[str, int]:
-        """
-        Write strict JSONL entries derived from a single chat turn with tool_calls + tool_results.
-
-        Produces entries where assistant content is a JSON string of a single tool_call:
-          {"type":"tool_call","name":"<tool>","args":{...}}
-
-        Returns (path, count).
-        """
-        import json as _json
-        from datetime import datetime as _dt
-
-        if output_dir is None:
-            output_dir = Path(__file__).parent.parent.parent / "Training_Data-Sets" / "Tools"
-        else:
-            output_dir = Path(output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        entries = []
-        count = 0
-        assigned_type = assigned_type or "Unknown"
-        # Pair tool_calls with results by index
-        for tc, res in zip(tool_calls or [], tool_results or []):
-            try:
-                func = (tc.get('function') or {})
-                name = func.get('name')
-                args = func.get('arguments')
-                # Normalize args to dict
-                if isinstance(args, str):
-                    try:
-                        args = _json.loads(args)
-                    except Exception:
-                        args = {"_raw": args}
-                if not isinstance(args, dict):
-                    args = {}
-
-                success = not (isinstance(res, dict) and 'Error:' in (res.get('content') or ''))
-                if not include_success and success is True:
-                    continue
-
-                tool_obj = {"type": "tool_call", "name": name, "args": args}
-                entry = {
-                    "messages": [
-                        {"role": "user", "content": user_input or ""},
-                        {"role": "assistant", "content": _json.dumps(tool_obj, ensure_ascii=False)}
-                    ],
-                    "scenario": f"auto_from_runtime::{assigned_type}::{name or 'unknown'}",
-                    "source": {"model": model_tag, "variant_id": variant_id}
-                }
-                entries.append(entry)
-                count += 1
-            except Exception:
-                continue
-
-        if not entries:
-            return "", 0
-
-        ts = _dt.now().strftime("%Y%m%d_%H%M%S")
-        safe_type = str(assigned_type).replace(' ', '_')
-        out_path = output_dir / f"auto_runtime_{variant_id}_{safe_type}_{ts}.jsonl"
-        with open(out_path, 'w', encoding='utf-8') as f:
-            for en in entries:
-                f.write(_json.dumps(en, ensure_ascii=False) + "\n")
-
-        return str(out_path), count
-
     def convert_successful_only(
         self,
         model_name: Optional[str] = None,
@@ -674,6 +596,95 @@ class RuntimeToTrainingConverter:
         # TODO: Could analyze error_samples to generate more specific corrections
 
         return examples
+
+    def convert_morph_interactions(
+        self,
+        variant_name: Optional[str] = None,
+        domain: Optional[str] = None,
+        accepted_only: bool = True,
+    ) -> Optional[Path]:
+        """Convert accepted morph interactions to OpenAI training format.
+
+        Reads morph_evals/accepted_*.jsonl (written by lineage_tracker.record_morph_interaction).
+        Optionally filters by variant_name (via variant_sha_index.json) and/or domain.
+        Writes output to Training_Data-Sets/Training/morph_training_{variant}_{date}.jsonl.
+
+        Args:
+            variant_name: Pymanifest variant name (e.g. 'omega_v40', 'specialist_debug').
+                          Resolved to SHA via Data/pymanifest/variants/variant_sha_index.json.
+            domain:       Filter to interactions with this domain tag (e.g. 'debug').
+            accepted_only: If True, only read accepted_*.jsonl; if False also read rejected.
+
+        Returns:
+            Path to written training file, or None if no interactions found.
+        """
+        lineage_dir = self.runtime_log_dir.parent / "Lineage"
+        morph_eval_dir = lineage_dir / "morph_evals"
+        if not morph_eval_dir.exists():
+            return None
+
+        # Resolve variant_name → sha via variant_sha_index
+        sha_filter: Optional[str] = None
+        if variant_name:
+            idx_path = (Path(__file__).parent.parent.parent
+                        / "pymanifest" / "variants" / "variant_sha_index.json")
+            if idx_path.exists():
+                try:
+                    idx = json.loads(idx_path.read_text())
+                    # index is {sha: name}; reverse lookup
+                    sha_filter = next((s for s, n in idx.items() if n == variant_name), None)
+                except Exception:
+                    pass
+
+        # Collect eval files
+        glob_patterns = ["accepted_*.jsonl"] if accepted_only else ["accepted_*.jsonl",
+                                                                      "rejected_*.jsonl"]
+        records: List[Dict[str, Any]] = []
+        for pattern in glob_patterns:
+            for fpath in sorted(morph_eval_dir.glob(pattern)):
+                try:
+                    for line in fpath.read_text().splitlines():
+                        if not line.strip():
+                            continue
+                        rec = json.loads(line)
+                        if sha_filter and rec.get('variant_sha', '') != sha_filter:
+                            continue
+                        if domain and rec.get('domain', rec.get('control_signal', '')) != domain:
+                            continue
+                        records.append(rec)
+                except Exception:
+                    pass
+
+        if not records:
+            return None
+
+        # Convert to OpenAI messages format
+        training_examples: List[Dict[str, Any]] = []
+        for rec in records:
+            prompt    = rec.get('prompt', '')
+            response  = rec.get('response', '')
+            if not prompt or not response:
+                continue
+            training_examples.append({
+                "messages": [
+                    {"role": "user",      "content": str(prompt)},
+                    {"role": "assistant", "content": str(response)},
+                ]
+            })
+
+        if not training_examples:
+            return None
+
+        # Write output
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        tag  = variant_name or domain or "all"
+        date = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_path = self.output_dir / f"morph_training_{tag}_{date}.jsonl"
+        with open(out_path, 'w') as f:
+            for ex in training_examples:
+                f.write(json.dumps(ex) + '\n')
+
+        return out_path
 
 
 # Convenience function

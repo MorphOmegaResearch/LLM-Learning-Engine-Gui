@@ -1,0 +1,693 @@
+#!/usr/bin/env python3
+"""
+Activity Integration Bridge
+============================
+Bridges epistemic feedback loop, tool onboarding, workflow management, and user interaction
+via zenity prompts. Implements grounded activity suggestion based on metastate and gap analysis.
+
+Architecture:
+    Input Text → Gap Analysis → Metastate Weights
+        ↓
+    Activity Suggestion (based on priority% × understanding%)
+        ↓
+    [IF user_confirmation_needed] → Zenity Question Queue
+        ↓
+    Tool Capability Matching (from onboarded tools)
+        ↓
+    Workflow Execution + Journal Logging
+        ↓
+    Metastate Update → Next iteration
+
+Integration Points:
+    - orchestrator.py: EpistemicFeedbackLoop
+    - gap_analyzer.py: MetastateWeights
+    - onboarder.py: ToolMetadata
+    - workflow_manager.py: WorkflowManager + zenity
+    - Journal system: Event logging with #[MARK:{}] refs
+"""
+
+import os
+import sys
+import json
+import re
+import subprocess
+from pathlib import Path
+from typing import Dict, List, Tuple, Any, Optional
+from dataclasses import dataclass, field, asdict
+from enum import Enum
+import datetime
+
+# Graceful import handling
+try:
+    # Add parent directory to path (regex_project/)
+    # scripts/ -> tools/ -> activities/ -> regex_project/
+    script_dir = Path(__file__).resolve().parent
+    project_root = script_dir.parent.parent.parent
+    sys.path.insert(0, str(project_root))
+
+    from gap_analyzer import GapAnalyzer, MetastateWeights, GapAnalysis
+    from orchestrator import EpistemicFeedbackLoop
+    HAS_ORCHESTRATOR = True
+except ImportError as e:
+    print(f"Warning: Could not import orchestrator components: {e}")
+    print(f"  Tried path: {project_root if 'project_root' in locals() else 'N/A'}")
+    HAS_ORCHESTRATOR = False
+
+    # Define stub classes for graceful degradation
+    MetastateWeights = type('MetastateWeights', (), {})
+    GapAnalysis = type('GapAnalysis', (), {})
+
+try:
+    from onboarder import ToolMetadata, ToolCategory
+    HAS_ONBOARDER = True
+except ImportError:
+    print("Warning: Could not import onboarder components")
+    HAS_ONBOARDER = False
+
+try:
+    from workflow_manager import WorkflowManager, WorkflowType
+    HAS_WORKFLOW_MANAGER = True
+except ImportError:
+    print("Warning: Could not import workflow_manager components")
+    HAS_WORKFLOW_MANAGER = False
+
+
+# =============================================================================
+# 5W1H Tool Classifier
+# =============================================================================
+
+class FiveWOneHClassifier:
+    """
+    Classifies tools using 5W1H framework based on baseline schema.
+    Integrated with morphological gap handling.
+    """
+
+    def __init__(self, config_dir: Path = None):
+        """Initialize classifier with baseline schemas"""
+        if config_dir is None:
+            config_dir = Path(__file__).parent.parent
+
+        self.config_dir = config_dir
+        self.baseline = self._load_json('baseline_5w1h_classification.json')
+        self.patterns = self._load_json('regex_pattern_library.json')
+        self.gap_instructions = self._load_json('morphological_gap_instructions.json')
+
+    def _load_json(self, filename: str) -> Dict:
+        """Load JSON configuration file"""
+        filepath = self.config_dir / filename
+        if filepath.exists():
+            with open(filepath, 'r') as f:
+                return json.load(f)
+        return {}
+
+    def classify(self, tool_name: str, file_content: str = "", tool_metadata: Any = None) -> Dict[str, Any]:
+        """
+        Classify a tool using 5W1H dimensions.
+
+        Args:
+            tool_name: Name of the tool (filename)
+            file_content: Source code content for context inference
+            tool_metadata: Optional ToolMetadata object for enhanced classification
+
+        Returns:
+            Dictionary with 5W1H classification and confidence score
+        """
+        # Step 1: Lexical analysis
+        tokens = self._tokenize(tool_name)
+
+        # Step 2: Context inference from file content
+        context = self._infer_context(file_content, tool_metadata)
+
+        # Step 3: Pattern matching for each dimension
+        classification = {}
+        for dimension in ['what', 'where', 'when', 'why', 'which', 'how']:
+            classification[dimension] = self._classify_dimension(
+                dimension, tokens, context
+            )
+
+        # Step 4: Gap handling
+        classification = self._handle_gaps(classification, tokens, context)
+
+        # Step 5: Confidence scoring
+        classification['confidence'] = self._calculate_confidence(classification)
+        classification['tokens'] = tokens
+        classification['context_hints'] = context
+
+        return classification
+
+    def _tokenize(self, tool_name: str) -> List[str]:
+        """Tokenize tool name into base words"""
+        # Remove file extension
+        name = Path(tool_name).stem
+
+        # Split on common separators
+        tokens = re.split(r'[_\-\.]', name)
+
+        # Handle camelCase by inserting separators
+        expanded = []
+        for token in tokens:
+            # Split camelCase: "PathFixer" -> ["Path", "Fixer"]
+            split_camel = re.sub('([a-z])([A-Z])', r'\1 \2', token).split()
+            expanded.extend(split_camel)
+
+        # Normalize to lowercase and remove common suffixes
+        normalized = []
+        for token in expanded:
+            token_lower = token.lower()
+            # Strip common suffixes: -er, -or, -ar, -ing, -ed
+            for suffix in ['er', 'or', 'ar', 'ing', 'ed']:
+                if token_lower.endswith(suffix) and len(token_lower) > len(suffix) + 2:
+                    token_lower = token_lower[:-len(suffix)]
+                    break
+            normalized.append(token_lower)
+
+        return normalized
+
+    def _infer_context(self, file_content: str, tool_metadata: Any) -> Dict[str, Any]:
+        """Infer context from file content and metadata"""
+        context = {
+            'has_argparse': False,
+            'has_tkinter': False,
+            'has_os_path': False,
+            'has_datetime': False,
+            'has_json_xml': False,
+            'has_regex': False,
+            'imports': [],
+            'description': ''
+        }
+
+        if not file_content:
+            return context
+
+        # Check imports
+        if 'import argparse' in file_content or 'from argparse' in file_content:
+            context['has_argparse'] = True
+        if 'import tkinter' in file_content or 'from tkinter' in file_content:
+            context['has_tkinter'] = True
+        if 'import os' in file_content or 'from os' in file_content or 'from pathlib' in file_content:
+            context['has_os_path'] = True
+        if 'import datetime' in file_content or 'from datetime' in file_content:
+            context['has_datetime'] = True
+        if 'import json' in file_content or 'import xml' in file_content:
+            context['has_json_xml'] = True
+        if 'import re' in file_content or 'from re' in file_content:
+            context['has_regex'] = True
+
+        # Extract docstring
+        docstring_match = re.search(r'"""(.+?)"""', file_content, re.DOTALL)
+        if docstring_match:
+            context['description'] = docstring_match.group(1).strip()
+
+        # Use tool_metadata if available
+        if tool_metadata and hasattr(tool_metadata, 'description'):
+            context['description'] = tool_metadata.description
+
+        return context
+
+    def _classify_dimension(self, dimension: str, tokens: List[str], context: Dict) -> str:
+        """Classify a single 5W1H dimension"""
+        if dimension not in self.baseline.get('dimensions', {}):
+            return "unknown"
+
+        dim_config = self.baseline['dimensions'][dimension]
+
+        # Try regex pattern matching
+        for pattern in dim_config.get('regex_patterns', []):
+            for token in tokens:
+                if re.search(pattern, token, re.IGNORECASE):
+                    # Match found - return description based on pattern
+                    return self._get_description_from_pattern(pattern, dimension, token)
+
+        # Try lexical markers
+        for marker in dim_config.get('lexical_markers', []):
+            if marker in context.get('description', '').lower():
+                return f"involves {marker}"
+
+        # Fallback to context-based inference
+        return self._infer_from_context(dimension, context, tokens)
+
+    def _get_description_from_pattern(self, pattern: str, dimension: str, token: str) -> str:
+        """Generate human-readable description from pattern match"""
+        # Use tool type mappings if available
+        for tool_type, mappings in self.baseline.get('tool_type_mappings', {}).items():
+            if tool_type in token:
+                return mappings.get(dimension, f"{token} (type: {tool_type})")
+
+        # Generic description based on dimension
+        if dimension == 'what':
+            return f"{token}s data or files"
+        elif dimension == 'where':
+            return f"in {token} environment"
+        elif dimension == 'when':
+            return f"during {token} phase"
+        elif dimension == 'why':
+            return f"to {token}"
+        elif dimension == 'which':
+            return f"{token} artifacts"
+        elif dimension == 'how':
+            return f"using {token}"
+
+        return token
+
+    def _infer_from_context(self, dimension: str, context: Dict, tokens: List[str]) -> str:
+        """Infer dimension value from context heuristics"""
+        # Apply heuristics from morphological gap instructions
+        heuristics = self.gap_instructions.get('instructions', {}).get('step_2_context_inference', {}).get('heuristics', {})
+
+        if dimension == 'what' and context.get('has_argparse'):
+            return "CLI tool/utility"
+        elif dimension == 'where' and context.get('has_os_path'):
+            return "filesystem/directory operations"
+        elif dimension == 'when' and context.get('has_datetime'):
+            return "time-aware/scheduled operations"
+        elif dimension == 'which' and context.get('has_json_xml'):
+            return "structured data (JSON/XML)"
+        elif dimension == 'how' and context.get('has_regex'):
+            return "pattern matching/regex"
+
+        # Default based on tokens
+        if tokens:
+            return f"related to {' '.join(tokens)}"
+
+        return "not determined"
+
+    def _handle_gaps(self, classification: Dict, tokens: List[str], context: Dict) -> Dict:
+        """Handle morphological gaps in classification"""
+        gap_types = self.baseline.get('morphological_gaps', {}).get('detection_patterns', [])
+
+        for gap_spec in gap_types:
+            gap_type = gap_spec.get('gap_type')
+            pattern = gap_spec.get('pattern')
+
+            # Check if any token matches gap pattern
+            for token in tokens:
+                if re.search(pattern, token):
+                    # Apply suggestion
+                    suggestion = gap_spec.get('suggestion', '')
+                    # Could enhance classification based on gap handling
+                    classification['_gaps_detected'] = classification.get('_gaps_detected', [])
+                    classification['_gaps_detected'].append({
+                        'type': gap_type,
+                        'token': token,
+                        'suggestion': suggestion
+                    })
+
+        return classification
+
+    def _calculate_confidence(self, classification: Dict) -> float:
+        """Calculate overall confidence score for classification"""
+        determined_count = sum(
+            1 for dim in ['what', 'where', 'when', 'why', 'which', 'how']
+            if classification.get(dim) != "not determined" and classification.get(dim) != "unknown"
+        )
+
+        base_confidence = determined_count / 6.0
+
+        # Boost if no gaps detected
+        if '_gaps_detected' not in classification or len(classification['_gaps_detected']) == 0:
+            base_confidence = min(1.0, base_confidence + 0.1)
+
+        return round(base_confidence, 2)
+
+
+# =============================================================================
+# Capability Registry
+# =============================================================================
+
+@dataclass
+class OnboardedCapability:
+    """Represents a tool capability that has been onboarded by the user"""
+    tool_id: str
+    tool_name: str
+    classification: Dict[str, Any]
+    relevance_weight: float = 0.5  # Initial weight
+    usage_count: int = 0
+    last_used: Optional[str] = None
+    confirmed_at: str = field(default_factory=lambda: datetime.datetime.now().isoformat())
+    journal_marks: List[str] = field(default_factory=list)  # #[MARK:{}] references
+
+
+class CapabilityRegistry:
+    """
+    Manages onboarded tool capabilities with weighted relevance.
+    Integrates with journal system for #[MARK:{}] references.
+    """
+
+    def __init__(self, registry_file: Path):
+        self.registry_file = registry_file
+        self.capabilities: Dict[str, OnboardedCapability] = {}
+        self._load_registry()
+
+    def _load_registry(self):
+        """Load capabilities from JSON file"""
+        if self.registry_file.exists():
+            with open(self.registry_file, 'r') as f:
+                data = json.load(f)
+                for tool_id, cap_data in data.items():
+                    self.capabilities[tool_id] = OnboardedCapability(**cap_data)
+
+    def _save_registry(self):
+        """Save capabilities to JSON file"""
+        data = {
+            tool_id: asdict(cap)
+            for tool_id, cap in self.capabilities.items()
+        }
+        with open(self.registry_file, 'w') as f:
+            json.dump(data, f, indent=2)
+
+    def onboard_capability(self, tool_id: str, tool_name: str, classification: Dict) -> OnboardedCapability:
+        """Onboard a new capability after user confirmation"""
+        capability = OnboardedCapability(
+            tool_id=tool_id,
+            tool_name=tool_name,
+            classification=classification,
+            relevance_weight=0.5
+        )
+        self.capabilities[tool_id] = capability
+        self._save_registry()
+        return capability
+
+    def update_relevance(self, tool_id: str, weight_delta: float):
+        """Update relevance weight based on usage or context"""
+        if tool_id in self.capabilities:
+            cap = self.capabilities[tool_id]
+            cap.relevance_weight = max(0.0, min(1.0, cap.relevance_weight + weight_delta))
+            cap.usage_count += 1
+            cap.last_used = datetime.datetime.now().isoformat()
+            self._save_registry()
+
+    def add_journal_mark(self, tool_id: str, mark: str):
+        """Add journal #[MARK:{}] reference to capability"""
+        if tool_id in self.capabilities:
+            self.capabilities[tool_id].journal_marks.append(mark)
+            self._save_registry()
+
+    def get_relevant_capabilities(self, context: str, top_n: int = 5) -> List[OnboardedCapability]:
+        """
+        Get most relevant capabilities for given context.
+        Ranks by relevance_weight and classification match.
+        """
+        scored_caps = []
+
+        for cap in self.capabilities.values():
+            # Calculate relevance score
+            score = cap.relevance_weight
+
+            # Boost if classification matches context keywords
+            for dim_value in cap.classification.values():
+                if isinstance(dim_value, str) and dim_value.lower() in context.lower():
+                    score += 0.2
+
+            scored_caps.append((score, cap))
+
+        # Sort by score descending
+        scored_caps.sort(key=lambda x: x[0], reverse=True)
+
+        return [cap for score, cap in scored_caps[:top_n]]
+
+
+# =============================================================================
+# Zenity Question Queue
+# =============================================================================
+
+class ZenityQuestionQueue:
+    """
+    Manages queue of questions to ask user via zenity.
+    Questions are triggered by gaps, thoughts, and metastate analysis.
+    """
+
+    def __init__(self):
+        self.queue: List[Dict[str, Any]] = []
+        self.responses: List[Dict[str, Any]] = []
+
+    def enqueue_gap_question(self, gap_analysis: 'GapAnalysis', metastate: 'MetastateWeights'):
+        """Create question from gap analysis"""
+        if not gap_analysis.unrecognized_tokens:
+            return
+
+        # Create question about unrecognized tokens
+        question = {
+            'type': 'gap_clarification',
+            'title': f'Gap Detected (severity: {metastate.gap_severity})',
+            'text': f'I encountered {len(gap_analysis.unrecognized_tokens)} unrecognized term(s):\n\n' +
+                    '\n'.join(f'- {token}' for token in gap_analysis.unrecognized_tokens[:5]) +
+                    f'\n\nShould I attempt to learn about these terms?',
+            'options': ['Yes, learn about them', 'No, skip for now', 'Add to knowledge base manually'],
+            'context': {
+                'tokens': gap_analysis.unrecognized_tokens,
+                'confidence': gap_analysis.confidence_score,
+                'severity': metastate.gap_severity
+            }
+        }
+        self.queue.append(question)
+
+    def enqueue_thought_question(self, thought: str, priority: float = 0.5):
+        """Create question from system thought"""
+        question = {
+            'type': 'thought_inquiry',
+            'title': f'System Reflection (priority: {priority:.2f})',
+            'text': f'Internal thought:\n\n"{thought}"\n\nWould you like to explore this further?',
+            'options': ['Yes, tell me more', 'No, continue'],
+            'context': {
+                'thought': thought,
+                'priority': priority
+            }
+        }
+        self.queue.append(question)
+
+    def enqueue_capability_confirmation(self, tool_name: str, classification: Dict):
+        """Confirm onboarding of a capability"""
+        confidence = classification.get('confidence', 0.0)
+
+        desc_lines = [f"Tool: {tool_name}", f"Confidence: {confidence:.0%}", ""]
+        for dim in ['what', 'where', 'when', 'why', 'which', 'how']:
+            if dim in classification:
+                desc_lines.append(f"{dim.upper()}: {classification[dim]}")
+
+        question = {
+            'type': 'capability_onboarding',
+            'title': 'Onboard Tool Capability?',
+            'text': '\n'.join(desc_lines) + '\n\nWould you like to onboard this capability?',
+            'options': ['Yes, onboard it', 'No, skip', 'Show more details'],
+            'context': {
+                'tool_name': tool_name,
+                'classification': classification
+            }
+        }
+        self.queue.append(question)
+
+    def process_queue(self, max_questions: int = 3) -> List[Dict[str, Any]]:
+        """
+        Process queued questions using zenity.
+        Returns list of responses.
+        """
+        if not self._has_zenity():
+            print("Zenity not available - skipping questions")
+            return []
+
+        processed = []
+        for question in self.queue[:max_questions]:
+            response = self._show_zenity_question(question)
+            if response:
+                processed.append({
+                    'question': question,
+                    'response': response,
+                    'timestamp': datetime.datetime.now().isoformat()
+                })
+
+        # Remove processed questions
+        self.queue = self.queue[max_questions:]
+        self.responses.extend(processed)
+
+        return processed
+
+    def _has_zenity(self) -> bool:
+        """Check if zenity is available"""
+        try:
+            subprocess.run(['which', 'zenity'], capture_output=True, check=True)
+            return True
+        except:
+            return False
+
+    def _show_zenity_question(self, question: Dict) -> Optional[str]:
+        """Show zenity question dialog and return response"""
+        try:
+            if question.get('options'):
+                # List selection
+                cmd = ['zenity', '--list', '--title', question['title'],
+                       '--text', question['text'], '--column', 'Options']
+                cmd.extend(question['options'])
+
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+                if result.returncode == 0:
+                    return result.stdout.strip()
+            else:
+                # Yes/No question
+                result = subprocess.run([
+                    'zenity', '--question',
+                    '--title', question['title'],
+                    '--text', question['text']
+                ], timeout=60)
+                return 'yes' if result.returncode == 0 else 'no'
+        except Exception as e:
+            print(f"Zenity error: {e}")
+            return None
+
+
+# =============================================================================
+# Activity Suggestion Bridge
+# =============================================================================
+
+class ActivitySuggestionBridge:
+    """
+    Bridges epistemic metastate with activity suggestions.
+    Integrates with workflow manager and capability registry.
+    """
+
+    def __init__(self, capability_registry: CapabilityRegistry,
+                 workflow_manager=None, question_queue: ZenityQuestionQueue = None):
+        self.capabilities = capability_registry
+        self.workflow_manager = workflow_manager
+        self.question_queue = question_queue or ZenityQuestionQueue()
+
+    def suggest_activity(self, metastate: 'MetastateWeights',
+                        gap_analysis: 'GapAnalysis',
+                        context: str = "") -> Optional[Dict]:
+        """
+        Suggest activity based on metastate and gap analysis.
+
+        Returns activity suggestion with grounded context.
+        """
+        # Determine activity type based on gap severity and priority
+        if metastate.gap_severity in ['critical', 'high']:
+            activity_type = 'learning'
+            reason = f"Critical knowledge gap detected (understanding: {metastate.understanding_pct:.0%})"
+        elif metastate.priority_pct > 0.7:
+            activity_type = 'investigation'
+            reason = f"High priority areas need attention (priority: {metastate.priority_pct:.0%})"
+        elif metastate.understanding_pct > 0.8:
+            activity_type = 'application'
+            reason = f"Good understanding - time to apply knowledge"
+        else:
+            activity_type = 'consolidation'
+            reason = f"Moderate understanding - consolidate learning"
+
+        # Get relevant capabilities
+        relevant_caps = self.capabilities.get_relevant_capabilities(context, top_n=3)
+
+        # Build suggestion
+        suggestion = {
+            'activity_type': activity_type,
+            'reason': reason,
+            'metastate': {
+                'understanding': metastate.understanding_pct,
+                'priority': metastate.priority_pct,
+                'gap_severity': metastate.gap_severity
+            },
+            'relevant_capabilities': [
+                {
+                    'tool': cap.tool_name,
+                    'relevance': cap.relevance_weight,
+                    'what': cap.classification.get('what', 'unknown')
+                }
+                for cap in relevant_caps
+            ],
+            'suggested_action': metastate.recommended_action,
+            'unrecognized_terms': gap_analysis.unrecognized_tokens[:5]
+        }
+
+        return suggestion
+
+    def execute_suggested_activity(self, suggestion: Dict, auto_confirm: bool = False) -> bool:
+        """
+        Execute suggested activity, optionally prompting user via zenity.
+        """
+        if not auto_confirm and self.question_queue:
+            # Ask user confirmation
+            question = {
+                'type': 'activity_suggestion',
+                'title': f'Activity Suggestion: {suggestion["activity_type"]}',
+                'text': f'{suggestion["reason"]}\n\n' +
+                        f'Suggested action: {suggestion["suggested_action"]}\n\n' +
+                        'Proceed with this activity?',
+                'options': ['Yes, proceed', 'No, skip', 'Show details']
+            }
+            self.question_queue.queue.append(question)
+            responses = self.question_queue.process_queue(max_questions=1)
+
+            if not responses or 'Yes' not in responses[0].get('response', ''):
+                return False
+
+        # Execute activity
+        print(f"\nExecuting activity: {suggestion['activity_type']}")
+        print(f"Reason: {suggestion['reason']}")
+        print(f"Action: {suggestion['suggested_action']}")
+
+        if suggestion['relevant_capabilities']:
+            print("\nRelevant capabilities:")
+            for cap in suggestion['relevant_capabilities']:
+                print(f"  - {cap['tool']} (relevance: {cap['relevance']:.0%})")
+
+        # TODO: Integrate with workflow_manager if available
+        if self.workflow_manager and HAS_WORKFLOW_MANAGER:
+            # Execute workflow based on activity type
+            pass
+
+        return True
+
+
+# =============================================================================
+# Main Integration Function
+# =============================================================================
+
+def integrate_with_orchestrator(orchestrator_instance, config_dir: Path = None):
+    """
+    Main integration function to wire up all components.
+
+    Args:
+        orchestrator_instance: Instance of MetacognitiveOrchestrator
+        config_dir: Directory containing JSON configs
+    """
+    if config_dir is None:
+        config_dir = Path(__file__).parent.parent
+
+    # Initialize components
+    classifier = FiveWOneHClassifier(config_dir)
+    registry_file = config_dir.parent.parent / "capability_registry.json"
+    capability_registry = CapabilityRegistry(registry_file)
+    question_queue = ZenityQuestionQueue()
+    activity_bridge = ActivitySuggestionBridge(capability_registry, question_queue=question_queue)
+
+    print("✓ Activity Integration Bridge initialized")
+    print(f"  - 5W1H Classifier: {len(classifier.baseline.get('dimensions', {}))} dimensions")
+    print(f"  - Capability Registry: {len(capability_registry.capabilities)} onboarded capabilities")
+    print(f"  - Question Queue: Ready")
+
+    return {
+        'classifier': classifier,
+        'capability_registry': capability_registry,
+        'question_queue': question_queue,
+        'activity_bridge': activity_bridge
+    }
+
+
+if __name__ == "__main__":
+    # Test 5W1H Classifier
+    print("=== Testing 5W1H Classifier ===\n")
+
+    classifier = FiveWOneHClassifier()
+
+    test_tools = [
+        "code_analyzer.py",
+        "path-fixer.py",
+        "import_organizer.py",
+        "workflow_manager.py"
+    ]
+
+    for tool in test_tools:
+        print(f"Classifying: {tool}")
+        classification = classifier.classify(tool, "")
+        print(f"  Confidence: {classification.get('confidence', 0):.0%}")
+        for dim in ['what', 'how', 'where']:
+            print(f"  {dim}: {classification.get(dim, 'N/A')}")
+        print()

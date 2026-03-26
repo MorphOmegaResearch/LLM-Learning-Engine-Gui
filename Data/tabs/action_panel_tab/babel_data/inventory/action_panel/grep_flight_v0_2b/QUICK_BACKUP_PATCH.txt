@@ -1,0 +1,52 @@
+# QUICK BACKUP INTEGRATION - 3 Simple Edits
+
+## Edit 1: Add Import (after line 49)
+
+Add this line after the other imports:
+```python
+from backup_system import show_backup_dialog
+```
+
+## Edit 2: Add Button (around line 1117, BEFORE the Scope button)
+
+Add this code before the `scope_btn = tk.Button(...)` line:
+
+```python
+# Backup button
+backup_btn = tk.Button(
+    controls_row,
+    text="📦 Backup",
+    command=self._backup_current_target,
+    bg='#d67e00',
+    fg='white',
+    relief=tk.RAISED,
+    bd=1,
+    width=10
+)
+backup_btn.pack(side=tk.RIGHT, padx=(4, 0))
+self._create_tooltip_simple(backup_btn, "Backup current target file")
+```
+
+## Edit 3: Add Method (anywhere in the class, maybe around line 2210)
+
+Add this method:
+
+```python
+def _backup_current_target(self):
+    """Backup the current target file"""
+    target = self.target_var.get().strip()
+
+    if not target or not os.path.isfile(target):
+        # Try pattern if target is directory
+        pattern = self.pattern_var.get().strip()
+        if os.path.isdir(target) and pattern:
+            target = os.path.join(target, pattern)
+
+        if not os.path.isfile(target):
+            messagebox.showwarning("No File", "No target file set. Target a file first.")
+            return
+
+    show_backup_dialog(self, target, self.engine, self._add_traceback)
+```
+
+Done! 3 small edits, button works.

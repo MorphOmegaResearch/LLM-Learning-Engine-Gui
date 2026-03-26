@@ -1,0 +1,20 @@
+\b(yes|yeah|yep)\b
+\b(of course)\b
+\b(sure|sure thing)\b
+\b(absolutely)\b
+\b(definitely)\b
+\b(I agree)\b
+\b(that's right|that is right)\b
+\b(sounds good)\b
+\b(for sure)\b
+\b(no problem)\b
+\b(you bet)\b
+\b(I couldn't agree more)\b
+\b(that's for sure)\b
+\b(exactly)\b
+\b(without a doubt)\b
+\b(I suppose so)\b
+\b(that's a good point)\b
+\b(I think so too)\b
+\b(you got it)\b
+\b(right on)\b

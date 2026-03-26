@@ -1,0 +1,10 @@
+\b(how about|what about)\b
+\b(maybe we should)\b
+\b(we could)\b
+\b(let's|let us)\b
+\b(I suggest)\b
+\b(I recommend)\b
+\b(you should|you could)\b
+\b(why don't we|why don't you)\b
+\b(have you considered)\b
+\b(if I were you)\b

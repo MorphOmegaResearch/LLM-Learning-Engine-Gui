@@ -1,0 +1,11 @@
+# bi-hemi session — 20260305_231350
+# gguf: Morph0.1-10m-alpha.q8_0.gguf
+# variant_sha: af39055801e7
+# gap_severity: low | domain: unknown (0%)
+# tod_weight: 0.75 | memory_weight: 0.00 | alpha_temp: 0.75 | max_tokens: 256
+# turns: 2 | accepted: 1
+# ─────────────────────────────────────────────────────
+[you] What plans do we have
+[alpha:accepted] I'm here to assist you, but I don't have plans. What would you like to know or discuss?
+[you] What Questions have you got?
+[alpha:rejected gap=Memory] As an AI, I don't have personal experiences or feelings, nor do I have the ability to ask questions. I'm designed to provide information and answer queries based on my training. If you have any questions, feel free to ask.

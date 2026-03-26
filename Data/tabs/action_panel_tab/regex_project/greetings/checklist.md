@@ -1,0 +1,22 @@
+# Greetings Regex Checklist
+
+- [x] `\b(hello|hi|hey)\b`
+- [x] `\b(good morning|morning)\b`
+- [x] `\b(good afternoon|afternoon)\b`
+- [x] `\b(good evening|evening)\b`
+- [x] `\b(howdy|yo|sup)\b`
+- [x] `\b(what's up|what is up)\b`
+- [x] `\b(how's it going|how is it going)\b`
+- [x] `\b(how are you|how're you)\b`
+- [x] `\b(nice to see you|good to see you)\b`
+- [x] `\b(long time no see)\b`
+- [x] `\b(what's good)\b`
+- [x] `\b(how have you been)\b`
+- [x] `\b(what's crackin')\b`
+- [x] `\b(good to see you again)\b`
+- [x] `\b(how are things)\b`
+- [x] `\b(nice to meet you)\b`
+- [x] `\b(pleased to meet you)\b`
+- [x] `\b(g'day)\b`
+- [x] `\b(top of the morning to you)\b`
+- [x] `\b(what's happening)\b`

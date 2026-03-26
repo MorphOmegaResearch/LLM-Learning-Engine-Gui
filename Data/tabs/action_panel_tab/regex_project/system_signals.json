@@ -1,0 +1,44 @@
+{
+  "system_signals": {
+    "hardware": {
+      "temperature": {
+        "pattern": "\\b(\\d+(?:\\.\\d+)?)\\s?(°C|°F|C|F)\\b",
+        "labels": ["value", "unit"],
+        "context": "CPU/GPU thermal monitoring"
+      },
+      "processing_load": {
+        "pattern": "\\b(\\d+(?:\\.\\d+)?)\\s?%\\b",
+        "labels": ["percentage"],
+        "context": "CPU/GPU utilization"
+      },
+      "processing_layers": {
+        "pattern": "\\b(Layer|Block|Module)\\s?(\\d+)\\b",
+        "labels": ["type", "index"],
+        "context": "Architecture/Stack depth"
+      },
+      "memory_usage": {
+        "pattern": "\\b(\\d+(?:\\.\\d+)?)\\s?(MB|GB|MiB|GiB)\\b",
+        "labels": ["value", "unit"],
+        "context": "RAM/VRAM consumption"
+      }
+    },
+    "environment": {
+      "datetime": {
+        "iso_8601": "\\b\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})?\\b",
+        "timestamp": "\\b\\d{10}(?:\\.\\d+)?\\b",
+        "context": "Temporal synchronization"
+      },
+      "file_system": {
+        "unix_path": "(?:/|[\\w.-]+/)+[\\w.-]+",
+        "windows_path": "[a-zA-Z]:\\\\(?:[\\w\\s.-]+\\\\)*[\\w\\s.-]+",
+        "current_dir": "\\.\\/|\\.\\.\\/",
+        "context": "Directory and path inference"
+      },
+      "os_context": {
+        "pattern": "\\b(linux|windows|darwin|macos|unix|android|ios)\\b",
+        "case_sensitive": false,
+        "context": "Operating system detection"
+      }
+    }
+  }
+}

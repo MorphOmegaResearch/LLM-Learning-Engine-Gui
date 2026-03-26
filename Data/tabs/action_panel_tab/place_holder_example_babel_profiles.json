@@ -1,0 +1,72 @@
+{
+  "profiles": {
+    "default": {
+      "name": "Babel Core",
+      "icon": "🏛️",
+      "agent_type": "engineer",
+      "tool_locations": {
+        "Status": "python3 {babel_root}/Os_Toolkit.py latest -z",
+        "Analyze": "python3 {babel_root}/Os_Toolkit.py analyze --depth 2 -z",
+        "Sync Todos": "python3 {babel_root}/Os_Toolkit.py actions --run sync_all_todos",
+        "Update Memory": "python3 {babel_root}/Os_Toolkit.py actions --run update_memory",
+        "Security": "python3 {babel_root}/Os_Toolkit.py actions --run check_security",
+        "Project Report": "python3 {babel_root}/Os_Toolkit.py plan report -z"
+      }
+    },
+    "debug": {
+      "name": "Debug Suite",
+      "icon": "🐛",
+      "agent_type": "debugger",
+      "tool_locations": {
+        "Deep Analyze": "python3 {babel_root}/Os_Toolkit.py analyze --depth 3 -z",
+        "Sync Marks": "python3 {babel_root}/Os_Toolkit.py actions --run sync_marks",
+        "Show Traceback": "python3 {babel_root}/babel_data/inventory/action_panel/grep_flight_v0_2b/grep_flight_babel.py --traceback"
+      }
+    },
+    "code_review": {
+      "name": "Code Review",
+      "icon": "📝",
+      "agent_type": "reviewer",
+      "tool_locations": {
+        "Review Files": "grep -rn "TODO|FIXME" {target} -z",
+        "Check Style": "python3 {babel_root}/tools/linter.py --check {target}",
+        "Run Tests": "python3 {babel_root}/tools/run_tests.py --path {target}",
+        "Generate Docs": "python3 {babel_root}/tools/gendoc.py --input {target}",
+        "Find Duplicates": "python3 {babel_root}/tools/dup_finder.py --path {target}",
+        "Complexity Report": "python3 {babel_root}/tools/complexity_analyzer.py --file {target}",
+        "Suggest Refactor": "python3 {babel_root}/tools/refactor_suggest.py --file {target}",
+        "Create PR": "python3 {babel_root}/tools/create_pr.py --target {target}"
+      }
+    },
+    "sys_admin": {
+      "name": "System Administration",
+      "icon": "⚙️",
+      "agent_type": "sysadmin",
+      "tool_locations": {
+        "View Processes": "ps aux | zenity --text-info --title='Running Processes'",
+        "Check Disk Usage": "df -h | zenity --text-info --title='Disk Usage'",
+        "Network Status": "ip a | zenity --text-info --title='Network Status'",
+        "View Logs": "journalctl -r --since '1 hour ago' | zenity --text-info --title='Recent System Logs'",
+        "Manage Services": "systemctl list-units --type=service | zenity --text-info --title='System Services'",
+        "Monitor Resources": "htop",
+        "Clear Cache": "sudo apt clean",
+        "Update System": "sudo apt update && sudo apt upgrade -y"
+      }
+    },
+    "data_analysis": {
+      "name": "Data Analysis",
+      "icon": "📊",
+      "agent_type": "analyst",
+      "tool_locations": {
+        "Count Lines": "wc -l {target} | zenity --info --title='Line Count'",
+        "Find CSV Headers": "head -n 1 {target} | zenity --text-info --title='CSV Headers'",
+        "Filter Data": "grep "{pattern}" {target} | zenity --text-info --title='Filtered Data'",
+        "Sort Data": "sort {target} | zenity --text-info --title='Sorted Data'",
+        "Unique Values": "sort {target} | uniq | zenity --text-info --title='Unique Values'",
+        "Data Summary": "python3 {babel_root}/tools/data_summary.py --file {target}",
+        "Visualize Data": "python3 {babel_root}/tools/data_viz.py --file {target}",
+        "Export to SQL": "python3 {babel_root}/tools/export_sql.py --file {target}"
+      }
+    }
+  }
+}

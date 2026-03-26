@@ -1,0 +1,24 @@
+{
+  "verification": {
+    "enabled": false,
+    "strictness": "medium",
+    "auto": {
+      "fix": true
+    },
+    "run": {
+      "tests": false
+    },
+    "verify_file": {
+      "operations": true
+    },
+    "verify_bash": {
+      "output": true
+    },
+    "verify_git": {
+      "operations": true
+    }
+  },
+  "quality_assurance": {
+    "enabled": false
+  }
+}

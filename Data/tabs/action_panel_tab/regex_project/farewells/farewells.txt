@@ -1,0 +1,20 @@
+\b(bye|goodbye)\b
+\b(see you later|see you soon)\b
+\b(take care)\b
+\b(have a good one|have a nice day)\b
+\b(catch you later)\b
+\b(talk to you later)\b
+\b(I'm off|I am off)\b
+\b(so long)\b
+\b(cheers)\b
+\b(farewell)\b
+\b(until next time)\b
+\b(I've got to go|I have got to go)\b
+\b(I must be going)\b
+\b(see you around)\b
+\b(keep in touch)\b
+\b(all the best)\b
+\b(peace out)\b
+\b(I'm out of here)\b
+\b(smell you later)\b
+\b(adios)\b

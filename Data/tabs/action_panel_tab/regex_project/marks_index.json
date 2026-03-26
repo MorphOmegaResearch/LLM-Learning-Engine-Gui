@@ -1,0 +1,172 @@
+{
+  "ORCH_INIT": {
+    "file": "orchestrator.py",
+    "line": 335,
+    "snippet": "def __init__(self): #[Mark:ORCH_INIT]"
+  },
+  "VAR_RESOLVER": {
+    "file": "orchestrator.py",
+    "line": 336,
+    "snippet": "self.resolver = InteractionResolver(get_path(\"regex_project/master_regex.json\"), get_path(\"regex_project/universal_taxonomy.json\")) #[Mark:VAR_RESOLVER]"
+  },
+  "VAR_ENGINE": {
+    "file": "orchestrator.py",
+    "line": 337,
+    "snippet": "self.engine = RealizationEngine(get_path(\"regex_project/response_strategies.json\")) #[Mark:VAR_ENGINE]"
+  },
+  "VAR_KNOWLEDGE": {
+    "file": "orchestrator.py",
+    "line": 338,
+    "snippet": "self.km = KnowledgeManager(\"regex_project/knowledge_base.json\") #[Mark:VAR_KNOWLEDGE]"
+  },
+  "VAR_LOGGER": {
+    "file": "orchestrator.py",
+    "line": 339,
+    "snippet": "self.logger = TokenLogger(get_path(\"regex_project/interaction_logs.json\")) #[Mark:VAR_LOGGER]"
+  },
+  "VAR_THOUGHT_LOG": {
+    "file": "orchestrator.py",
+    "line": 340,
+    "snippet": "self.thought_logger = ReasoningLogger(get_path(\"regex_project/dream/reasoning_logs.json\")) #[Mark:VAR_THOUGHT_LOG]"
+  },
+  "VAR_INGESTOR": {
+    "file": "orchestrator.py",
+    "line": 341,
+    "snippet": "self.ingestor = AutoIngestor(\"regex_project/candidate_entities.json\") #[Mark:VAR_INGESTOR]"
+  },
+  "VAR_MONITOR": {
+    "file": "orchestrator.py",
+    "line": 342,
+    "snippet": "self.monitor = SystemMonitor() #[Mark:VAR_MONITOR]"
+  },
+  "VAR_GRAT_TRACK": {
+    "file": "orchestrator.py",
+    "line": 343,
+    "snippet": "self.grat_tracker = GratificationTracker() #[Mark:VAR_GRAT_TRACK]"
+  },
+  "VAR_QUES_POOL": {
+    "file": "orchestrator.py",
+    "line": 344,
+    "snippet": "self.question_pool = UnresolvedQuestionPool(\"regex_project/unresolved_questions.json\") #[Mark:VAR_QUES_POOL]"
+  },
+  "VAR_TYPE_LEARN": {
+    "file": "orchestrator.py",
+    "line": 345,
+    "snippet": "self.it_learner = InteractionTypeLearner(\"regex_project/interaction_types.json\") #[Mark:VAR_TYPE_LEARN]"
+  },
+  "VAR_PERSONA_GUARD": {
+    "file": "orchestrator.py",
+    "line": 346,
+    "snippet": "self.persona_guard = PersonaGuard() #[Mark:VAR_PERSONA_GUARD]"
+  },
+  "VAR_MODE_TRACK": {
+    "file": "orchestrator.py",
+    "line": 347,
+    "snippet": "self.mode_tracker = DialogueModeTracker() #[Mark:VAR_MODE_TRACK]"
+  },
+  "VAR_ALTRUISM_MGR": {
+    "file": "orchestrator.py",
+    "line": 348,
+    "snippet": "self.altruism_mgr = AltruismManager() #[Mark:VAR_ALTRUISM_MGR]"
+  },
+  "VAR_CREATIVE_ENG": {
+    "file": "orchestrator.py",
+    "line": 349,
+    "snippet": "self.creative_engine = CreativeActivityEngine(get_path(\"regex_project/knowledge_base.json\"), get_path(\"regex_project/dream\")) #[Mark:VAR_CREATIVE_ENG]"
+  },
+  "STATE_INTERACTION_TYPE": {
+    "file": "orchestrator.py",
+    "line": 352,
+    "snippet": "self.interaction_type = \"undetermined\" #[Mark:STATE_INTERACTION_TYPE]"
+  },
+  "STATE_DIALOGUE_MODE": {
+    "file": "orchestrator.py",
+    "line": 353,
+    "snippet": "self.dialogue_mode = \"EXPLORATORY\" #[Mark:STATE_DIALOGUE_MODE]"
+  },
+  "STATE_WILLINGNESS": {
+    "file": "orchestrator.py",
+    "line": 354,
+    "snippet": "self.sharing_willingness = 0.5 #[Mark:STATE_WILLINGNESS]"
+  },
+  "ORCH_LOOP": {
+    "file": "orchestrator.py",
+    "line": 420,
+    "snippet": "def _execute_single_interaction(self, text): #[Mark:ORCH_LOOP]"
+  },
+  "": {
+    "file": "version_manager.py",
+    "line": 102,
+    "snippet": "# Only match lines where #[Mark:] is preceded by a comment or is the start"
+  },
+  "RESOLVE_5W1H": {
+    "file": "interaction_resolver.py",
+    "line": 17,
+    "snippet": "def resolve_5w1h(self, text): #[Mark:RESOLVE_5W1H]"
+  },
+  "LOGIC_LEVELS": {
+    "file": "interaction_resolver.py",
+    "line": 65,
+    "snippet": "levels_detected = self.analyze_levels(text) #[Mark:LOGIC_LEVELS]"
+  },
+  "LOGIC_5W1H": {
+    "file": "interaction_resolver.py",
+    "line": 66,
+    "snippet": "five_ws = self.resolve_5w1h(text) #[Mark:LOGIC_5W1H]"
+  },
+  "LOGIC_PROPERTIES": {
+    "file": "interaction_resolver.py",
+    "line": 67,
+    "snippet": "properties = self.resolve_properties(text) #[Mark:LOGIC_PROPERTIES]"
+  },
+  "LOGIC_ENTITY_COUNT": {
+    "file": "interaction_resolver.py",
+    "line": 70,
+    "snippet": "entity_count = len(levels_detected.get(\"domain_technical\", {})) + len(levels_detected.get(\"level_3_lexical\", {})) #[Mark:LOGIC_ENTITY_COUNT]"
+  },
+  "LOGIC_PRAGMATIC_COUNT": {
+    "file": "interaction_resolver.py",
+    "line": 71,
+    "snippet": "logic_count = len(levels_detected.get(\"level_5_semantics\", {})) + len(levels_detected.get(\"level_6_pragmatics\", {})) #[Mark:LOGIC_PRAGMATIC_COUNT]"
+  },
+  "LOGIC_GAP_DETECTED": {
+    "file": "interaction_resolver.py",
+    "line": 75,
+    "snippet": "epistemic_gap = True #[Mark:LOGIC_GAP_DETECTED]"
+  },
+  "REALIZE_CORE": {
+    "file": "realization_engine.py",
+    "line": 14,
+    "snippet": "def realize(self, resolved_intent, active_domain=\"general\", active_persona=\"Assistant\", memory_match=None, properties={}, willingness=0.5, mode=\"EXPLORATORY\"): #[Mark:REALIZE_CORE]"
+  },
+  "REALIZE_VAR_SIGNALS": {
+    "file": "realization_engine.py",
+    "line": 18,
+    "snippet": "signals = resolved_intent.get(\"system_signals\", {}) #[Mark:REALIZE_VAR_SIGNALS]"
+  },
+  "REALIZE_VAR_SITUATION": {
+    "file": "realization_engine.py",
+    "line": 19,
+    "snippet": "situation = resolved_intent.get(\"active_situation\") #[Mark:REALIZE_VAR_SITUATION]"
+  },
+  "REALIZE_VAR_INTENT": {
+    "file": "realization_engine.py",
+    "line": 20,
+    "snippet": "intent = resolved_intent.get(\"logical_intent\") #[Mark:REALIZE_VAR_INTENT]"
+  },
+  "REALIZE_VAR_5W1H": {
+    "file": "realization_engine.py",
+    "line": 21,
+    "snippet": "five_ws = resolved_intent.get(\"5w1h_resolution\") #[Mark:REALIZE_VAR_5W1H]"
+  },
+  "REALIZE_VAR_WHAT": {
+    "file": "realization_engine.py",
+    "line": 22,
+    "snippet": "what = five_ws.get(\"what\") #[Mark:REALIZE_VAR_WHAT]"
+  },
+  "REALIZE_VAR_HIER": {
+    "file": "realization_engine.py",
+    "line": 23,
+    "snippet": "hierarchy = resolved_intent.get(\"hierarchy_analysis\", {}) #[Mark:REALIZE_VAR_HIER]"
+  }
+}

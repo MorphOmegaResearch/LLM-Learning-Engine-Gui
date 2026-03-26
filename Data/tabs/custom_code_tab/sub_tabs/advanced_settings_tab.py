@@ -1,4 +1,3 @@
-# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Advanced Settings Sub-Tab - Advanced OpenCode features configuration
 Provides granular control over all 37 OpenCode v1.2 systems with collapsible categories

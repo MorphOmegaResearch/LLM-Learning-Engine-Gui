@@ -1,4 +1,3 @@
-# [SYSTEM: GUI | VERSION: 1.9f | STATUS: ACTIVE]
 """
 Mode Selector Sub-Tab - Smart/Fast/Think mode selection
 Controls model behavior and resource allocation for different use cases
@@ -25,6 +24,7 @@ class ModeSelectorTab(BaseTab):
         self.settings_file = Path(__file__).parent.parent / "mode_settings.json"
         self.settings = self.load_settings()
         self.param_vars = {}
+        self.bi_hemi_var = tk.BooleanVar(value=self.settings.get('bi_hemi_enabled', False))
 
     def create_ui(self):
         """Create the mode selector UI"""
@@ -174,6 +174,28 @@ class ModeSelectorTab(BaseTab):
                 style='Config.TLabel',
                 foreground='#888888'
             ).pack(anchor=tk.W)
+
+        # Bi-Hemi Mode sub-flag
+        ttk.Separator(frame, orient='horizontal').pack(fill=tk.X, padx=10, pady=(5, 0))
+
+        bihemi_frame = ttk.Frame(frame, style='Category.TFrame')
+        bihemi_frame.pack(fill=tk.X, padx=10, pady=5)
+
+        ttk.Checkbutton(
+            bihemi_frame,
+            text="🔀 Bi-Hemi Mode",
+            variable=self.bi_hemi_var,
+            command=self._on_bi_hemi_toggle,
+            style='TCheckbutton'
+        ).pack(side=tk.LEFT, padx=(0, 10))
+
+        ttk.Label(
+            bihemi_frame,
+            text="Routes through OmegaBridge (Omega prior) + GGUF Alpha",
+            font=("Arial", 8),
+            style='Config.TLabel',
+            foreground='#888888'
+        ).pack(side=tk.LEFT)
 
         # Add spacing
         ttk.Label(frame, text="", style='Config.TLabel').pack(pady=5)
@@ -549,6 +571,26 @@ class ModeSelectorTab(BaseTab):
                 self.parent_tab.settings_interface.on_mode_changed(mode)
                 log_message(f"MODE_SELECTOR: Notified Advanced Settings of mode change to {mode}")
 
+    def _on_bi_hemi_toggle(self):
+        """Handle Bi-Hemi Mode checkbox toggle"""
+        enabled = self.bi_hemi_var.get()
+        self.settings['bi_hemi_enabled'] = enabled
+        try:
+            with open(self.settings_file, 'w') as f:
+                json.dump(self.settings, f, indent=2)
+        except Exception as e:
+            log_message(f"MODE_SELECTOR ERROR: Failed to save bi_hemi_enabled: {e}")
+        log_message(f"MODE_SELECTOR: Bi-Hemi Mode {'enabled' if enabled else 'disabled'}")
+        # Notify chat interface if it has an on_bi_hemi_changed handler
+        ci = getattr(getattr(self, 'parent_tab', None), 'chat_interface', None)
+        if ci and hasattr(ci, 'on_bi_hemi_changed'):
+            ci.on_bi_hemi_changed(enabled)
+
+    @property
+    def bi_hemi_enabled(self) -> bool:
+        """Return current Bi-Hemi Mode state"""
+        return bool(self.bi_hemi_var.get())
+
     def create_button_bar(self):
         """Create bottom button bar"""
         button_frame = ttk.Frame(self.parent, style='Category.TFrame')
@@ -603,7 +645,8 @@ class ModeSelectorTab(BaseTab):
             'current_mode': default_mode,
             'mode_parameters': self.get_default_mode_parameters(default_mode),
             'think_time_min_seconds': 30,
-            'think_time_max_seconds': 300
+            'think_time_max_seconds': 300,
+            'bi_hemi_enabled': False
         }
 
     def save_settings(self):
@@ -645,6 +688,9 @@ class ModeSelectorTab(BaseTab):
                 )
                 self.settings['think_time_min_seconds'] = 30
                 self.settings['think_time_max_seconds'] = 300
+
+            # Save bi_hemi state
+            self.settings['bi_hemi_enabled'] = self.bi_hemi_var.get()
 
             # Save to file
             with open(self.settings_file, 'w') as f:
@@ -728,4 +774,5 @@ class ModeSelectorTab(BaseTab):
         self.mode_var.set(self.settings.get('current_mode', 'smart'))
         self.think_time_min_var.set(str(self.settings.get('think_time_min_seconds', 30)))
         self.think_time_max_var.set(str(self.settings.get('think_time_max_seconds', 300)))
+        self.bi_hemi_var.set(self.settings.get('bi_hemi_enabled', False))
         self.update_parameters_display()

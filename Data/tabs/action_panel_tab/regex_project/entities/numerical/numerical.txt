@@ -1,0 +1,10 @@
+\b\d+\b
+\b\d+\.\d+\b
+\b(\$|£|€|¥)\s?\d+(?:\.\d{2})?\b
+\b\d+\s?%\b
+\b\d+\s?(kg|g|mg|lbs|oz)\b
+\b\d+\s?(m|cm|mm|km|in|ft|yd|mi)\b
+\b\d+\s?(l|ml|gal|qt|pt)\b
+\b\d+\s?(°C|°F|K)\b
+\b(one|two|three|four|five|six|seven|eight|nine|ten)\b
+\b(first|second|third|fourth|fifth)\b

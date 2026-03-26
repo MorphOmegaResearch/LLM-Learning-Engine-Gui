@@ -1,0 +1,9 @@
+{
+  "description": "Tool schema for Browser Agent novice",
+  "type": "browser_agent",
+  "class": "novice",
+  "enabled_tools": {
+    "web_fetch": true
+  },
+  "tools": []
+}

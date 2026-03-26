@@ -1,0 +1,263 @@
+{
+  "pool": [
+    {
+      "query": "What is hyperspectral imaging?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T16:29:31.619013"
+    },
+    {
+      "query": "how are you?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T17:02:37.984819"
+    },
+    {
+      "query": "Why is it important?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T17:05:57.276015"
+    },
+    {
+      "query": "What is a Quantum Server?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T17:17:45.394511"
+    },
+    {
+      "query": "What should I do?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T17:18:50.952045"
+    },
+    {
+      "query": "What should I do?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T17:21:03.850812"
+    },
+    {
+      "query": "I have a new quantum processor.",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T17:30:13.498412"
+    },
+    {
+      "query": "I have a new quantum processor.",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T17:30:42.600209"
+    },
+    {
+      "query": "I have a new quantum processor.",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T17:31:18.082181"
+    },
+    {
+      "query": "What about Photosynthesis?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T17:35:59.462614"
+    },
+    {
+      "query": "Can we evaluate the empirical evidence for photosynthesis?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T17:42:06.465168"
+    },
+    {
+      "query": "How does evaluate relate to cellular respiration?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T17:42:06.543927"
+    },
+    {
+      "query": "What is the relationship between entropy and enthalpy?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T18:01:22.876944"
+    },
+    {
+      "query": "How does photosynthesis work?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T18:17:47.000380"
+    },
+    {
+      "query": "Do you have any questions?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T18:48:32.721334"
+    },
+    {
+      "query": "tell me about cpu",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T19:00:28.151179"
+    },
+    {
+      "query": "tell me about cpu",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T19:00:28.240488"
+    },
+    {
+      "query": "I am building a quantum server.",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T19:14:36.074462"
+    },
+    {
+      "query": "quantum needs to handle high load.",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T19:14:50.700850"
+    },
+    {
+      "query": "Why is cpu important?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T19:14:58.017544"
+    },
+    {
+      "query": "Do you have any questions?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T19:26:55.213638"
+    },
+    {
+      "query": "Do you have any questions?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T19:29:04.470287"
+    },
+    {
+      "query": "Do you have any questions?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T19:40:13.526814"
+    },
+    {
+      "query": "The cost is 000",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T20:32:59.310875"
+    },
+    {
+      "query": "I am building a quantum server.",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T20:38:39.762933"
+    },
+    {
+      "query": "quantum server needs to handle high load.",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T20:38:50.054612"
+    },
+    {
+      "query": "Why is quantum server important?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T20:39:02.170599"
+    },
+    {
+      "query": "What is a server?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T20:59:33.731704"
+    },
+    {
+      "query": "What is a server?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T21:00:11.573214"
+    },
+    {
+      "query": "Are they both mammals?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T21:36:43.292746"
+    },
+    {
+      "query": "Are they both mammals?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T21:37:48.326642"
+    },
+    {
+      "query": "Are they both mammals?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T21:38:32.867330"
+    },
+    {
+      "query": "What is the CPU temperature?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T22:02:23.373482"
+    },
+    {
+      "query": "What is the CPU temperature?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T22:03:29.415725"
+    },
+    {
+      "query": "What is the CPU temperature?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T22:04:07.571210"
+    },
+    {
+      "query": "What is the CPU temperature?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T22:04:54.098827"
+    },
+    {
+      "query": "What is the CPU temperature?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T22:05:49.045290"
+    },
+    {
+      "query": "What would you like to know",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T22:20:20.991348"
+    },
+    {
+      "query": "What does resilient mean?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-25T23:56:59.779202"
+    },
+    {
+      "query": "what is a flurb?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-26T00:07:43.361378"
+    },
+    {
+      "query": "How can I help you with the project?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-26T02:03:18.920691"
+    },
+    {
+      "query": "what is the weather like today",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-26T02:05:42.689881"
+    },
+    {
+      "query": "Why do they need to be cold?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-26T02:25:44.751813"
+    },
+    {
+      "query": "Tell me about photosynthesis",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-26T12:45:45.094134"
+    },
+    {
+      "query": "Why does photosynthesis happen?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-26T12:45:45.302544"
+    },
+    {
+      "query": "The algorithm processes data quickly",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-01-26T12:46:04.648662"
+    },
+    {
+      "query": "What files need consolidation?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-02-10T03:27:17.616206"
+    },
+    {
+      "query": "How can I help you with the project?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-02-23T01:03:18.424182"
+    },
+    {
+      "query": "what files have been modified recently",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-02-23T01:03:27.000192"
+    },
+    {
+      "query": "What Questions",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-03-05T23:18:58.130390"
+    },
+    {
+      "query": "What Questions Do you have?",
+      "reason": "No memory hit for query",
+      "timestamp": "2026-03-05T23:20:36.536498"
+    }
+  ],
+  "metadata": {
+    "count": 51,
+    "last_entry": "2026-03-05T23:20:36.536510"
+  }
+}

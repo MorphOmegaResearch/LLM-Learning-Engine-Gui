@@ -1,0 +1,172 @@
+CRASH: 'SecureViewApp' object has no attribute 'on_hier_hover'
+Traceback (most recent call last):
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 664, in <module>
+    app = SecureViewApp(root)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 89, in __init__
+    self.setup_layout()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 176, in setup_layout
+    self.hier_tree.bind("<Motion>", self.on_hier_hover)
+AttributeError: 'SecureViewApp' object has no attribute 'on_hier_hover'
+
+CRASH: 'SecureViewApp' object has no attribute 'open_directory'
+Traceback (most recent call last):
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 815, in <module>
+    app = SecureViewApp(root)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 115, in __init__
+    self.setup_menu()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 146, in setup_menu
+    file_m.add_command(label="Open Directory", command=self.open_directory)
+AttributeError: 'SecureViewApp' object has no attribute 'open_directory'
+
+CRASH: 'SecureViewApp' object has no attribute 'kill_targeted_process'
+Traceback (most recent call last):
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 962, in <module>
+    app = SecureViewApp(root)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 116, in __init__
+    self.setup_layout()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 254, in setup_layout
+    self.kill_btn = ttk.Button(ctrl_f, text="KILL", state="disabled", command=self.kill_targeted_process)
+AttributeError: 'SecureViewApp' object has no attribute 'kill_targeted_process'
+
+CRASH: 'SecureViewApp' object has no attribute 'group_related_processes'
+Traceback (most recent call last):
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 1294, in <module>
+    app = SecureViewApp(root)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 119, in __init__
+    self.setup_layout()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 184, in setup_layout
+    ttk.Button(self.sk_f, text="Group", width=6, command=self.group_related_processes).pack(side=tk.LEFT, padx=1)
+AttributeError: 'SecureViewApp' object has no attribute 'group_related_processes'
+
+CRASH: 'SecureViewApp' object has no attribute 'group_related_processes'
+Traceback (most recent call last):
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 1294, in <module>
+    app = SecureViewApp(root)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 119, in __init__
+    self.setup_layout()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 184, in setup_layout
+    ttk.Button(self.sk_f, text="Group", width=6, command=self.group_related_processes).pack(side=tk.LEFT, padx=1)
+AttributeError: 'SecureViewApp' object has no attribute 'group_related_processes'
+
+CRASH: 'SecureViewApp' object has no attribute 'group_related_processes'
+Traceback (most recent call last):
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 1294, in <module>
+    app = SecureViewApp(root)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 119, in __init__
+    self.setup_layout()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 184, in setup_layout
+    ttk.Button(self.sk_f, text="Group", width=6, command=self.group_related_processes).pack(side=tk.LEFT, padx=1)
+AttributeError: 'SecureViewApp' object has no attribute 'group_related_processes'
+
+CRASH: 'ProcessBrainVisualization' object has no attribute 'auto_rotate'
+Traceback (most recent call last):
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 1320, in <module>
+    app = SecureViewApp(root)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 118, in __init__
+    self.setup_layout()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 279, in setup_layout
+    self.setup_brain_map_tab()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 1040, in setup_brain_map_tab
+    self.brain_viz = ProcessBrainVisualization(self.brain_frame, get_category, enable_debug=enable_debug)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/process_brain_viz.py", line 60, in __init__
+    self.setup_ui()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/process_brain_viz.py", line 78, in setup_ui
+    ttk.Checkbutton(ctrl_frame, text="Auto-Rotate", variable=self.auto_rotate).pack(side=tk.LEFT, padx=5)
+AttributeError: 'ProcessBrainVisualization' object has no attribute 'auto_rotate'
+
+CRASH: 'bool' object has no attribute 'get'
+Traceback (most recent call last):
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 1315, in <module>
+    app = SecureViewApp(root)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 118, in __init__
+    self.setup_layout()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 279, in setup_layout
+    self.setup_brain_map_tab()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 1040, in setup_brain_map_tab
+    self.brain_viz = ProcessBrainVisualization(self.brain_frame, get_category, enable_debug=enable_debug)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/process_brain_viz.py", line 84, in __init__
+    self.update_visualization()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/process_brain_viz.py", line 353, in update_visualization
+    if not self.frozen.get():
+AttributeError: 'bool' object has no attribute 'get'
+
+CRASH: name 'psutil' is not defined
+Traceback (most recent call last):
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 2408, in <module>
+    app = SecureViewApp(root)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 79, in __init__
+    self.self_process = psutil.Process(os.getpid())
+NameError: name 'psutil' is not defined
+
+CRASH: name 'psutil' is not defined
+Traceback (most recent call last):
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 2408, in <module>
+    app = SecureViewApp(root)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 79, in __init__
+    self.self_process = psutil.Process(os.getpid())
+NameError: name 'psutil' is not defined
+
+CRASH: 'NoneType' object has no attribute 'key_press_handler_id'
+Traceback (most recent call last):
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 2427, in <module>
+    app = SecureViewApp(root)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 135, in __init__
+    self.setup_layout()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 354, in setup_layout
+    self.setup_brain_map_tab()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 1989, in setup_brain_map_tab
+    self.brain_viz = ProcessBrainVisualization(self.brain_frame, get_category, enable_debug=enable_debug)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/process_brain_viz.py", line 90, in __init__
+    self.setup_ui()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/process_brain_viz.py", line 173, in setup_ui
+    self.fig.canvas.mpl_disconnect(self.fig.canvas.manager.key_press_handler_id)
+AttributeError: 'NoneType' object has no attribute 'key_press_handler_id'
+
+CRASH: 'NoneType' object has no attribute 'key_press_handler_id'
+Traceback (most recent call last):
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 2427, in <module>
+    app = SecureViewApp(root)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 135, in __init__
+    self.setup_layout()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 354, in setup_layout
+    self.setup_brain_map_tab()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 1989, in setup_brain_map_tab
+    self.brain_viz = ProcessBrainVisualization(self.brain_frame, get_category, enable_debug=enable_debug)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/process_brain_viz.py", line 90, in __init__
+    self.setup_ui()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/process_brain_viz.py", line 173, in setup_ui
+    self.fig.canvas.mpl_disconnect(self.fig.canvas.manager.key_press_handler_id)
+AttributeError: 'NoneType' object has no attribute 'key_press_handler_id'
+
+CRASH: 'NoneType' object has no attribute 'key_press_handler_id'
+Traceback (most recent call last):
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 2427, in <module>
+    app = SecureViewApp(root)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 135, in __init__
+    self.setup_layout()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 354, in setup_layout
+    self.setup_brain_map_tab()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 1989, in setup_brain_map_tab
+    self.brain_viz = ProcessBrainVisualization(self.brain_frame, get_category, enable_debug=enable_debug)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/process_brain_viz.py", line 90, in __init__
+    self.setup_ui()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/process_brain_viz.py", line 173, in setup_ui
+    self.fig.canvas.mpl_disconnect(self.fig.canvas.manager.key_press_handler_id)
+AttributeError: 'NoneType' object has no attribute 'key_press_handler_id'
+
+CRASH: 'NoneType' object has no attribute 'key_press_handler_id'
+Traceback (most recent call last):
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 2427, in <module>
+    app = SecureViewApp(root)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 135, in __init__
+    self.setup_layout()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 354, in setup_layout
+    self.setup_brain_map_tab()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/secure_view.py", line 1989, in setup_brain_map_tab
+    self.brain_viz = ProcessBrainVisualization(self.brain_frame, get_category, enable_debug=enable_debug)
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/process_brain_viz.py", line 90, in __init__
+    self.setup_ui()
+  File "/home/commander/Custom_Applications/scripts/Process_Monitoring/process_brain_viz.py", line 173, in setup_ui
+    self.fig.canvas.mpl_disconnect(self.fig.canvas.manager.key_press_handler_id)
+AttributeError: 'NoneType' object has no attribute 'key_press_handler_id'
+

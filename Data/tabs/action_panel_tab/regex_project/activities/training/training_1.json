@@ -1,0 +1,323 @@
+{
+  "benchmark_metadata": {
+    "name": "Cross-Domain Conversational Scoring Benchmark",
+    "version": "1.0",
+    "description": "Multi-domain conversational benchmarks for scoring coherence, quality, and domain-specific metrics",
+    "created_date": "2024-01-01",
+    "domains_supported": 12,
+    "scoring_system": "5-point scale with weighted categories"
+  },
+  
+  "scoring_categories": {
+    "universal_metrics": {
+      "coherence": {
+        "id": "UNIV-001",
+        "description": "Logical flow and topic consistency",
+        "scale": [1, 2, 3, 4, 5],
+        "scale_description": [
+          "Illogical, random jumps",
+          "Weak connections, frequent topic shifts",
+          "Basic coherence with some gaps",
+          "Mostly smooth with minor inconsistencies",
+          "Perfect logical progression"
+        ]
+      },
+      "engagement": {
+        "id": "UNIV-002",
+        "description": "Ability to maintain user interest",
+        "scale": [1, 2, 3, 4, 5],
+        "scale_description": [
+          "Monotonous, repetitive",
+          "Minimal engagement, formulaic",
+          "Adequate but uninspiring",
+          "Generally engaging",
+          "Highly compelling and dynamic"
+        ]
+      },
+      "language_quality": {
+        "id": "UNIV-003",
+        "description": "Grammar, clarity, and naturalness",
+        "scale": [1, 2, 3, 4, 5],
+        "scale_description": [
+          "Unintelligible, frequent errors",
+          "Poor grammar, confusing",
+          "Understandable with errors",
+          "Mostly correct, clear",
+          "Flawless, natural language"
+        ]
+      }
+    },
+    
+    "domain_specific_metrics": {
+      "technical_support": {
+        "accuracy": "TECH-001",
+        "troubleshooting_depth": "TECH-002",
+        "solution_clarity": "TECH-003"
+      },
+      "medical_advice": {
+        "safety_consciousness": "MED-001",
+        "terminology_accuracy": "MED-002",
+        "disclaimer_clarity": "MED-003"
+      },
+      "creative_writing": {
+        "originality": "CREAT-001",
+        "descriptive_quality": "CREAT-002",
+        "emotional_impact": "CREAT-003"
+      }
+    }
+  },
+  
+  "conversation_templates": [
+    {
+      "domain": "technical_support",
+      "domain_id": "DOM-001",
+      "difficulty": "beginner",
+      "conversation_id": "CONV-TS-001",
+      "template": [
+        {
+          "turn": 1,
+          "role": "user",
+          "content": "My computer won't turn on. What should I do?",
+          "expected_focus": "Initial troubleshooting",
+          "scoring_categories": ["coherence", "accuracy", "solution_clarity"]
+        },
+        {
+          "turn": 2,
+          "role": "assistant",
+          "ideal_response_components": [
+            "Check power connections",
+            "Ask about indicator lights",
+            "Suggest basic troubleshooting"
+          ],
+          "scoring_weights": {
+            "coherence": 0.2,
+            "accuracy": 0.4,
+            "solution_clarity": 0.4
+          }
+        }
+      ]
+    },
+    
+    {
+      "domain": "mental_health_support",
+      "domain_id": "DOM-002",
+      "difficulty": "intermediate",
+      "conversation_id": "CONV-MH-001",
+      "template": [
+        {
+          "turn": 1,
+          "role": "user",
+          "content": "I've been feeling really anxious about work lately and it's affecting my sleep.",
+          "expected_focus": "Empathetic response with appropriate resources",
+          "scoring_categories": ["coherence", "safety_consciousness", "engagement"],
+          "safety_flags": ["NO_DIAGNOSIS", "PROFESSIONAL_REFERRAL_REQUIRED"]
+        }
+      ]
+    }
+  ],
+  
+  "ml_ready_formats": {
+    "classification_format": {
+      "description": "For classifier training/validation",
+      "example": {
+        "input": "User: Computer won't turn on. Assistant: First, check if it's plugged in properly and the power outlet is working.",
+        "labels": {
+          "coherence_score": 4,
+          "domain_accuracy": 5,
+          "safety_score": 5,
+          "overall_quality": 4.5
+        },
+        "domain": "technical_support",
+        "metadata": {
+          "conversation_id": "CONV-TS-001",
+          "turn_number": 2,
+          "difficulty_level": "beginner"
+        }
+      }
+    },
+    
+    "regression_format": {
+      "description": "For regression scoring models",
+      "example": {
+        "features": {
+          "response_length": 42,
+          "contains_questions": true,
+          "contains_safety_disclaimer": true,
+          "technical_terms_count": 3,
+          "readability_score": 8.2
+        },
+        "target_scores": {
+          "coherence": 4.2,
+          "accuracy": 4.8,
+          "helpfulness": 4.5
+        }
+      }
+    },
+    
+    "sequence_labeling_format": {
+      "description": "For fine-grained turn-by-turn analysis",
+      "example": {
+        "tokens": ["First", ",", "check", "the", "power", "cord", "connection", "."],
+        "labels": ["O", "O", "SOLUTION_START", "O", "TECH_TERM", "TECH_TERM", "O", "O"],
+        "turn_score": 4.3
+      }
+    }
+  },
+  
+  "evaluation_scripts": {
+    "python_scoring_module": {
+      "imports": ["json", "numpy", "pandas", "scikit-learn", "transformers"],
+      "scoring_functions": [
+        {
+          "name": "calculate_weighted_score",
+          "parameters": ["raw_scores", "weights", "domain"],
+          "description": "Calculate weighted average based on domain-specific weights"
+        },
+        {
+          "name": "normalize_scores",
+          "parameters": ["scores", "min_score", "max_score"],
+          "description": "Normalize scores to consistent range"
+        }
+      ]
+    },
+    
+    "tracking_schema": {
+      "experiment_tracking": {
+        "required_fields": ["run_id", "model_version", "domain", "timestamp"],
+        "score_fields": ["mean_score", "std_dev", "domain_performance", "category_breakdown"]
+      },
+      "comparison_format": {
+        "baseline": "model_a_scores",
+        "current": "model_b_scores",
+        "improvement": "percentage_change",
+        "significance": "p_value"
+      }
+    }
+  },
+  
+  "domains_index": [
+    {
+      "id": "DOM-001",
+      "name": "technical_support",
+      "category_count": 3,
+      "conversation_count": 50,
+      "primary_metrics": ["accuracy", "clarity", "troubleshooting_depth"]
+    },
+    {
+      "id": "DOM-002",
+      "name": "mental_health_support",
+      "category_count": 4,
+      "conversation_count": 40,
+      "primary_metrics": ["safety", "empathy", "resource_appropriateness"]
+    },
+    {
+      "id": "DOM-003",
+      "name": "creative_writing",
+      "category_count": 3,
+      "conversation_count": 45,
+      "primary_metrics": ["originality", "coherence", "descriptive_quality"]
+    },
+    {
+      "id": "DOM-004",
+      "name": "educational_tutoring",
+      "category_count": 3,
+      "conversation_count": 60,
+      "primary_metrics": ["accuracy", "pedagogical_value", "clarity"]
+    },
+    {
+      "id": "DOM-005",
+      "name": "customer_service",
+      "category_count": 4,
+      "conversation_count": 55,
+      "primary_metrics": ["politeness", "problem_resolution", "efficiency"]
+    },
+    {
+      "id": "DOM-006",
+      "name": "medical_advice",
+      "category_count": 5,
+      "conversation_count": 35,
+      "primary_metrics": ["safety", "accuracy", "disclaimer_clarity"]
+    },
+    {
+      "id": "DOM-007",
+      "name": "legal_information",
+      "category_count": 4,
+      "conversation_count": 30,
+      "primary_metrics": ["precision", "disclaimer_strength", "clarity"]
+    },
+    {
+      "id": "DOM-008",
+      "name": "casual_conversation",
+      "category_count": 3,
+      "conversation_count": 100,
+      "primary_metrics": ["engagement", "naturalness", "coherence"]
+    },
+    {
+      "id": "DOM-009",
+      "name": "scientific_discussion",
+      "category_count": 4,
+      "conversation_count": 40,
+      "primary_metrics": ["accuracy", "depth", "source_citation"]
+    },
+    {
+      "id": "DOM-010",
+      "name": "financial_advice",
+      "category_count": 4,
+      "conversation_count": 25,
+      "primary_metrics": ["safety", "clarity", "disclaimer_strength"]
+    },
+    {
+      "id": "DOM-011",
+      "name": "travel_planning",
+      "category_count": 3,
+      "conversation_count": 50,
+      "primary_metrics": ["accuracy", "completeness", "practicality"]
+    },
+    {
+      "id": "DOM-012",
+      "name": "coding_assistance",
+      "category_count": 4,
+      "conversation_count": 65,
+      "primary_metrics": ["accuracy", "code_quality", "explanation_clarity"]
+    }
+  ],
+  
+  "benchmark_generation_script": {
+    "purpose": "Generate new conversation benchmarks programmatically",
+    "parameters": {
+      "num_domains": "Number of domains to include",
+      "difficulty_distribution": "Beginner/Intermediate/Advanced split",
+      "conversation_length": "Turns per conversation"
+    },
+    "output_structure": "Consistent with main benchmark format"
+  },
+  
+  "scoring_pipeline": {
+    "steps": [
+      {
+        "step": 1,
+        "name": "domain_classification",
+        "model": "domain_classifier",
+        "output": "predicted_domain"
+      },
+      {
+        "step": 2,
+        "name": "category_scoring",
+        "model": "multi_head_scorer",
+        "output": "category_scores"
+      },
+      {
+        "step": 3,
+        "name": "weight_application",
+        "operation": "weighted_average",
+        "output": "final_score"
+      },
+      {
+        "step": 4,
+        "name": "tracking_logging",
+        "operation": "store_results",
+        "output": "experiment_record"
+      }
+    ]
+  }
+}

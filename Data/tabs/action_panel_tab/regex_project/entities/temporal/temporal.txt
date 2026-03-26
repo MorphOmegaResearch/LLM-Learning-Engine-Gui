@@ -1,0 +1,10 @@
+\b(\d{1,2}:\d{2}(?:\s?[ap]m)?)\b
+\b(\d{1,2}/\d{1,2}/\d{2,4})\b
+\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}(?:st|nd|rd|th)?
+\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b
+\b(today|tomorrow|yesterday)\b
+\b(in|within)\s+(\d+|a|an)\s+(minute|hour|day|week|month|year)s?\b
+\b(\d+)\s+(minute|hour|day|week|month|year)s?\s+ago\b
+\b(morning|afternoon|evening|night)\b
+\b(now|soon|later|immediately)\b
+\b(\d{4})\b

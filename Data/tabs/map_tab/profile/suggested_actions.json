@@ -1,0 +1,38 @@
+{
+  "metadata": {
+    "generated_at": "2026-02-21T16:05:55.465079",
+    "session_id": "20260216_213524_commande_f92331",
+    "count": 3,
+    "high_confidence_count": 1,
+    "schema_version": "1.0"
+  },
+  "actions": [
+    {
+      "id": "backup_now",
+      "label": "\ud83d\udce6 Backup core files (no recent backups!)",
+      "command": "python3 Os_Toolkit.py actions --run backup_core",
+      "selected": true,
+      "confidence": 0.85,
+      "generated_at": "2026-02-21T16:05:55.465013",
+      "priority": 1.0
+    },
+    {
+      "id": "update_memory",
+      "label": "\ud83e\udde0 Update session memory",
+      "command": "python3 Os_Toolkit.py actions --run update_memory",
+      "selected": false,
+      "confidence": 0.6,
+      "generated_at": "2026-02-21T16:05:55.465027",
+      "priority": 0.6
+    },
+    {
+      "id": "view_todos",
+      "label": "\ud83d\udcdd View all todos",
+      "command": "python3 Os_Toolkit.py todo view",
+      "selected": false,
+      "confidence": 0.5,
+      "generated_at": "2026-02-21T16:05:55.465032",
+      "priority": 0.5
+    }
+  ]
+}

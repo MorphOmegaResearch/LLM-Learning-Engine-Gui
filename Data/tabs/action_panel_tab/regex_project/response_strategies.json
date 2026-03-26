@@ -1,0 +1,34 @@
+{
+  "inference_mapping": {
+    "greetings": {
+      "strategy": "reciprocal_greeting",
+      "tone_match": true,
+      "priority": 1
+    },
+    "questions": {
+      "strategy": "information_retrieval_or_clarification",
+      "tone_match": true,
+      "priority": 2
+    },
+    "requests": {
+      "strategy": "compliance_check_and_execution",
+      "tone_match": false,
+      "priority": 3
+    },
+    "disagreement": {
+      "strategy": "mitigation_and_rebuttal",
+      "tone_match": false,
+      "priority": 2
+    }
+  },
+  "realization_templates": {
+    "formal": {
+      "acknowledgment": ["Understood.", "I have received your request.", "Noted."],
+      "error": ["I apologize, but I cannot fulfill that request.", "An error has occurred in processing."]
+    },
+    "informal": {
+      "acknowledgment": ["Got it!", "Sure thing.", "On it."],
+      "error": ["Oops, something went wrong.", "Sorry, I can't do that right now."]
+    }
+  }
+}

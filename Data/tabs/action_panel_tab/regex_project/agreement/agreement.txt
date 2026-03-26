@@ -1,0 +1,10 @@
+\b(I agree)\b
+\b(you're right|you are right)\b
+\b(that's true|that is true)\b
+\b(I think so too)\b
+\b(for sure)\b
+\b(absolutely)\b
+\b(definitely)\b
+\b(couldn't agree more)\b
+\b(exactly)\b
+\b(I see your point)\b

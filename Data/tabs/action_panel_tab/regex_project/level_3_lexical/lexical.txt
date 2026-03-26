@@ -1,0 +1,10 @@
+\b(I|me|my|mine|you|your|yours|he|him|his|she|her|hers|it|its|we|us|our|ours|they|them|their|theirs)\b
+\b(am|is|are|was|were|be|being|been)\b
+\b(a|an|the)\b
+\b(and|but|or|so|yet|for|nor)\b
+\b(in|on|at|by|with|from|to|for|of|about)\b
+\b(can|could|will|would|shall|should|may|might|must)\b
+\b(this|that|these|those)\b
+\b(who|what|where|when|why|how)\b
+\b(not|n't)\b
+\b(very|quite|rather|somewhat|too)\b

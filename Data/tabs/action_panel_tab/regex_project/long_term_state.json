@@ -1,0 +1,20 @@
+{
+  "global_metrics": {
+    "total_interactions": 0,
+    "total_gratification": 0,
+    "first_launch": "2026-01-25",
+    "last_shutdown": null
+  },
+  "persona_affinity": {
+    "Scholar": 0.0,
+    "Engineer": 0.0,
+    "Mate": 0.0,
+    "Assistant": 1.0
+  },
+  "user_profile": {
+    "relationship_score": 0.5,
+    "common_topics": [],
+    "last_seen": null
+  },
+  "high_priority_gaps": []
+}

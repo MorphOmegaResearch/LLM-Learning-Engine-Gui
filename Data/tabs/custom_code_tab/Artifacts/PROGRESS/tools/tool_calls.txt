@@ -1,0 +1,442 @@
+TARGET FILES:
+
+  1. /home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/open
+  code/interactive.py - Main fixes
+  2. /home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages/open
+  code/format_translator.py - Detection order (maybe)
+
+  ---
+  PRIORITY 1: Fix Array Chain Execution Safety
+
+  Target: interactive.py lines 3182-3207
+
+  Current Code:
+  # Line 3182-3207: Array chain execution
+  if tool_chain_json:
+      console.print(f"[cyan]Executing tool chain...[/cyan]")
+      for tool_step in tool_chain_json.get("tools", []):
+          tool_name = tool_step.get("name")
+          tool_args = tool_step.get("args", {})
+
+          result = await self.tool_manager.execute_tool(tool_name,
+  tool_args)  # ❌ UNSAFE
+          # No confirmation gates, no orchestrator
+
+  Goal:
+  - Replace unsafe execute_tool() with _safe_execute_tool()
+  - Add confirmation gates for destructive operations
+  - Add risk scoring
+  - Match single tool execution safety level
+
+  Changes Required:
+
+  1.1: Replace execute_tool (Line 3194)
+
+  # OLD:
+  result = await self.tool_manager.execute_tool(tool_name, tool_args)
+
+  # NEW:
+  result = await _safe_execute_tool(self, tool_name, tool_args)
+
+  Considerations:
+  - _safe_execute_tool() is defined at line 279
+  - Returns dict with {"success": bool, "output": str, "error": str}
+  - Automatically handles orchestrator validation
+  - Already has confirmation gates built-in
+
+  1.2: Add Confirmation for Destructive Chains (Before Line 3186)
+
+  # NEW CODE to insert before execution loop:
+  # Check if any step in chain is destructive
+  destructive_tools = ['file_delete', 'file_write', 'bash_execute',
+  'file_move']
+  has_destructive = any(step.get("name") in destructive_tools for step in
+  tool_chain_json.get("tools", []))
+
+  if has_destructive:
+      console.print(f"[yellow]⚠️  This chain contains destructive 
+  operations:[/yellow]")
+      for step in tool_chain_json.get("tools", []):
+          if step.get("name") in destructive_tools:
+              console.print(f"  • {step.get('name')}: {step.get('args')}")
+
+      confirm = await self.session.prompt_async("Execute chain? (y/n): ",
+  completer=None)
+      if confirm.lower() != 'y':
+          console.print("[yellow]Chain execution cancelled[/yellow]")
+          tool_chain_executed = True
+          # Skip to next iteration (need to handle this flow)
+
+  Considerations:
+  - Need to handle cancellation flow - can't use continue here
+  - Should use same confirmation_gate system as single tools
+  - Might need to wrap entire chain in operation info
+
+  1.3: Add Risk Scoring (New function)
+
+  # NEW FUNCTION to add near line 279 (with _safe_execute_tool):
+  def _calculate_chain_risk(tool_chain_json) -> str:
+      """Calculate risk level for tool chain"""
+      risk_scores = {
+          'file_delete': 'HIGH',
+          'bash_execute': 'MEDIUM',
+          'file_write': 'LOW',
+          'file_move': 'MEDIUM',
+          'git_operations': 'MEDIUM'
+      }
+
+      max_risk = 'SAFE'
+      for step in tool_chain_json.get("tools", []):
+          step_risk = risk_scores.get(step.get("name"), 'SAFE')
+          if step_risk == 'HIGH':
+              max_risk = 'HIGH'
+          elif step_risk == 'MEDIUM' and max_risk != 'HIGH':
+              max_risk = 'MEDIUM'
+          elif step_risk == 'LOW' and max_risk == 'SAFE':
+              max_risk = 'LOW'
+
+      return max_risk
+
+  Considerations:
+  - Should integrate with existing confirmation_gates.py RiskLevel enum
+  - Need to import RiskLevel at top of file (already imported at line 54)
+
+  1.4: Testing Requirements
+
+  - Test with chain: [{"name":"file_search","arguments":{"pattern":"*.txt"}}
+  ,{"name":"file_delete","arguments":{"file_path":"test.txt"}}]
+  - Verify confirmation prompt appears before delete
+  - Verify 'n' cancels entire chain
+  - Verify 'y' executes both steps
+
+  ---
+  PRIORITY 2: Execute Multiple Separate Tool Calls
+
+  Target: interactive.py lines 3209-3225
+
+  Current Code:
+  # Line 3209-3225: Multiple separate tools detected but NOT executed
+  multiple_tool_calls = []
+  if not tool_chain_json:
+      # ... detection code ...
+      if len(multiple_tool_calls) > 1:
+          console.print(f"[yellow]⚠️  Multiple separate tool calls 
+  detected[/yellow]")
+          tool_names_list = [tc['name'] for tc in multiple_tool_calls]
+          console.print(f"[cyan]Tools: {', '.join(tool_names_list)}[/cyan]")
+          console.print(f"[dim]Tip: Use tool_chain format to execute them 
+  sequentially[/dim]")
+          # ❌ THEN DOES NOTHING!
+
+  Goal:
+  - Actually execute the detected separate tool calls
+  - Give user choice: execute all, select specific ones, or convert to chain
+  - Use safe execution with gates
+
+  Changes Required:
+
+  2.1: Add Execution After Detection (After Line 3225)
+
+  # After line 3225, add:
+  if len(multiple_tool_calls) > 1:
+      console.print(f"[yellow]⚠️  Multiple separate tool calls 
+  detected[/yellow]")
+      tool_names_list = [tc['name'] for tc in multiple_tool_calls]
+      console.print(f"[cyan]Tools: {', '.join(tool_names_list)}[/cyan]")
+
+      # NEW: Ask user what to do
+      console.print(f"\n[dim]Options:[/dim]")
+      console.print(f"  [dim]1.[/dim] Execute all sequentially")
+      console.print(f"  [dim]2.[/dim] Execute as chain (stop on first 
+  failure)")
+      console.print(f"  [dim]3.[/dim] Select which to execute")
+      console.print(f"  [dim]n.[/dim] Skip execution")
+
+      choice = await self.session.prompt_async("Choice (1/2/3/n): ",
+  completer=None)
+      # ... implementation below ...
+
+  Considerations:
+  - Similar UX to file_path auto-fix conformer
+  - Need async prompt handling
+  - Should track which tools succeeded/failed
+
+  2.2: Implement Execution Options
+
+  if choice == '1':
+      # Execute all independently
+      for i, tc in enumerate(multiple_tool_calls, 1):
+          console.print(f"\n[dim cyan]→ Executing 
+  {i}/{len(multiple_tool_calls)}: {tc['name']}[/dim cyan]")
+          result = await _safe_execute_tool(self, tc['name'], tc.get('args',
+   {}))
+          if result.get('success'):
+              console.print(f"[green]✓ {tc['name']} completed[/green]")
+          else:
+              console.print(f"[yellow]⚠ {tc['name']} failed: 
+  {result.get('error')}[/yellow]")
+              # Continue anyway - they're independent
+
+  elif choice == '2':
+      # Execute as chain (stop on failure)
+      for i, tc in enumerate(multiple_tool_calls, 1):
+          console.print(f"\n[dim cyan]→ Executing 
+  {i}/{len(multiple_tool_calls)}: {tc['name']}[/dim cyan]")
+          result = await _safe_execute_tool(self, tc['name'], tc.get('args',
+   {}))
+          if result.get('success'):
+              console.print(f"[green]✓ {tc['name']} completed[/green]")
+          else:
+              console.print(f"[red]✗ {tc['name']} failed: 
+  {result.get('error')}[/red]")
+              console.print(f"[yellow]Stopping chain due to 
+  failure[/yellow]")
+              break  # Stop on first failure
+
+  elif choice == '3':
+      # Interactive selection
+      for i, tc in enumerate(multiple_tool_calls, 1):
+          execute = await self.session.prompt_async(f"Execute {tc['name']}? 
+  (y/n): ", completer=None)
+          if execute.lower() == 'y':
+              result = await _safe_execute_tool(self, tc['name'],
+  tc.get('args', {}))
+              # ... handle result ...
+
+  Considerations:
+  - All use _safe_execute_tool() for safety
+  - Option 1 continues on failure (independent)
+  - Option 2 stops on failure (chain-like)
+  - Option 3 gives full control
+  - Need to set flag after execution to skip single tool processing
+
+  2.3: Set Execution Flag
+
+  # After execution completes:
+  multiple_tools_executed = True  # Similar to tool_chain_executed flag
+
+  2.4: Skip Single Tool Processing (Line 3505)
+
+  # Current:
+  if tool_call and not tool_chain_executed:
+
+  # NEW:
+  if tool_call and not tool_chain_executed and not multiple_tools_executed:
+
+  Considerations:
+  - Need to initialize multiple_tools_executed = False before detection
+  - Place initialization near tool_chain_executed = False at line 3183
+
+  ---
+  PRIORITY 3: File Path Auto-Fix for Chains
+
+  Target: interactive.py lines 3186-3204 (inside chain execution loop)
+
+  Current Code:
+  for tool_step in tool_chain_json.get("tools", []):
+      tool_name = tool_step.get("name")
+      tool_args = tool_step.get("args", {})
+      # ❌ No check for missing file_path
+      result = await self.tool_manager.execute_tool(tool_name, tool_args)
+
+  Goal:
+  - Add same file_path auto-fix that single tools have (line 3543-3568)
+  - Prompt user for missing paths in chain steps
+  - Allow cancelling entire chain if any step has missing args
+
+  Changes Required:
+
+  3.1: Add Path Check Before Each Step (After Line 3189)
+
+  for tool_step in tool_chain_json.get("tools", []):
+      tool_name = tool_step.get("name")
+      tool_args = tool_step.get("args", {})
+
+      # NEW: File path auto-fix for chain steps
+      file_operation_tools = ['file_read', 'file_write', 'file_edit',
+  'file_delete', 'file_create']
+      if tool_name in file_operation_tools and 'file_path' not in tool_args:
+          console.print(f"[yellow]⚠️  Step '{tool_name}' missing 
+  file_path[/yellow]")
+          console.print(f"[cyan]Would you like to:[/cyan]")
+          console.print(f"  [dim]1.[/dim] Use working directory: 
+  [green]{os.getcwd()}[/green]")
+          console.print(f"  [dim]2.[/dim] Enter a path")
+          console.print(f"  [dim]n.[/dim] Cancel entire chain")
+
+          fix_choice = await self.session.prompt_async(f"Choice (1/2/n): ",
+  completer=None)
+
+          if fix_choice == '1':
+              tool_args['file_path'] = os.getcwd()
+          elif fix_choice == '2':
+              custom = await self.session.prompt_async(f"Enter file path: ",
+   completer=None)
+              tool_args['file_path'] = custom.strip()
+          else:
+              console.print(f"[yellow]Chain cancelled by user[/yellow]")
+              break  # Exit chain execution loop
+
+      # Continue with execution...
+
+  Considerations:
+  - Exact same UX as single tool auto-fix (line 3543)
+  - Cancelling should exit the entire chain, not just one step
+  - Update tool_args dict directly so fixed path is used in execution
+  - Consider also checking for other missing required args (not just
+  file_path)
+
+  3.2: Generalize to All Required Args
+
+  # Could extend to check all required args:
+  tool_schema = self.tool_manager.get_tool_schema(tool_name)
+  required_args = tool_schema.get('required', [])
+
+  for req_arg in required_args:
+      if req_arg not in tool_args:
+          # Prompt user for missing arg...
+
+  Considerations:
+  - Might be overkill - file_path is the most common issue
+  - Could add this as future enhancement
+  - Keep initial implementation simple (just file_path)
+
+  3.3: Chain Cancellation Handling
+
+  # After loop, check if cancelled:
+  if tool_step_cancelled:
+      console.print(f"[yellow]Chain execution stopped[/yellow]")
+      tool_chain_executed = True
+      # Don't execute remaining steps
+
+  Considerations:
+  - Need flag to track if user cancelled during auto-fix
+  - Should still set tool_chain_executed = True so single tool doesn't run
+
+  ---
+  PRIORITY 4: Fix Detection Order
+
+  Target: interactive.py lines 3136-3140
+
+  Current Code:
+  # Line 3137: Single tool detection runs FIRST
+  tool_call = translate_tool_call(response)
+
+  # Line 3140: Chain detection runs AFTER
+  tool_chain_json = None
+  try:
+      # ... chain detection ...
+
+  Problem:
+  - If model outputs [{"name":"file_search",...},{"name":"file_read",...}]
+  - translate_tool_call() might extract just {"name":"file_search",...}
+  (first tool)
+  - Chain detection never runs because first tool already extracted
+  - Result: Only first tool executes, rest ignored!
+
+  Goal:
+  - Check for chains FIRST (both formats)
+  - Only call translate_tool_call() if no chain found
+  - Ensure array chains are fully detected before single tool extraction
+
+  Changes Required:
+
+  4.1: Reorder Detection (Lines 3136-3140)
+
+  # OLD ORDER:
+  tool_call = translate_tool_call(response)
+  tool_chain_json = None
+  try:
+      # chain detection...
+
+  # NEW ORDER:
+  tool_chain_json = None
+  tool_call = None
+
+  # FIRST: Check for chains
+  try:
+      # ... all chain detection code (structured + array) ...
+  except json.JSONDecodeError:
+      pass
+
+  # ONLY if no chain found, check for single tool
+  if not tool_chain_json:
+      tool_call = translate_tool_call(response)
+
+  Considerations:
+  - Simple reordering, no logic changes
+  - Ensures chains have priority over single tools
+  - Prevents truncation of multi-tool responses
+
+  4.2: Update translate_tool_call to Avoid Arrays
+
+  Optional: Modify format_translator.py to return None if it detects array
+  format
+
+  Target: /home/commander/Desktop/BackupOpencode/versions/v1.2/site-packages
+  /opencode/format_translator.py line 31
+
+  def translate(self, response: str) -> Optional[Dict[str, Any]]:
+      # NEW: Detect array format early and return None
+      if re.search(r'\[\s*\{\s*"name"\s*:', response):
+          # This looks like an array of tools, not a single tool
+          return None
+
+      # Continue with normal single tool detection...
+
+  Considerations:
+  - Makes translate_tool_call() "array-aware"
+  - Returns None for arrays, letting chain detection handle it
+  - Defensive programming - belt-and-suspenders approach
+  - Optional enhancement, not strictly required if detection order is fixed
+
+  4.3: Testing Requirements
+
+  - Test with: [{"name":"file_search","arguments":{"pattern":"*.txt"}},{"nam
+  e":"file_read","arguments":{"file_path":"test.txt"}}]
+  - Verify chain detection triggers (not just first tool)
+  - Verify both tools execute
+  - Test with single tool:
+  {"type":"tool_call","name":"file_read","args":{"file_path":"test.txt"}}
+  - Verify single tool still works
+
+  ---
+  SUMMARY TABLE:
+
+  | Priority | Target File          | Lines     | Changes                |
+  Risk   | Estimated Lines     |
+  |----------|----------------------|-----------|------------------------|--
+  ------|---------------------|
+  | P1.1     | interactive.py       | 3194      | Replace function call  |
+  Low    | 1 line              |
+  | P1.2     | interactive.py       | ~3185     | Add confirmation block |
+  Medium | ~15 lines           |
+  | P1.3     | interactive.py       | ~280      | New risk function      |
+  Low    | ~20 lines           |
+  | P1.4     | N/A                  | Test only | Testing                |
+  Low    | 0 lines             |
+  | P2.1     | interactive.py       | ~3225     | Add user prompt        |
+  Medium | ~10 lines           |
+  | P2.2     | interactive.py       | ~3230     | Add execution options  |
+  High   | ~40 lines           |
+  | P2.3     | interactive.py       | ~3270     | Set flag               |
+  Low    | 1 line              |
+  | P2.4     | interactive.py       | 3505      | Update condition       |
+  Low    | 1 line              |
+  | P3.1     | interactive.py       | ~3189     | Add path check         |
+  Medium | ~20 lines           |
+  | P3.2     | interactive.py       | Future    | Generalize args        |
+  Low    | Skipped             |
+  | P3.3     | interactive.py       | ~3205     | Cancellation handling  |
+  Low    | ~5 lines            |
+  | P4.1     | interactive.py       | 3136-3140 | Reorder detection      |
+  Low    | 0 lines (move)      |
+  | P4.2     | format_translator.py | 31        | Array detection        |
+  Low    | ~5 lines (optional) |
+  | P4.3     | N/A                  | Test only | Testing                |
+  Low    | 0 lines             |
+
+  Total Estimated Changes: ~118 new lines of code
+  Files Modified: 1-2 files
+  High Risk Changes: 1 (P2.2 - execution options)
+  Testing Required: Yes (P1.4, P4.3)

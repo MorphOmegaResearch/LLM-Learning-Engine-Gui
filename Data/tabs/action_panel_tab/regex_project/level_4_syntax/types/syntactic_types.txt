@@ -1,0 +1,10 @@
+\b(Do|Does|Did|Can|Could|Will|Would|Are|Is|Was|Were)\s+[\w\s]+\?
+\b(What|Who|Where|When|Why|How)\s+[\w\s]+\?
+^\w+\s+[\w\s]+!
+\bDon't\s+\w+\b
+\b(Please|Kindly)\s+\w+\b
+\b(What|How)\s+a?\s+\w+!
+\b[\w\s]+,\s+don't\s+you\?
+\b(Let's|Let us)\s+\w+\b
+\bWould\s+you\s+mind\s+\w+ing\b
+\bIf\s+[\w\s]+,\s+then\s+[\w\s]+\b

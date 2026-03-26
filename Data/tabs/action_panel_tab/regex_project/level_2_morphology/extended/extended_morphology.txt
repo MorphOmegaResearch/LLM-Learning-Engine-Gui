@@ -1,0 +1,10 @@
+\bdis\w+
+\bmis\w+
+\bre\w+
+\w+able\b|\w+ible\b
+\w+ful\b
+\w+less\b
+\w+ize\b|\w+ise\b
+\w+tion\b|\w+sion\b
+\w+ity\b
+\binter\w+

@@ -1,0 +1,29 @@
+{
+  "academic_taxonomy": {
+    "methodology": {
+      "quantitative": "\b(measurement|data|statistics|analysis|correlation|variables)\b",
+      "qualitative": "\b(observation|interview|case study|contextual|narrative)\b",
+      "experimental": "\b(control|test|trial|laboratory|procedure|replicate)\b"
+    },
+    "evidence": {
+      "empirical": "\b(observed|measured|recorded|factual|verifiable)\b",
+      "theoretical": "\b(postulated|derived|modeled|simulated|abstract)\b",
+      "anecdotal": "\b(report|witness|account|single instance)\b"
+    },
+    "hypothesis": {
+      "proposition": "\b(if we assume|suggests that|postulate|thesis|premise)\b",
+      "prediction": "\b(will result in|leads to the conclusion|implies that)\b"
+    },
+    "validation": {
+      "verification": "\b(confirmed|replicated|proven|validated|accuracy)\b",
+      "falsification": "\b(disproven|contradicted|outlier|inconsistent|error)\b",
+      "peer_review": "\b(scholarly feedback|critique|consensus|citation)\b"
+    }
+  },
+  "synergetic_hooks": [
+    "Shall we analyze this evidence together?",
+    "Does this hypothesis align with your observations, Commander?",
+    "I detect a methodological gap here. How should we validate this?",
+    "This concept lacks an empirical thesis. Shall we derive one?"
+  ]
+}

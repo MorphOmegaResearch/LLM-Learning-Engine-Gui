@@ -1,0 +1,161 @@
+{
+  "concepts": {
+    "hello": {
+      "definition": "a standard social greeting used to initiate interaction.",
+      "timestamp": "now"
+    },
+    "kernel": {
+      "definition": "the core of an operating system",
+      "timestamp": "now"
+    },
+    "memory": {
+      "definition": "the process of storing data",
+      "timestamp": "now"
+    },
+    "entropy": {
+      "definition": "the measure of disorder in a system.",
+      "timestamp": "now"
+    },
+    "server": {
+      "definition": "a computer that provides services to other computers",
+      "properties": {
+        "material": "metal",
+        "weight": "10kg",
+        "origin": "Germany",
+        "magnitude": "huge"
+      },
+      "timestamp": "2026-01-26T02:26:24.046686"
+    },
+    "bio-organic kernel": {
+      "definition": "",
+      "properties": {
+        "material": "synthetic proteins"
+      },
+      "timestamp": "2026-01-25T21:03:45.350428"
+    },
+    "quantum server": {
+      "definition": "",
+      "properties": {
+        "material": "reinforced carbon",
+        "weight": "50kg",
+        "origin": "Switzerland",
+        "magnitude": "huge",
+        "cost": "50000"
+      },
+      "timestamp": "2026-01-25T23:05:54.668354"
+    },
+    "quantum": {
+      "definition": "",
+      "properties": {
+        "weight": "50kg",
+        "origin": "data",
+        "magnitude": "macro",
+        "cost": "50000"
+      },
+      "timestamp": "2026-01-26T12:45:27.772227"
+    },
+    "cow": {
+      "definition": "",
+      "properties": {
+        "magnitude": "large",
+        "material": "organic",
+        "cost": "2000",
+        "environment": "land"
+      },
+      "timestamp": "2026-01-25T21:35:49.518031"
+    },
+    "whale": {
+      "definition": "",
+      "properties": {
+        "magnitude": "massive",
+        "material": "organic",
+        "environment": "ocean"
+      },
+      "timestamp": "2026-01-25T21:35:49.523344"
+    },
+    "quantum server heavy": {
+      "definition": "",
+      "properties": {
+        "environment": "result"
+      },
+      "timestamp": "2026-01-25T21:41:13.184573"
+    },
+    "mammal": {
+      "definition": "",
+      "properties": {
+        "environment": "result"
+      },
+      "timestamp": "2026-01-25T21:58:56.614836"
+    },
+    "cpu temperature": {
+      "definition": "",
+      "properties": {
+        "environment": "result"
+      },
+      "timestamp": "2026-01-25T22:05:49.140364"
+    },
+    "glip": {
+      "definition": "",
+      "properties": {
+        "weight": "1000kg"
+      },
+      "timestamp": "2026-01-26T00:06:54.909825"
+    },
+    "flurb": {
+      "definition": "",
+      "properties": {
+        "weight": "30kg"
+      },
+      "timestamp": "2026-01-26T00:09:03.919448"
+    },
+    "because": {
+      "definition": "",
+      "properties": {
+        "origin": "examples"
+      },
+      "timestamp": "2026-01-26T02:04:28.556632"
+    },
+    "quantum computing": {
+      "definition": "a type of computation using quantum mechanics",
+      "properties": {},
+      "timestamp": "2026-01-26T02:26:06.017217"
+    },
+    "a qubit": {
+      "definition": "the basic unit of quantum information",
+      "properties": {},
+      "timestamp": "2026-01-26T02:26:06.018184"
+    },
+    "superposition": {
+      "definition": "",
+      "properties": {
+        "origin": "classical bits"
+      },
+      "timestamp": "2026-01-26T02:26:06.063677"
+    },
+    "neural network": {
+      "definition": "a computing system inspired by biological brains",
+      "properties": {},
+      "timestamp": "2026-01-26T02:26:42.465917"
+    },
+    "a neuron": {
+      "definition": "the basic unit of a neural network",
+      "properties": {},
+      "timestamp": "2026-01-26T02:26:42.466874"
+    },
+    "deep learning": {
+      "definition": "neural networks with many layers",
+      "properties": {},
+      "timestamp": "2026-01-26T02:26:42.467699"
+    },
+    "backpropagation": {
+      "definition": "how neural networks learn from errors",
+      "properties": {},
+      "timestamp": "2026-01-26T02:26:42.468464"
+    }
+  },
+  "relations": [],
+  "metadata": {
+    "total_entities_learned": 23,
+    "last_updated": null
+  }
+}

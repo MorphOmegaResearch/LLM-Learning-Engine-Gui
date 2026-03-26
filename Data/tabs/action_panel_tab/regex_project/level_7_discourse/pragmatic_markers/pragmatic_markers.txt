@@ -1,0 +1,10 @@
+\b(I think|I believe|I guess|I suppose)\b
+\b(just|actually|basically|essentially)\b
+\b(sort of|kind of|rather|somewhat)\b
+\b(honestly|to be honest|frankly)\b
+\b(clearly|obviously|certainly|definitely)\b
+\b(perhaps|maybe|possibly)\b
+\b(in my opinion|from my perspective)\b
+\b(if I'm not mistaken|correct me if I'm wrong)\b
+\b(literally|absolutely|totally)\b
+\b(technically|strictly speaking)\b

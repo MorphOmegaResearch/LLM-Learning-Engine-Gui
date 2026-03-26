@@ -1,0 +1,10 @@
+\b(I'm not sure|I am not sure)\b
+\b(I don't know|I do not know)\b
+\b(maybe|perhaps)\b
+\b(I guess|I suppose)\b
+\b(it's possible|it is possible)\b
+\b(I'm not certain|I am not certain)\b
+\b(I can't say for sure)\b
+\b(it's hard to say)\b
+\b(I have no idea)\b
+\b(who knows)\b

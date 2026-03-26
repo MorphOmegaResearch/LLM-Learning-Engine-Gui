@@ -1,0 +1,16 @@
+{
+  "session_id": "20260216_213524_commande_f92331",
+  "session_name": "Session_20260216_213524_commande_f92331",
+  "created_at": "2026-02-16T21:35:24.404126",
+  "updated_at": "2026-02-16T21:35:24.413780",
+  "os_type": "linux",
+  "hostname": "commander-HP-Laptop-14s-dk0xxx",
+  "architecture": "x86_64",
+  "statistics": {
+    "taxonomic_nodes": 3,
+    "artifacts": 0,
+    "verbs": 33,
+    "journal_entries": 1,
+    "queries": 3
+  }
+}

@@ -1,0 +1,10 @@
+\b(velocity|acceleration|inertia|momentum|force)\b
+\b(entropy|enthalpy|conduction|convection|radiation)\b
+\b(voltage|current|resistance|capacitance|inductance)\b
+\b(gravity|gravitation|orbit|mass|weight)\b
+\b(tension|compression|torque|stress|strain)\b
+\b(fluid|pressure|viscosity|hydrodynamics)\b
+\b(fission|fusion|isotope|half-life)\b
+\b(quantum|wave-particle|superposition|entanglement)\b
+\b(kinetic energy|potential energy|thermodynamic|mechanical)\b
+\b(frequency|wavelength|amplitude|resonance)\b

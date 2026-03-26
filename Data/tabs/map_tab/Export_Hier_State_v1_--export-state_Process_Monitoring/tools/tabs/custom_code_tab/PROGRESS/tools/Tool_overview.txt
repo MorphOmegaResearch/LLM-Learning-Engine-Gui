@@ -1,0 +1,417 @@
+  I. Generic Tool Call System Components
+
+  A. Tool Call Detection & Parsing:
+  This is the initial stage where the system identifies and interprets a 
+  model's intent to use a tool.
+
+   * `interactive.py`:
+       * _extract_one_line_json_ENHANCED(raw: str, obj_type: str = None) 
+         (Lines ~90-298): The primary function for detecting tool calls. 
+         It employs multiple strategies:
+           * Attempts FormatTranslator for Python-style function calls.
+           * Parses clean JSON lines (OpenCode, Gemma-tools, Function 
+             call, Direct tool formats).
+           * Uses regex patterns to find embedded JSON.
+           * Includes fallback detection for natural language patterns 
+             (e.g., "read file 'x'").
+       * _extract_tool_calls_from_response(response: str) (Lines ~70-85): 
+         Extracts the first valid tool call JSON object, handling 
+         concatenated JSONs.
+   * `langchain_adapter_simple.py`:
+       * SimpleLangChainAdapter.parse_and_validate(model_output: str) 
+         (Lines ~40-60): Offers multiple parsing strategies:
+           * _try_direct_json(text: str) (Lines ~62-75): Direct JSON 
+             parsing.
+           * _try_partial_json(text: str) (Lines ~77-90): Partial JSON 
+             parsing using json_fixer.smart_json_parse.
+           * Falls back to 
+             FormatTranslator.translate_tool_call(model_output).
+       * _normalize_tool_call(parsed: Dict) (Lines ~92-100): Standardizes 
+         parsed tool calls into the OpenCode format 
+         ({"type":"tool_call","name":"TOOL_NAME","args":{}}).
+
+  B. Validation:
+  Ensures tool calls are well-formed, safe, and adhere to policies before 
+  execution.
+
+   * `tool_orchestrator.py`:
+       * validate_tool_call(tool_name: str, args: Dict[str, Any]) (Lines 
+         ~743-900): A comprehensive validation method that:
+           * Verifies tool existence and enablement.
+           * Suggests corrections for common tool name mistakes (e.g., ls 
+             to bash_execute).
+           * Determines the risk_level for the operation.
+           * Performs tool-specific argument validations (e.g., file_write
+              for overwrite risk, bash_execute for dangerous commands).
+           * Determines if user confirmation_required based on risk and 
+             configuration.
+   * Individual Tool Classes (`tools.py`):
+       * BaseTool._validate_path(file_path: str) (Lines ~60-70): Confirms 
+         paths are within the working directory.
+       * BaseTool._safe_path(file_path: str) (Lines ~72-78): Returns a 
+         validated Path object.
+       * Each tool's execute method often includes specific parameter 
+         validation.
+   * `command_policy.py` (used by `BashExecuteTool` and 
+     `GitOperationsTool`):
+       * CommandPolicy.parse_command_safe(command: str): Parses and 
+         validates bash commands against an allow-list.
+
+  C. Parameter Translation (Alias System):
+  Maps varied tool names and arguments from model training data to 
+  OpenCode's expected format.
+
+   * `tool_alias_translator.py`:
+       * ToolAliasTranslator class (Lines ~15-150): Contains self.aliases 
+         mapping aliases to OpenCode tools and argument transformer 
+         functions.
+       * translate(self, tool_name: str, args: Dict[str, Any]) (Lines 
+         ~50-65): The core method for translation.
+       * _map_file_path, _map_file_write, _map_python_code, etc. (Lines 
+         ~100-150): Functions to transform arguments for specific tool 
+         types.
+   * `interactive.py`:
+       * _safe_execute_tool(interactive_self, name: str, args: dict) 
+         (Lines ~300-340): Contains in-line parameter normalization logic 
+         for file operations, file_search, grep_search, and directory_list
+          before calling the tool manager. This appears to be a separate 
+         normalization layer.
+
+  D. Confirmation Gates:
+  A critical safety mechanism to ensure user approval for potentially 
+  risky operations.
+
+   * `tool_orchestrator.py`:
+       * ToolRiskLevel Enum (Lines ~25-30): Defines risk levels (SAFE, 
+         LOW, MEDIUM, HIGH, CRITICAL).
+       * ConfirmationGate Enum (Lines ~32-36): Defines confirmation types 
+         (NONE, IMPLICIT, EXPLICIT, MANDATORY).
+       * self.risk_profiles (Lines ~100-130): Maps tool names to 
+         ToolRiskLevel.
+       * self.confirmation_rules (Lines ~132-138): Maps ToolRiskLevel to 
+         ConfirmationGate.
+       * _get_user_confirmation(self, chain: ToolChain) (Lines ~555-570): 
+         Prompts the user for confirmation based on the chain's risk 
+         score.
+   * `tools.py`:
+       * confirmation_gates.py (imported): Used by tools like 
+         FileWriteTool and BashExecuteTool for specific action 
+         confirmations (e.g., overwriting, dangerous commands).
+       * ThinkTimeTool.execute() (Lines ~1096-1120): Includes its own 
+         Confirm.ask() for user approval.
+
+  E. Execution Flow:
+  The process of running tools, including retries and resource 
+  management.
+
+   * `tool_orchestrator.py`:
+       * execute_tool_chain(self, chain: ToolChain) (Lines ~460-530): The 
+         main entry point for executing a chain of tools.
+       * _execute_sequential(self, chain: ToolChain, result: 
+         OrchestrationResult, time_budget: TimeBudget) (Lines ~572-620): 
+         Executes tools one by one.
+       * _execute_parallel(self, chain: ToolChain, result: 
+         OrchestrationResult, time_budget: TimeBudget) (Lines ~622-650): 
+         Executes tools in parallel where possible.
+       * _execute_single_operation(self, operation: ToolOperation) (Lines 
+         ~670-690): Calls the ToolManager to execute a single tool.
+   * `tools.py`:
+       * ToolManager.execute_tool(self, tool_name: str, **kwargs) (Lines 
+         ~1560-1630): This method:
+           * Checks tool enablement and existence.
+           * Applies argument normalization.
+           * Handles caching for read-only operations.
+           * Implements retry logic (max_retries).
+           * Calls the individual tool's execute method.
+           * Special handling for change_directory to propagate the new 
+             working directory.
+   * `interactive.py`:
+       * _safe_execute_tool(interactive_self, name: str, args: dict) 
+         (Lines ~300-340): Wraps tool_manager.execute_tool with a rich 
+         spinner for live progress.
+
+  F. Chaining (Tool Chains & Auto-Chains):
+  Mechanisms for executing multiple tools in sequence or in response to 
+  previous outputs.
+
+   * `tool_orchestrator.py`:
+       * ToolChain dataclass (Lines ~40-47): Represents a sequence of 
+         operations.
+       * analyze_tool_request(self, user_input: str, route_metadata: Dict)
+          (Lines ~150-160): Plans optimal tool chains from user input.
+       * _create_optimized_chain(self, operations: List[ToolOperation], 
+         context: str) (Lines ~290-310): Optimizes operation order.
+       * _execute_sequential and _execute_parallel: Handle chain 
+         execution.
+   * `config.yaml`:
+       * system_prompt section (Lines ~117-120): Defines CHAINING POLICY 
+         for auto-executed safe chains (file_search → file_read, 
+         directory_list → file_read).
+   * `interactive.py`:
+       * _call_model_with_tool_result (Lines ~342-390): Feeds tool results
+          back to the model, enabling implicit chaining.
+       * _get_dynamic_system_prompt (Lines ~490-500): Informs the model 
+         about the auto-chaining policy.
+
+  G. Result Formatting:
+  How tool outputs are presented to the model and user for clarity and 
+  actionability.
+
+   * `interactive.py`:
+       * _format_tool_result_as_text(tool_name: str, tool_args: dict, 
+         result: dict, step_num: int = None) (Lines ~400-500): Formats 
+         results as plain text for model readability, including status, 
+         output, and next action hints. This is the primary method for 
+         model communication.
+       * _format_tool_result_for_model(tool_name: str, tool_args: dict, 
+         result: dict) (Lines ~502-700): Returns a dictionary for 
+         "backward compatibility," providing detailed error summaries and 
+         next action hints.
+
+  ---
+
+  II. Tool Inventory & Wiring
+
+  Here is a list of all tools identified in tools.py, along with their 
+  key wiring points.
+
+  Currently Enabled Tools (from `config.yaml`):
+  file_search, file_read, file_edit, file_write, file_copy, file_move, 
+  file_delete, file_create, file_fill, directory_list, bash_execute, 
+  grep_search, change_directory, system_info, think_time, 
+  process_manage, web_search, web_fetch, code_analyze, package_check.
+
+  Full Tool List & Wiring:
+
+   1. `file_read`
+       * Class Definition: tools.py, FileReadTool class (Lines ~80-110)
+       * Schema: tools.py, tool_definitions["file_read"] (Lines 
+         ~1240-1255)
+       * Registration: tools.py, ToolManager.tools["file_read"] (Line 
+         ~1150)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['file_read'] = ToolRiskLevel.SAFE (Line ~105)
+       * Alias: read_text (Line ~1151)
+
+   2. `file_write`
+       * Class Definition: tools.py, FileWriteTool class (Lines ~112-160)
+       * Schema: tools.py, tool_definitions["file_write"] (Lines 
+         ~1257-1270)
+       * Registration: tools.py, ToolManager.tools["file_write"] (Line 
+         ~1152)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['file_write'] = ToolRiskLevel.MEDIUM (Line 
+         ~106)
+
+   3. `file_edit`
+       * Class Definition: tools.py, FileEditTool class (Lines ~162-205)
+       * Schema: tools.py, tool_definitions["file_edit"] (Lines 
+         ~1272-1287)
+       * Registration: tools.py, ToolManager.tools["file_edit"] (Line 
+         ~1153)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['file_edit'] = ToolRiskLevel.MEDIUM (Line 
+         ~107)
+
+   4. `bash_execute`
+       * Class Definition: tools.py, BashExecuteTool class (Lines 
+         ~207-265)
+       * Schema: tools.py, tool_definitions["bash_execute"] (Lines 
+         ~1320-1333)
+       * Registration: tools.py, ToolManager.tools["bash_execute"] (Line 
+         ~1154)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['bash_execute'] = ToolRiskLevel.HIGH (Line 
+         ~112)
+       * Command Policy: Uses CommandPolicy (Lines ~210, ~240) for command
+          validation and execution.
+
+   5. `grep_search`
+       * Class Definition: tools.py, GrepSearchTool class (Lines ~267-330)
+       * Schema: tools.py, tool_definitions["grep_search"] (Lines 
+         ~1290-1305)
+       * Registration: tools.py, ToolManager.tools["grep_search"] (Line 
+         ~1155)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['grep_search'] = ToolRiskLevel.SAFE (Line 
+         ~113)
+
+   6. `git_operations`
+       * Class Definition: tools.py, GitOperationsTool class (Lines 
+         ~332-405)
+       * Schema: tools.py, tool_definitions["git_operations"] (Lines 
+         ~1380-1395)
+       * Registration: tools.py, ToolManager.tools["git_operations"] (Line
+          ~1156)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['git_operations'] = ToolRiskLevel.MEDIUM (Line
+          ~114)
+       * Command Policy: Uses CommandPolicy (Line ~335) for git commands.
+
+   7. `change_directory`
+       * Class Definition: tools.py, ChangeDirectoryTool class (Lines 
+         ~500-535)
+       * Schema: tools.py, tool_definitions["change_directory"] (Lines 
+         ~1335-1348)
+       * Registration: tools.py, ToolManager.tools["change_directory"] 
+         (Line ~1157)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['change_directory'] = ToolRiskLevel.MEDIUM 
+         (Line ~115)
+       * Special Handling: ToolManager.execute_tool (Lines ~1620-1625) 
+         propagates working_dir changes to all tools.
+
+   8. `directory_list`
+       * Class Definition: tools.py, DirectoryListTool class (Lines 
+         ~407-465)
+       * Schema: tools.py, tool_definitions["directory_list"] (Lines 
+         ~1307-1318)
+       * Registration: tools.py, ToolManager.tools["directory_list"] (Line
+          ~1158)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['directory_list'] = ToolRiskLevel.SAFE (Line 
+         ~109)
+
+   9. `file_search`
+       * Class Definition: tools.py, FileSearchTool class (Lines ~467-498)
+       * Schema: tools.py, tool_definitions["file_search"] (Lines 
+         ~1289-1305)
+       * Registration: tools.py, ToolManager.tools["file_search"] (Line 
+         ~1159)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['file_search'] = ToolRiskLevel.SAFE (Line 
+         ~108)
+
+   10. `system_info`
+       * Class Definition: tools.py, SystemInfoTool class (Lines ~540-585)
+       * Schema: tools.py, tool_definitions["system_info"] (Lines 
+         ~1350-1355)
+       * Registration: tools.py, ToolManager.tools["system_info"] (Line 
+         ~1160)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['system_info'] = ToolRiskLevel.SAFE (Line 
+         ~116)
+
+   11. `resource_request`
+       * Class Definition: tools.py, ResourceRequestTool class (Lines 
+         ~587-645)
+       * Schema: tools.py, tool_definitions["resource_request"] (Lines 
+         ~1357-1370)
+       * Registration: tools.py, ToolManager.tools["resource_request"] 
+         (Line ~1161)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['resource_request'] = ToolRiskLevel.SAFE (Line
+          ~117)
+
+   12. `file_copy`
+       * Class Definition: tools.py, FileCopyTool class (Lines ~537-560)
+       * Schema: tools.py, tool_definitions["file_copy"] (Lines 
+         ~1397-1410)
+       * Registration: tools.py, ToolManager.tools["file_copy"] (Line 
+         ~1163)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['file_copy'] = ToolRiskLevel.MEDIUM (Line 
+         ~110)
+
+   13. `file_move`
+       * Class Definition: tools.py, FileMoveTool class (Lines ~562-585)
+       * Schema: tools.py, tool_definitions["file_move"] (Lines 
+         ~1412-1425)
+       * Registration: tools.py, ToolManager.tools["file_move"] (Line 
+         ~1164)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['file_move'] = ToolRiskLevel.HIGH (Line ~111)
+
+   14. `file_delete`
+       * Class Definition: tools.py, FileDeleteTool class (Lines ~587-610)
+       * Schema: tools.py, tool_definitions["file_delete"] (Lines 
+         ~1427-1438)
+       * Registration: tools.py, ToolManager.tools["file_delete"] (Line 
+         ~1165)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['file_delete'] = ToolRiskLevel.HIGH (Line 
+         ~110)
+
+   15. `file_create`
+       * Class Definition: tools.py, FileCreateTool class (Lines ~612-635)
+       * Schema: tools.py, tool_definitions["file_create"] (Lines 
+         ~1440-1453)
+       * Registration: tools.py, ToolManager.tools["file_create"] (Line 
+         ~1166)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['file_create'] = ToolRiskLevel.MEDIUM (Line 
+         ~109)
+
+   16. `file_fill`
+       * Class Definition: tools.py, FileFillTool class (Lines ~637-665)
+       * Schema: tools.py, tool_definitions["file_fill"] (Lines 
+         ~1455-1469)
+       * Registration: tools.py, ToolManager.tools["file_fill"] (Line 
+         ~1167)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['file_fill'] = ToolRiskLevel.MEDIUM (Line 
+         ~109)
+
+   17. `process_manage`
+       * Class Definition: tools.py, ProcessManageTool class (Lines 
+         ~667-725)
+       * Schema: tools.py, tool_definitions["process_manage"] (Lines 
+         ~1471-1488)
+       * Registration: tools.py, ToolManager.tools["process_manage"] (Line
+          ~1168)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['process_manage'] = ToolRiskLevel.HIGH (Line 
+         ~118)
+
+   18. `web_search`
+       * Class Definition: tools.py, WebSearchTool class (Lines ~727-765)
+       * Schema: tools.py, tool_definitions["web_search"] (Lines 
+         ~1490-1503)
+       * Registration: tools.py, ToolManager.tools["web_search"] (Line 
+         ~1169)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['web_search'] = ToolRiskLevel.MEDIUM (Line 
+         ~119)
+
+   19. `web_fetch`
+       * Class Definition: tools.py, WebFetchTool class (Lines ~767-805)
+       * Schema: tools.py, tool_definitions["web_fetch"] (Lines 
+         ~1505-1518)
+       * Registration: tools.py, ToolManager.tools["web_fetch"] (Line 
+         ~1170)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['web_fetch'] = ToolRiskLevel.MEDIUM (Line 
+         ~120)
+
+   20. `code_analyze`
+       * Class Definition: tools.py, CodeAnalyzeTool class (Lines 
+         ~807-855)
+       * Schema: tools.py, tool_definitions["code_analyze"] (Lines 
+         ~1520-1535)
+       * Registration: tools.py, ToolManager.tools["code_analyze"] (Line 
+         ~1171)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['code_analyze'] = ToolRiskLevel.MEDIUM (Line 
+         ~121)
+
+   21. `package_check`
+       * Class Definition: tools.py, PackageCheckTool class (Lines 
+         ~857-915)
+       * Schema: tools.py, tool_definitions["package_check"] (Lines 
+         ~1537-1550)
+       * Registration: tools.py, ToolManager.tools["package_check"] (Line 
+         ~1172)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['package_check'] = ToolRiskLevel.MEDIUM (Line 
+         ~122)
+
+   22. `think_time`
+       * Class Definition: tools.py, ThinkTimeTool class (Lines ~917-965)
+       * Schema: tools.py, tool_definitions["think_time"] (Lines 
+         ~1552-1567)
+       * Registration: tools.py, ToolManager.tools["think_time"] (Line 
+         ~1173)
+       * Risk Profile: tool_orchestrator.py, 
+         self.risk_profiles['think_time'] = ToolRiskLevel.MEDIUM (Line 
+         ~123)
+

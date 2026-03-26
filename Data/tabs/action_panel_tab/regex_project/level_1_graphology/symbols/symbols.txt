@@ -1,0 +1,10 @@
+[+\-*/%=<>]
+[\u00A9\u00AE\u2122]
+[\u00A7\u00B6]
+[\u2200-\u22FF]
+\b(plus|minus|times|divided by|equals)\b
+[\u00B1\u221E\u2248]
+[\u2208\u2209\u2282\u2283]
+[\u2211\u220F\u2202\u2207]
+\b(percent|percentage)\b
+[\u2120\u2117\u2110]

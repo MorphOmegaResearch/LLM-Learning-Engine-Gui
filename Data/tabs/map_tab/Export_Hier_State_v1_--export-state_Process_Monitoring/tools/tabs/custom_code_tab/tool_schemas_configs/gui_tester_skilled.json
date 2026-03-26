@@ -1,0 +1,15 @@
+{
+  "description": "Tool schema for GUI Tester skilled",
+  "type": "gui_tester",
+  "class": "skilled",
+  "enabled_tools": {
+    "browser_screenshot": true,
+    "browser_click": true,
+    "browser_type": true,
+    "element_detect": true,
+    "wait": true,
+    "browser_navigate": true,
+    "browser_scroll": true
+  },
+  "tools": []
+}
